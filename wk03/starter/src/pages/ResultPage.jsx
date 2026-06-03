@@ -27,6 +27,13 @@ export default function ResultPage() {
     navigate("/");
   }
 
+  // Lazy-load the PDF code only on click, so jsPDF stays out of the initial
+  // bundle (it is only needed by users who download a copy of their result).
+  async function handleDownloadPdf() {
+    const { downloadResultPdf } = await import("../resultPdf");
+    downloadResultPdf(answers, { date: new Date() });
+  }
+
   useEffect(() => {
     document.title = "Your result - Green Home Grant - GOV.UK";
   }, []);
@@ -155,7 +162,14 @@ export default function ResultPage() {
         </>
       )}
 
-      <p className="govuk-body govuk-!-margin-top-6">
+      <div className="govuk-button-group govuk-!-margin-top-6">
+        <button
+          type="button"
+          className="govuk-button"
+          onClick={handleDownloadPdf}
+        >
+          Download your result (PDF)
+        </button>
         <button
           type="button"
           className="govuk-button govuk-button--secondary"
@@ -163,7 +177,7 @@ export default function ResultPage() {
         >
           Start a new check
         </button>
-      </p>
+      </div>
     </>
   );
 }
