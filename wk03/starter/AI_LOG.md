@@ -19,3 +19,12 @@ Record every instance where you use AI to generate, refactor, or debug code. Fou
 | **Task** | Create a content-first plan covering all page copy, question options, eligibility rules, and result messages for the service — saved to `docs/plans/2026-06-03-content-plan.md` |
 | **What AI Generated** | Full content plan including: start page description text; exact question headings, radio option labels and values, hint text, and error messages for all 5 question pages; check-your-answers row labels and display-label mapping; 5 priority-ordered eligibility rules in plain language; measures-available logic per property type; result page panel titles and body paragraphs for all three outcomes (eligible, partial, ineligible) including sub-cases for renter vs mid-income and income-too-high vs already-fitted; GOV.UK error pattern description; accessibility statement and footer link content; and a content decisions rationale table. |
 | **What You Changed + Why** | No changes made to the generated content — this was a planning artefact reviewed before any code was written. Content decisions (e.g. three income bands rather than free-text, all renters routed to partial regardless of income) were accepted as reasonable for a fictional scheme. Grant amounts ("up to £10,000 / £5,000") accepted as appropriately hedged. |
+
+## Prompt 2: [Agent-Jack] Agent work split plan for 4-way parallel development
+
+| Field | Detail |
+|-------|--------|
+| **Date + Time** | 2026-06-03 |
+| **Task** | Define how to split the Green Home Grant build across 4 agents to maximise parallel work and minimise merge conflicts — saved to `docs/plans/2026-06-03-agent-work-split.md` |
+| **What AI Generated** | Work split assigning strict file ownership to each agent: Agent 1 (App.jsx + all shared components + Start/Accessibility pages), Agent 2 (question pages 1–3), Agent 3 (questions 4–5 + Check Answers), Agent 4 (eligibility logic + Result page + unit tests). Included an agreed interface contract (formData shape and prop signature), a full file ownership table, conflict risk analysis, and notes for collating all four agents' plans into one implementation plan. |
+| **What You Changed + Why** | No changes — reviewed and accepted as a planning artefact. Strict file ownership confirmed as the right strategy; AI_LOG.md is the only unavoidable shared file and is low-risk to merge. |
