@@ -419,6 +419,126 @@ The GOV.UK footer should contain at minimum:
 
 ---
 
+## 11. Second Eligibility Pathway — Tenant vs Owner Routes
+
+> **Added by:** Agent-Dale, 2026-06-03 — implements the README stretch goal
+> "second eligibility pathway with different questions". Research and option
+> analysis: `docs/research/stretch-routes.md`. This section is the authoritative
+> copy/rules source for the tenant route; it **extends** §3, §5 and §7 rather
+> than replacing them. Where it diverges from the original linear flow, the
+> divergence is called out and was flagged to the user as a change to settled
+> PLAN.md §3/§4 decisions.
+
+### 11.1 What changes
+
+The journey is no longer one fixed five-question flow. It shares a prefix
+(property type, ownership) then **branches by tenure** at the ownership
+question:
+
+- **Owners** answer the original questions: income → insulation → heating (5 steps).
+- **Tenants** (private renter / housing association / council) answer a new
+  landlord-permission question → insulation (4 steps). They are **not** asked
+  income or heating, because neither changes a tenant's outcome and GOV.UK
+  guidance is to ask only relevant questions.
+
+Both paths re-converge at insulation, then check-answers → result.
+
+```
+/property-type → /ownership ─┬─ owner  → /income → /insulation → /heating ──┐
+                             │                                              ├→ /check-answers → /result
+                             └─ tenant → /landlord-consent → /insulation ───┘
+```
+
+### 11.2 New question — Landlord Permission (tenant path only)
+
+| Element | Content |
+|---------|---------|
+| Route | `/landlord-consent` |
+| Shown to | Renters only (after the ownership branch) |
+| Back link | `/ownership` |
+| Page heading | Do you have your landlord's permission to make energy efficiency improvements? |
+| Input type | Radio buttons |
+| Hint text | The work is paid for by the grant, but your landlord must agree to it because they own the property. |
+| Help details (summary) | Why we need to know about landlord permission |
+| Help details (body) | Energy efficiency improvements like insulation and heat pumps are fixed to the property, so the owner has to agree before they can be installed. If you are not sure, you can still continue and we will tell you how to ask your landlord. |
+| Error message | Select whether you have your landlord's permission |
+
+**Options (in order):**
+
+| Value | Display label |
+|-------|--------------|
+| `yes` | Yes |
+| `no` | No |
+| `not-sure` | Not sure |
+
+### 11.3 Eligibility rules (extends §5)
+
+Tenure is evaluated **first**, before the income means-test — so the
+high-income exclusion (§5 Rule 1) becomes an **owner-only** gate. Rationale:
+the income cap is a means-test on whoever would otherwise self-fund; for a
+tenanted property that is the landlord (whose income we do not collect), not
+the tenant. Applying the tenant's income would gate the wrong person and work
+against the split-incentive problem the scheme targets.
+
+New priority order (first match wins):
+
+| Priority | Rule | `outcome` | `reason` |
+|---|---|---|---|
+| 1 | tenant AND `landlordConsent === "no"` | `ineligible` | `no-landlord-consent` |
+| 2 | tenant (consent `yes` / `not-sure`) | `partial` | `renter` |
+| 3 | owner AND `incomeBand === "high"` | `ineligible` | `income-too-high` |
+| 4 | owner AND full insulation AND heat pump | `ineligible` | `no-measures-needed` |
+| 5 | owner AND `incomeBand === "mid"` | `partial` | `owner-mid-income` |
+| 6 | owner AND `incomeBand === "low"` | `eligible` | `owner-low-income` |
+| — | Default | `ineligible` | `default` |
+
+"tenant" = `ownership` in `{private-renter, housing-association, council}`.
+
+### 11.4 Result copy (extends §7)
+
+**New NOT ELIGIBLE variant — no landlord permission** (`reason: no-landlord-consent`):
+
+- Panel title: `You are not eligible for a Green Home Grant` (shared ineligible panel)
+- Body paragraphs:
+  ```
+  You told us you do not have your landlord's permission to make energy
+  efficiency improvements. Your landlord needs to agree before you can apply
+  for a Green Home Grant.
+
+  If your landlord changes their decision, you can use this service again to
+  check what your home could qualify for.
+  ```
+- Then the shared ineligible paragraph + `Find other energy efficiency schemes` link (§7 Outcome C).
+
+**PARTIAL / renter — measures added.** The renter result (§7 Outcome B, renter)
+now also lists the measures that may be available, after the information-pack
+paragraph and before "What to do next":
+```
+Based on your answers, the following measures may be available for your home,
+subject to a property assessment:
+
+[bulleted list of available measures — derived from §6]
+```
+"may be available … subject to a property assessment" is deliberate: a tenant
+is not asked about heating, so the list is indicative, not a confirmed offer.
+This makes the insulation question relevant to the tenant outcome.
+
+### 11.5 Check-answers and step counter
+
+- The summary list is **path-aware**: it shows only the questions on the user's
+  path (tenants see landlord permission and insulation; owners see income,
+  insulation, heating). Change-link round-trips and the empty-answer guard use
+  the same path-aware field list, so switching ownership mid-flow re-routes the
+  user through the correct remaining questions.
+- New summary row label for the tenant path: **Landlord's permission**
+  (visually-hidden change text: "whether you have your landlord's permission").
+- The "Step X of N" indicator is now **path-aware**: N is 5 for owners and 4
+  for tenants (it updates live when a tenant is chosen on the ownership page).
+  This supersedes the fixed "Step X of 5" in PLAN.md AD12, which would be
+  factually wrong once the paths differ in length.
+
+---
+
 ## Content Decisions & Rationale
 
 | Decision | Reason |
@@ -429,3 +549,5 @@ The GOV.UK footer should contain at minimum:
 | Flat cannot get loft insulation | Physical reality — flats typically have no accessible loft. Prevents unrealistic measure suggestions. |
 | No back link on result page | Prevents users from using browser Back to silently re-submit. "Change" links on the check-answers page are the intended route for corrections. |
 | Grant amount shown as "up to £10,000 / £5,000" | Actual amount depends on installer quote and approved measures — an exact figure cannot be given. "Up to" sets a ceiling without misleading. |
+| Tenants asked landlord permission, not income/heating (§11) | A tenant's outcome turns on landlord involvement, not their own means or current heating. Asking only relevant questions follows GOV.UK "branching questions" guidance and keeps the tenant path short. |
+| High-income exclusion made owner-only (§11) | The income means-test should gate whoever would self-fund. For a rented home that is the landlord, whose income is not collected; gating the tenant's income targets the wrong person and undercuts the split-incentive policy. |
