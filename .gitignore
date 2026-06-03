@@ -286,3 +286,5 @@ $RECYCLE.BIN/
 .claude/settings.local.json
 # Personal CLAUDE notes that aren't meant for the repo
 CLAUDE.local.md
+.claude/
+

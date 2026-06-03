@@ -11,7 +11,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: PORT,
     strictPort: true,
-    hmr: { protocol: 'wss', host: HOSTNAME, clientPort: 443 },
+    hmr: { protocol: 'wss', host: HOSTNAME, clientPort: 5002 },
   },
   test: {
     globals: true,
