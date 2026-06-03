@@ -19,8 +19,13 @@ const FIELDS = ["propertyType", "ownership", "incomeBand", "insulation", "heatin
  * @returns {JSX.Element}
  */
 export default function ResultPage() {
-  const { answers } = useFormContext();
+  const { answers, resetAnswers } = useFormContext();
   const navigate = useNavigate();
+
+  function handleStartNewCheck() {
+    resetAnswers();
+    navigate("/");
+  }
 
   useEffect(() => {
     document.title = "Your result - Green Home Grant - GOV.UK";
@@ -126,6 +131,16 @@ export default function ResultPage() {
           </p>
         </>
       )}
+
+      <p className="govuk-body govuk-!-margin-top-6">
+        <button
+          type="button"
+          className="govuk-button govuk-button--secondary"
+          onClick={handleStartNewCheck}
+        >
+          Start a new check
+        </button>
+      </p>
     </>
   );
 }

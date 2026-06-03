@@ -18,12 +18,24 @@ export default function GovukFooter() {
           <div className="govuk-footer__meta-item">
             <ul className="govuk-footer__inline-list">
               <li className="govuk-footer__inline-list-item">
-                <Link className="govuk-footer__link" to="/accessibility-statement">
-                  Accessibility statement
-                </Link>
+                <a className="govuk-footer__link" href="#">Help</a>
+              </li>
+              <li className="govuk-footer__inline-list-item">
+                <a className="govuk-footer__link" href="#">Privacy</a>
               </li>
               <li className="govuk-footer__inline-list-item">
                 <a className="govuk-footer__link" href="#">Cookies</a>
+              </li>
+              <li className="govuk-footer__inline-list-item">
+                <a className="govuk-footer__link" href="#">Contact</a>
+              </li>
+              <li className="govuk-footer__inline-list-item">
+                <a className="govuk-footer__link" href="#">Terms and conditions</a>
+              </li>
+              <li className="govuk-footer__inline-list-item">
+                <Link className="govuk-footer__link" to="/accessibility-statement">
+                  Accessibility statement
+                </Link>
               </li>
             </ul>
           </div>
