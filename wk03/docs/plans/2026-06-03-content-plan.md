@@ -1,5 +1,9 @@
 # Green Home Grant – Content Plan
 
+**Author:** Agent-Jack  
+**Date:** 2026-06-03  
+**Status:** Draft — to be collated with plans from other agents into a single implementation plan
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Define the exact words, options, rules, and outcomes for the Green Home Grant eligibility checker so that any developer can build the service without inventing content.
