@@ -254,6 +254,8 @@ test-results/
 .playwright-mcp/
 # Local smoke-test screenshots (verification artefacts, not source)
 smoke-*.png
+baseline-*.png
+after-*.png
 
 # === OS files ===
 .DS_Store

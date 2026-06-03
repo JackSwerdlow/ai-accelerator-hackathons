@@ -481,26 +481,63 @@ a:focus {
   text-decoration: underline;
 }
 
-/* Details (Tier-2 contextual help, PLAN.md §6.7) */
+/* Details (Tier-2 contextual help, PLAN.md §6.7) — canonical GOV.UK
+   disclosure: native marker hidden, custom right-pointing triangle drawn
+   via ::before that rotates to down-pointing on [open]. Underline lives
+   on the summary-text span only so it doesn't extend under the triangle. */
 .govuk-details {
   margin-bottom: var(--govuk-spacing-4);
 }
 .govuk-details__summary {
+  position: relative;
   display: inline-block;
+  margin-bottom: var(--govuk-spacing-1);
+  padding-left: 25px;
   color: var(--govuk-link-colour);
   cursor: pointer;
+  list-style: none;
+}
+.govuk-details__summary::-webkit-details-marker {
+  display: none;
+}
+.govuk-details__summary::before {
+  content: "";
+  position: absolute;
+  top: 0.4em;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 7px 0 7px 12.124px;
+  border-color: transparent transparent transparent currentColor;
+  transition: transform 0.1s ease;
+}
+.govuk-details[open] > .govuk-details__summary::before {
+  transform: rotate(90deg);
+}
+.govuk-details__summary-text {
   text-decoration: underline;
 }
 .govuk-details__summary:focus {
   outline: 3px solid var(--govuk-focus-colour);
+  outline-offset: 0;
   background-color: var(--govuk-focus-colour);
   color: var(--govuk-black);
+  text-decoration: none;
+}
+.govuk-details__summary:focus .govuk-details__summary-text {
+  text-decoration: none;
 }
 .govuk-details__text {
   padding: var(--govuk-spacing-3);
   border-left: 5px solid var(--govuk-mid-grey);
   margin-top: var(--govuk-spacing-2);
   font-size: 19px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .govuk-details__summary::before {
+    transition: none;
+  }
 }
 
 /* Error summary body (referenced in §6.2 markup) */
