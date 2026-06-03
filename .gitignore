@@ -219,3 +219,67 @@ __marimo__/
 
 # Node modules
 node_modules/
+
+# === JavaScript / Node / Vite (extends "Node modules" above) ===
+# Vite caches and timestamp files it writes alongside the config
+.vite/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+dist-ssr/
+
+# Vite/Node env files (keep `.env.example` committed; ignore real secrets)
+*.local
+.env.local
+.env.*.local
+
+# JS test coverage (Vitest, c8, nyc)
+coverage/
+.nyc_output/
+
+# Lint caches
+.eslintcache
+.stylelintcache
+
+# Package manager debug logs and caches
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+
+# Playwright (used for the README's stretch E2E goal)
+playwright-report/
+test-results/
+.playwright/
+
+# === OS files ===
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# === Editor / IDE local files ===
+# Vim swap and backup
+*.swp
+*.swo
+*~
+*.bak
+
+# JetBrains — uncomment to ignore the whole project folder
+# .idea/
+*.iml
+
+# VS Code — keep shareable settings in .vscode/ (extensions.json, launch.json)
+# but ignore per-user local state
+.vscode/*.local
+.vscode/.history/
+.history/
+
+# === Claude Code / agent local state ===
+# Per-machine Claude settings overrides — do not commit personal config
+.claude/settings.local.json
+# Personal CLAUDE notes that aren't meant for the repo
+CLAUDE.local.md
