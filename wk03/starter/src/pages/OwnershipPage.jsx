@@ -1,18 +1,34 @@
-// TODO: Import useNavigate from react-router-dom
+/**
+ * Question 2: ownership status. Thin wrapper around <QuestionPage>
+ * per PLAN.md §6.1 / content plan §3 Q2.
+ */
+import QuestionPage from "../components/QuestionPage";
 
-function OwnershipPage() {
-  // TODO: Read current value from form state
-  // TODO: Add validation and error handling
-  // TODO: On "Continue", save answer and navigate to /income
+const OPTIONS = [
+  { value: "owner", label: "I own my home" },
+  { value: "private-renter", label: "I rent from a private landlord" },
+  { value: "housing-association", label: "I rent from a housing association" },
+  { value: "council", label: "I rent from a council or local authority" },
+];
 
+/**
+ * Renders the "What is your ownership status?" question (step 2 of 5),
+ * with a hint clarifying that mortgaged owners pick "I own my home".
+ *
+ * @returns {JSX.Element}
+ */
+export default function OwnershipPage() {
   return (
-    <>
-      <a href="/property-type" className="govuk-back-link">Back</a>
-      <h1 className="govuk-heading-l">Do you own or rent your property?</h1>
-      {/* TODO: Add radio buttons for: Own (with or without mortgage), Rent from a private landlord, Rent from a housing association, Rent from the council */}
-      {/* TODO: Add a Continue button */}
-    </>
+    <QuestionPage
+      pageTitle="What is your ownership status?"
+      fieldName="ownership"
+      step={2}
+      totalSteps={5}
+      options={OPTIONS}
+      hint='If you own your home with a mortgage, select "I own my home".'
+      errorMessage="Select your ownership status"
+      backHref="/property-type"
+      onContinueNavigateTo="/income"
+    />
   );
 }
-
-export default OwnershipPage;
