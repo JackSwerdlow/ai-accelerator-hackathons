@@ -251,6 +251,9 @@ pnpm-debug.log*
 playwright-report/
 test-results/
 .playwright/
+.playwright-mcp/
+# Local smoke-test screenshots (verification artefacts, not source)
+smoke-*.png
 
 # === OS files ===
 .DS_Store
