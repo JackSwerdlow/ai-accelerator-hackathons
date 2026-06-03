@@ -1,7 +1,46 @@
 # Repository Instructions
 
-## Collaborative Working
-This repo (ai-accelerator-hackathons) is for collaborative working, as such many users/agents will be commiting and pushing code to the repository at the same time. Therefore it is important to fix merge issues without ignoring others code. To do this effectively, a log will be used to track prompts and responses from each user/agent. Also, utilise detailed commit messages to communicate to other agents.
-Before pushing changes, always pull latest and attempt to rebase onto the latest commit in main if possible without large merge conflicts. If there are large merge conflicts, discuss with the user how best to resolve them.
+## Agent Identity
 
-It is *IMPORTANT* that before ever starting work in this repo, you ask the user for an indentifying name to go by (e.g. Agent1). You should use this identifier in all commits, log entries, communications/instructions to other agents, etc.
+Before doing anything else in this repo, ask the user for an identifying name (e.g. Agent1, Agent-Jack). Use this identifier in:
+- Every commit message (prefix with `[AgentName]`)
+- Every AI_LOG.md entry
+- Any notes or instructions left for other agents in plans or documents
+
+## Git Workflow
+
+This repo is shared — multiple agents commit and push simultaneously. Follow this sequence for every task, without exception.
+
+### 1. Before making any file changes
+- Run `git pull --rebase`
+- If there are conflicts, resolve them preserving both agents' intent — never discard another agent's work
+- If a conflict is large or ambiguous, discuss with the user before resolving
+
+### 2. Do the work
+
+### 3. Before committing
+- Add an AI_LOG.md entry if the task requires one (see project-level CLAUDE.md for rules)
+
+### 4. Commit
+- Stage only the relevant files — never `git add .` without checking `git status` first
+- Every commit message must:
+  - Start with `[AgentName]` followed by a short summary (first line under 72 chars)
+  - Include a body explaining what changed and why (one bullet per file or concern is fine)
+  - End with: `Co-Authored-By: Claude Sonnet 4.6 (1M context) <noreply@anthropic.com>`
+
+### 5. Push
+- Run `git pull --rebase` once more before pushing, in case another agent pushed while you were working
+- Push immediately — do not leave commits sitting unpushed
+
+## Commit Message Example
+
+```
+[Agent-Jack] Add eligibility logic and unit tests
+
+- src/utils/eligibility.js: pure function implementing 5 priority-ordered
+  rules from the content plan; returns { result, measures }
+- src/utils/eligibility.test.js: 7 tests covering all ineligible paths,
+  eligible path, partial-renter path, and measures logic
+
+Co-Authored-By: Claude Sonnet 4.6 (1M context) <noreply@anthropic.com>
+```

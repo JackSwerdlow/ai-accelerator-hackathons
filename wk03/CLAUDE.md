@@ -1,7 +1,36 @@
-# Project Instructions
+# wk03 Project Instructions
 
-## Prompt Logging
+## Before Starting Any Work
 
-Keep a log of all prompts and responses in starter/AI_LOG.md unless the prompt+response is a follow on from an inital prompt/response. For example, do not create a new entry for "Claude: Which of these designs do you like, 1, 2, 3. User: 1".
+1. Run `git pull --rebase` (required — see repo-level CLAUDE.md)
+2. Read all entries in `starter/AI_LOG.md` added since you last worked
+3. If another agent's recent entries conflict with your planned approach, discuss with the user before proceeding
 
-Make a note of which agent you are, this is a collaborative project and as such there will be multiple agents commiting prompts to the AI_LOG.md file. Ensure that you add you agent identifier to the prompt such that each agent can track what each other is doing. It is important before you start creating anything, that you pull latest and read any new entries in the log file. If there are any major conflicts in your plan compared to the logged things, discuss with the user how to procede.
+## AI Assistance Log
+
+Every meaningful AI-assisted task must be recorded in `starter/AI_LOG.md`. Add the entry **as the last step before committing** — the log entry and the work it documents must always be in the same commit.
+
+### What counts as a new entry
+
+Add an entry when AI generated, refactored, or debugged code, or produced a meaningful output such as a plan, content design, architecture decision, or test suite.
+
+### What does NOT count as a new entry
+
+Do not add an entry for follow-up clarifications, selecting between options the AI offered, or minor corrections to a previous response.
+
+### Required format — four fields per entry
+
+```markdown
+## Prompt N: [AgentName] <short description of task>
+
+| Field | Detail |
+|-------|--------|
+| **Date + Time** | YYYY-MM-DD |
+| **Task** | What you asked the AI to do |
+| **What AI Generated** | Specific description of the output — be concrete enough that another agent can understand what was built without reading the code or the plan |
+| **What You Changed + Why** | What you modified before committing, and why. If nothing was changed, say so explicitly and state why the output was accepted as-is. |
+```
+
+### Numbering
+
+Entries are numbered sequentially across all agents. Before adding your entry, check the last entry number in the file and increment by one. (Prompt 0 is the seeded example.)
