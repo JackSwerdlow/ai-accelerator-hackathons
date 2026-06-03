@@ -34,3 +34,7 @@ Do not add an entry for follow-up clarifications, selecting between options the 
 ### Numbering
 
 Entries are numbered sequentially across all agents. Before adding your entry, check the last entry number in the file and increment by one. (Prompt 0 is the seeded example.)
+
+## Plan
+
+The final implementation plan is in docs/PLAN.md, the other docs in plans/ and research/ can usually be ignored as the relevent infomation and choices have been outlined in docs/PLAN.md.
