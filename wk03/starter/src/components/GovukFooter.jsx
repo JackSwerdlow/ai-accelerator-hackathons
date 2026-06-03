@@ -8,6 +8,9 @@ export default function GovukFooter() {
               <li className="govuk-footer__inline-list-item">
                 <a className="govuk-footer__link" href="/accessibility-statement">Accessibility statement</a>
               </li>
+              <li className="govuk-footer__inline-list-item">
+                <a className="govuk-footer__link" href="#">Cookies</a>
+              </li>
             </ul>
           </div>
         </div>

@@ -5,6 +5,9 @@ function GovukHeader() {
         <a href="/" className="govuk-header__link">
           GOV.UK
         </a>
+        <a href="/" className="govuk-header__service-name">
+          Green Home Grant
+        </a>
       </div>
     </header>
   );
