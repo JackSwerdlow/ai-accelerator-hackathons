@@ -1,18 +1,27 @@
-// TODO: Import useNavigate from react-router-dom
+import QuestionPage from '../components/QuestionPage';
 
-function PropertyTypePage() {
-  // TODO: Read current value from form state (passed via props)
-  // TODO: Add validation and error handling
-  // TODO: On "Continue", save answer to state and navigate to /ownership
-
+/**
+ * Question 1: Property type.
+ * Thin wrapper around QuestionPage; copy and options come from the
+ * content plan (`docs/plans/2026-06-03-content-plan.md` §3).
+ */
+export default function PropertyTypePage() {
   return (
-    <>
-      <a href="/" className="govuk-back-link">Back</a>
-      <h1 className="govuk-heading-l">What type of property do you live in?</h1>
-      {/* TODO: Add radio buttons for: Detached house, Semi-detached house, Terraced house, Flat/apartment, Bungalow */}
-      {/* TODO: Add a Continue button */}
-    </>
+    <QuestionPage
+      pageTitle="What type of property do you live in?"
+      fieldName="propertyType"
+      step={1}
+      totalSteps={5}
+      options={[
+        { value: 'detached', label: 'Detached house' },
+        { value: 'semi-detached', label: 'Semi-detached house' },
+        { value: 'terraced', label: 'Terraced house' },
+        { value: 'flat', label: 'Flat or apartment' },
+        { value: 'bungalow', label: 'Bungalow' },
+      ]}
+      errorMessage="Select the type of property you live in"
+      backHref="/"
+      onContinueNavigateTo="/ownership"
+    />
   );
 }
-
-export default PropertyTypePage;

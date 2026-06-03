@@ -1,18 +1,33 @@
-// TODO: Import useNavigate from react-router-dom
+import QuestionPage from '../components/QuestionPage';
 
-function HeatingPage() {
-  // TODO: Read current value from form state
-  // TODO: Add validation and error handling
-  // TODO: On "Continue", save answer and navigate to /check-answers
-
+/**
+ * Question 5: Current main heating system.
+ * Thin wrapper around QuestionPage; copy and options come from the
+ * content plan (`docs/plans/2026-06-03-content-plan.md` §3).
+ */
+export default function HeatingPage() {
   return (
-    <>
-      <a href="/insulation" className="govuk-back-link">Back</a>
-      <h1 className="govuk-heading-l">What is your main heating system?</h1>
-      {/* TODO: Add radio buttons for: Gas boiler, Oil boiler, Electric heating, Heat pump, Other */}
-      {/* TODO: Add a Continue button */}
-    </>
+    <QuestionPage
+      pageTitle="What is your current main heating system?"
+      fieldName="heating"
+      step={5}
+      totalSteps={5}
+      options={[
+        { value: 'gas-boiler', label: 'Gas boiler' },
+        { value: 'oil-boiler', label: 'Oil boiler' },
+        { value: 'electric-storage', label: 'Electric storage heaters' },
+        { value: 'heat-pump', label: 'Heat pump (air source or ground source)' },
+        { value: 'other', label: 'Other' },
+      ]}
+      hint="Select the system that heats most of your home."
+      helpDetails={{
+        summaryText: "What counts as 'Other'?",
+        bodyText:
+          "Choose 'Other' if your home uses a heating system not listed above, such as a biomass boiler, district heating, solid-fuel stove, or LPG. The check will not change the grant you qualify for, but our installer will follow up to assess what is suitable.",
+      }}
+      errorMessage="Select your current main heating system"
+      backHref="/insulation"
+      onContinueNavigateTo="/check-answers"
+    />
   );
 }
-
-export default HeatingPage;
