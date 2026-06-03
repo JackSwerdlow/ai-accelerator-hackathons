@@ -364,3 +364,182 @@ a:focus {
   .govuk-summary-list__value,
   .govuk-summary-list__actions { width: 100%; text-align: left; }
 }
+
+/* === Additions for app integration (Agent-Dale) === */
+
+/* Fieldset legend (large) + heading reset */
+.govuk-fieldset__legend--l {
+  margin-bottom: var(--govuk-spacing-6);
+  font-size: 36px;
+  line-height: 1.111;
+  font-weight: 700;
+}
+
+.govuk-fieldset__heading {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+}
+
+/* Hint */
+.govuk-hint {
+  color: var(--govuk-dark-grey);
+  font-size: 19px;
+  margin-bottom: var(--govuk-spacing-3);
+  margin-top: 0;
+}
+
+/* Plain link styling */
+.govuk-link {
+  color: var(--govuk-link-colour);
+  text-decoration: underline;
+}
+
+/* Phase banner */
+.govuk-phase-banner {
+  border-bottom: 1px solid var(--govuk-mid-grey);
+  padding: var(--govuk-spacing-2) 0;
+}
+
+.govuk-phase-banner__content {
+  margin: 0;
+  font-size: 16px;
+  color: var(--govuk-black);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--govuk-spacing-2);
+}
+
+.govuk-tag {
+  display: inline-block;
+  background-color: var(--govuk-blue);
+  color: var(--govuk-white);
+  padding: 2px var(--govuk-spacing-2);
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.govuk-phase-banner__content__tag {
+  margin-right: var(--govuk-spacing-2);
+}
+
+.govuk-phase-banner__text {
+}
+
+/* Footer */
+.govuk-footer {
+  border-top: 1px solid var(--govuk-mid-grey);
+  background: var(--govuk-light-grey);
+  padding: var(--govuk-spacing-6) 0;
+  margin-top: var(--govuk-spacing-8);
+}
+
+.govuk-footer__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.govuk-footer__meta-item {
+  margin-right: var(--govuk-spacing-3);
+  margin-bottom: var(--govuk-spacing-3);
+}
+
+.govuk-footer__inline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.govuk-footer__inline-list-item {
+  display: inline-block;
+  margin-right: var(--govuk-spacing-3);
+  margin-bottom: var(--govuk-spacing-2);
+  font-size: 16px;
+}
+
+.govuk-footer__link {
+  color: var(--govuk-black);
+  text-decoration: underline;
+}
+
+/* Skip link */
+.govuk-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: var(--govuk-spacing-2) var(--govuk-spacing-3);
+  background: var(--govuk-yellow);
+  color: var(--govuk-black);
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+.govuk-skip-link:focus {
+  left: 0;
+  outline: 3px solid var(--govuk-focus-colour);
+}
+
+/* App step indicator (custom) */
+.app-step-indicator {
+  font-size: 16px;
+  color: var(--govuk-dark-grey);
+  margin-top: 0;
+  margin-bottom: var(--govuk-spacing-2);
+}
+
+/* Details (collapsible help block) */
+.govuk-details {
+  margin-bottom: var(--govuk-spacing-4);
+  font-size: 19px;
+}
+
+.govuk-details__summary {
+  cursor: pointer;
+  color: var(--govuk-link-colour);
+  text-decoration: underline;
+  display: inline-block;
+}
+
+.govuk-details__summary:focus {
+  outline: 3px solid var(--govuk-focus-colour);
+  outline-offset: 0;
+  background: var(--govuk-yellow);
+  color: var(--govuk-black);
+}
+
+.govuk-details__summary-text {
+}
+
+.govuk-details__text {
+  border-left: 5px solid var(--govuk-mid-grey);
+  padding: var(--govuk-spacing-3);
+  margin-top: var(--govuk-spacing-2);
+  color: var(--govuk-black);
+}
+
+/* layout wrapper referenced by markup */
+.govuk-error-summary__body { }
+
+/* Page-enter animation (motion-safe) */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.govuk-main-wrapper {
+  animation: page-enter 150ms ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .govuk-main-wrapper { animation: none; }
+}
+
+/* Responsive override for fieldset legend (large) on small screens */
+@media (max-width: 640px) {
+  .govuk-fieldset__legend--l { font-size: 24px; }
+}
