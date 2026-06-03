@@ -364,3 +364,175 @@ a:focus {
   .govuk-summary-list__value,
   .govuk-summary-list__actions { width: 100%; text-align: left; }
 }
+
+/* ---------------------------------------------------------------------
+ * Chunk 3 additions — PLAN.md §8.3 classes used by the chrome,
+ * QuestionPage helpers, animation, and focus styling. Appended; the
+ * rules above are intentionally left untouched.
+ * ------------------------------------------------------------------ */
+
+/* Skip link (PLAN.md §6.8) */
+.govuk-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: var(--govuk-spacing-2) var(--govuk-spacing-3);
+  background: var(--govuk-yellow);
+  color: var(--govuk-black);
+  text-decoration: underline;
+  font-weight: 700;
+}
+.govuk-skip-link:focus {
+  left: 0;
+  outline: 3px solid var(--govuk-focus-colour);
+}
+
+/* App-prefixed step indicator (custom, NOT a Design-System token; PLAN.md §6.9) */
+.app-step-indicator {
+  font-size: 16px;
+  color: var(--govuk-dark-grey);
+  margin-top: 0;
+  margin-bottom: var(--govuk-spacing-2);
+}
+
+/* Phase banner */
+.govuk-phase-banner {
+  padding: var(--govuk-spacing-2) 0;
+  border-bottom: 1px solid var(--govuk-mid-grey);
+}
+.govuk-phase-banner .govuk-width-container,
+.govuk-phase-banner__content {
+  margin: 0 auto;
+  max-width: 960px;
+  padding: 0 var(--govuk-spacing-3);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: var(--govuk-spacing-3);
+}
+.govuk-tag {
+  display: inline-block;
+  padding: 2px var(--govuk-spacing-2);
+  background: var(--govuk-blue);
+  color: var(--govuk-white);
+  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 1px;
+}
+.govuk-phase-banner__content__tag {
+  margin-right: var(--govuk-spacing-2);
+}
+
+/* Footer */
+.govuk-footer {
+  background: var(--govuk-light-grey);
+  border-top: 1px solid var(--govuk-mid-grey);
+  padding: var(--govuk-spacing-6) 0;
+  margin-top: var(--govuk-spacing-8);
+}
+.govuk-footer__meta {
+  display: flex;
+  justify-content: flex-end;
+}
+.govuk-footer__inline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.govuk-footer__inline-list-item {
+  display: inline-block;
+  margin-right: var(--govuk-spacing-3);
+}
+.govuk-footer__link {
+  font-size: 16px;
+  color: var(--govuk-link-colour);
+}
+
+/* Fieldset legend (large) */
+.govuk-fieldset__legend--l {
+  font-size: 36px;
+  line-height: 1.1111111111;
+  font-weight: 700;
+  margin-bottom: var(--govuk-spacing-6);
+  width: 100%;
+}
+.govuk-fieldset__heading {
+  margin: 0;
+  font: inherit;
+  font-weight: inherit;
+}
+
+/* Hint */
+.govuk-hint {
+  color: var(--govuk-dark-grey);
+  margin-bottom: var(--govuk-spacing-3);
+  font-size: 19px;
+}
+
+/* Plain link helper */
+.govuk-link {
+  color: var(--govuk-link-colour);
+  text-decoration: underline;
+}
+
+/* Details (Tier-2 contextual help, PLAN.md §6.7) */
+.govuk-details {
+  margin-bottom: var(--govuk-spacing-4);
+}
+.govuk-details__summary {
+  display: inline-block;
+  color: var(--govuk-link-colour);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.govuk-details__summary:focus {
+  outline: 3px solid var(--govuk-focus-colour);
+  background-color: var(--govuk-focus-colour);
+  color: var(--govuk-black);
+}
+.govuk-details__text {
+  padding: var(--govuk-spacing-3);
+  border-left: 5px solid var(--govuk-mid-grey);
+  margin-top: var(--govuk-spacing-2);
+  font-size: 19px;
+}
+
+/* Error summary body (referenced in §6.2 markup) */
+.govuk-error-summary__body {
+  font-size: 19px;
+}
+
+/* Button start icon (PLAN.md §8.2 — chevron) */
+.govuk-button__start-icon {
+  margin-left: var(--govuk-spacing-2);
+  vertical-align: middle;
+}
+
+/* Header service-name styling (right of GOV.UK wordmark) */
+.govuk-header__container {
+  display: flex;
+  align-items: center;
+  gap: var(--govuk-spacing-3);
+}
+.govuk-header__link--service-name {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+/* Page-enter animation (PLAN.md §9, motion-safe) */
+@keyframes app-page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.govuk-main-wrapper {
+  animation: app-page-enter 150ms ease forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .govuk-main-wrapper { animation: none; }
+}
+
+/* main programmatic focus — invisible outline so the focus-on-route-change
+   pattern (PLAN.md §6.4) doesn't paint a yellow ring around the whole page */
+.govuk-main-wrapper:focus { outline: none; }
