@@ -2,9 +2,7 @@
 
 Record every instance where you use AI to generate, refactor, or debug code. Four fields per entry: what you asked for, what the AI produced, what you changed, and why you changed it. There is an example provided of how the format for each should look.
 
-Document **3+ entries** in your AI_LOG covering **3-5 distinct patterns** from this list -- planning, multi-agent critique, plan-mode scaffolding, refactor, test generation. Aim for variety: an entry that just says "asked Claude to write X" three times doesn't demonstrate AI as a real engineering tool.
-
-## Prompt 1: Eligibility logic for married couple's allowance edge case
+## Example: Prompt 1: Eligibility logic for married couple's allowance edge case
 
 | Field | Detail |
 |-------|--------|
