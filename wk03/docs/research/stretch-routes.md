@@ -156,10 +156,28 @@ which is checked first). Two sub-options:
 - **5.b.ii — Keep income in the tenant path.** Preserves the existing high-income gate for
   everyone; less divergent.
 
-**Recommendation:** Tenant path = `landlordConsent` (new) + `insulation` (kept for measures),
-and **drop** income from the tenant path (5.b.i) — but **only if** product accepts that the
-high-income exclusion is owner-only. If the high-income gate must apply to everyone, keep
-income (5.b.ii). Flag this to the user; it changes the rules table.
+**Recommendation (firmed up): drop income from the tenant path (5.b.i).** Tenant path =
+`landlordConsent` (new) + `insulation` (kept for measures). The high-income exclusion becomes
+**owner-only**. Reasoning:
+
+1. **The means-test gates the wrong person for tenants.** The income cap exists to exclude
+   people who could self-fund. For an owner-occupier that's the applicant — coherent. But the
+   works benefit the *landlord's* asset and the landlord must apply (the existing
+   `partial/renter` outcome already says this). The party who would self-fund is the landlord,
+   whose income we never capture. Using the *tenant's* income as the test gates the bill-payer,
+   not the decision-maker — a category error.
+2. **It works against the scheme's purpose.** Tenant retrofit schemes exist to fix the
+   split-incentive problem (tenant pays the bills but can't improve; landlord can improve but
+   doesn't pay the bills). A high-earning tenant in a cold, badly-insulated flat is precisely
+   the target case; means-testing them out undercuts the policy.
+3. **GOV.UK relevance principle.** For a tenant, income's only current effect is a
+   possibly-wrong exclusion — every other rule ignores it. Asking it is asking a misleading
+   question.
+
+**The one condition to reverse this:** if product wants a blunt universal line — "no public
+money toward any high earner's home, owner or tenant" — keep income for everyone (5.b.ii).
+That is a policy call, not a design one; absent that explicit steer, drop it. Either way it
+changes the rules table, so confirm with product.
 
 > Minimum viable version of this stretch goal = **one** new tenant-only question
 > (`landlordConsent`) with **one** new outcome branch. Everything else in §5 is optional polish.
@@ -388,7 +406,7 @@ changes, and every step leaves `main` shippable.
 | 1 | Scope of the second pathway | Option B — shared prefix, divergent middle | §3 |
 | 2 | Branch trigger | Reuse existing `ownership` via `isTenant()` | §4 |
 | 3 | Which tenant question(s) to add | `landlordConsent` (required); insulation kept for measures | §5 |
-| 4 | Keep income on the tenant path? | Drop it **iff** high-income gate may be owner-only; else keep | §5.b |
+| 4 | Keep income on the tenant path? | **Drop it** — high-income gate becomes owner-only (means-test gates the wrong person for tenants). Reverse only if product wants a blunt universal high-earner exclusion. | §5.b |
 | 5 | Optional owner gate (main residence)? | Optional / defer | §5.1 |
 | 6 | Routing mechanism | Function-valued `onContinueNavigateTo` at branch point | §6 |
 | 7 | State shape | One flat object + path-aware required-field list | §7 |
