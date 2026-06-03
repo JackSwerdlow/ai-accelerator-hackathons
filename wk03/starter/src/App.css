@@ -577,3 +577,61 @@ a:focus {
 /* main programmatic focus — invisible outline so the focus-on-route-change
    pattern (PLAN.md §6.4) doesn't paint a yellow ring around the whole page */
 .govuk-main-wrapper:focus { outline: none; }
+
+/* Notification banner — used by the Start page to surface a saved,
+   partially completed check from localStorage. Mirrors the GOV.UK
+   Design System notification-banner component. */
+.govuk-notification-banner {
+  border: 5px solid var(--govuk-blue);
+  background-color: var(--govuk-blue);
+  margin-bottom: var(--govuk-spacing-6);
+}
+.govuk-notification-banner__header {
+  padding: var(--govuk-spacing-2) var(--govuk-spacing-3);
+  border-bottom: 1px solid transparent;
+}
+.govuk-notification-banner__title {
+  margin: 0;
+  padding: 0;
+  color: var(--govuk-white);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.govuk-notification-banner__content {
+  padding: var(--govuk-spacing-3);
+  background-color: var(--govuk-white);
+}
+.govuk-notification-banner__content > :last-child {
+  margin-bottom: 0;
+}
+
+/* Button group — secondary "Start again" sits inline with the primary
+   "Continue" button on the resume banner. */
+.govuk-button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--govuk-spacing-3);
+  align-items: baseline;
+}
+.govuk-button-group .govuk-button {
+  margin: 0;
+}
+
+/* Secondary button variant — for "Start again" and "Start a new check" */
+.govuk-button--secondary {
+  background-color: var(--govuk-light-grey);
+  color: var(--govuk-black);
+  box-shadow: 0 2px 0 var(--govuk-dark-grey);
+}
+.govuk-button--secondary:hover {
+  background-color: #c8c7c4;
+}
+
+/* Header crown logo — sits to the left of the GOV.UK wordmark. The
+   wordmark text remains the accessible name; the crown is decorative. */
+.govuk-header__logotype-crown {
+  margin-right: var(--govuk-spacing-1);
+  vertical-align: top;
+  fill: currentColor;
+}
