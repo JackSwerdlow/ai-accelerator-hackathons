@@ -2,7 +2,7 @@
  * Tests for the pure eligibility() function and the measures it returns.
  * Covers all rule branches, measures conditions, and robustness cases.
  */
-import { eligibility } from '../eligibility';
+import { eligibility, isTenant } from '../eligibility';
 
 describe('eligibility', () => {
   it('1. returns ineligible/income-too-high when incomeBand is high (overrides others)', () => {
@@ -153,6 +153,64 @@ describe('measures', () => {
       heating: 'heat-pump',
     });
     expect(measures).not.toContain('Air source heat pump installation');
+  });
+});
+
+describe('second pathway (tenant vs owner) — content plan §11', () => {
+  it('15. tenant + landlord consent "no" returns ineligible/no-landlord-consent', () => {
+    const result = eligibility({
+      propertyType: 'flat',
+      ownership: 'private-renter',
+      landlordConsent: 'no',
+      insulation: 'none',
+    });
+    expect(result.outcome).toBe('ineligible');
+    expect(result.reason).toBe('no-landlord-consent');
+  });
+
+  it('16. tenant + landlord consent "yes" returns partial/renter', () => {
+    const result = eligibility({
+      propertyType: 'flat',
+      ownership: 'housing-association',
+      landlordConsent: 'yes',
+      insulation: 'partial',
+    });
+    expect(result.outcome).toBe('partial');
+    expect(result.reason).toBe('renter');
+  });
+
+  it('17. tenant + landlord consent "not-sure" returns partial/renter', () => {
+    const result = eligibility({
+      propertyType: 'terraced',
+      ownership: 'council',
+      landlordConsent: 'not-sure',
+      insulation: 'none',
+    });
+    expect(result.outcome).toBe('partial');
+    expect(result.reason).toBe('renter');
+  });
+
+  it('18. high-income gate is owner-only: a high-income tenant is still partial/renter', () => {
+    // Stale incomeBand can linger if a user starts as an owner then switches to
+    // renting; tenure is checked first so the income gate does not fire.
+    const result = eligibility({
+      propertyType: 'flat',
+      ownership: 'private-renter',
+      incomeBand: 'high',
+      landlordConsent: 'yes',
+      insulation: 'partial',
+    });
+    expect(result.outcome).toBe('partial');
+    expect(result.reason).toBe('renter');
+  });
+
+  it('19. isTenant is true for every renter tenure and false otherwise', () => {
+    expect(isTenant('private-renter')).toBe(true);
+    expect(isTenant('housing-association')).toBe(true);
+    expect(isTenant('council')).toBe(true);
+    expect(isTenant('owner')).toBe(false);
+    expect(isTenant('')).toBe(false);
+    expect(isTenant(undefined)).toBe(false);
   });
 });
 

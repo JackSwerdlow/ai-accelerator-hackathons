@@ -256,6 +256,7 @@ test-results/
 smoke-*.png
 baseline-*.png
 after-*.png
+merged-*.png
 
 # === OS files ===
 .DS_Store

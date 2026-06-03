@@ -19,6 +19,11 @@ const LABELS = {
     'housing-association': 'I rent from a housing association',
     'council': 'I rent from a council or local authority',
   },
+  landlordConsent: {
+    'yes': 'Yes',
+    'no': 'No',
+    'not-sure': 'Not sure',
+  },
   incomeBand: {
     'low': 'Under £31,000',
     'mid': '£31,000 to £60,000',

@@ -8,9 +8,10 @@ import { createContext, useContext, useState } from 'react';
 const INITIAL_ANSWERS = {
   propertyType: '',
   ownership: '',
-  incomeBand: '',
+  incomeBand: '',     // owner path only
+  landlordConsent: '', // tenant path only (content plan §11)
   insulation: '',
-  heating: '',
+  heating: '',        // owner path only
 };
 
 const FormContext = createContext(null);

@@ -15,17 +15,22 @@ import GovukButton from './GovukButton';
 /**
  * Render a single GOV.UK radio-group question page.
  *
+ * `backHref`, `totalSteps`, and `onContinueNavigateTo` accept either a plain
+ * value or a function of the current answers. The function form is used at the
+ * tenure branch points so the same generic page can route owners and tenants
+ * differently (content plan §11).
+ *
  * @param {{
  *   pageTitle: string,
  *   fieldName: string,
  *   step: number,
- *   totalSteps: number,
+ *   totalSteps: number | ((answers: object) => number),
  *   options: { value: string, label: string }[],
  *   hint?: string,
  *   helpDetails?: { summaryText: string, bodyText: string },
  *   errorMessage: string,
- *   backHref: string,
- *   onContinueNavigateTo: string,
+ *   backHref: string | ((answers: object) => string),
+ *   onContinueNavigateTo: string | ((answers: object) => string),
  * }} props
  * @returns {JSX.Element}
  */
@@ -46,6 +51,10 @@ export default function QuestionPage({
   const [searchParams] = useSearchParams();
   const [hasError, setHasError] = useState(false);
 
+  // Resolve a value-or-function prop against the live answers (used by the
+  // tenure branch points — see component JSDoc / content plan §11).
+  const resolve = (value) => (typeof value === 'function' ? value(answers) : value);
+
   useEffect(() => {
     const base = `${pageTitle} - Green Home Grant - GOV.UK`;
     document.title = hasError ? `Error: ${base}` : base;
@@ -64,18 +73,18 @@ export default function QuestionPage({
       return;
     }
     const fromCheckAnswers = searchParams.get('from') === 'check-answers';
-    navigate(fromCheckAnswers ? '/check-answers' : onContinueNavigateTo);
+    navigate(fromCheckAnswers ? '/check-answers' : resolve(onContinueNavigateTo));
   };
 
   const fieldsetProps = describedByIds ? { 'aria-describedby': describedByIds } : {};
 
   return (
     <>
-      <Link to={backHref} className="govuk-back-link">
+      <Link to={resolve(backHref)} className="govuk-back-link">
         Back
       </Link>
 
-      <ProgressIndicator current={step} total={totalSteps} />
+      <ProgressIndicator current={step} total={resolve(totalSteps)} />
 
       {hasError && (
         <ErrorSummary firstFieldId={`${fieldName}-1`} message={errorMessage} />

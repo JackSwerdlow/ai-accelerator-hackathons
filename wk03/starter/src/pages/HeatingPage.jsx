@@ -4,6 +4,7 @@
  * help-details disclosure explaining the "Other" option.
  */
 import QuestionPage from "../components/QuestionPage";
+import { totalSteps } from "../flow";
 
 const OPTIONS = [
   { value: "gas-boiler", label: "Gas boiler" },
@@ -15,7 +16,7 @@ const OPTIONS = [
 
 /**
  * Renders the "What is your current main heating system?" question
- * (step 5 of 5), with hint and contextual help details.
+ * (step 5, owner path only), with hint and contextual help details.
  *
  * @returns {JSX.Element}
  */
@@ -25,7 +26,7 @@ export default function HeatingPage() {
       pageTitle="What is your current main heating system?"
       fieldName="heating"
       step={5}
-      totalSteps={5}
+      totalSteps={totalSteps}
       options={OPTIONS}
       hint="Select the system that heats most of your home."
       helpDetails={{

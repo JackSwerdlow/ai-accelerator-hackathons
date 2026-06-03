@@ -1,16 +1,16 @@
 /**
  * Result page (route "/result"). Renders the eligibility outcome panel
  * and outcome-specific next-step copy, switching body content by
- * (outcome, reason) per PLAN.md §6 / content plan §7. Guards against
- * deep links with missing answers by redirecting to "/".
+ * (outcome, reason) per PLAN.md §6 / content plan §7 + §11 (tenant routes).
+ * Guards against deep links with missing answers (path-aware) by
+ * redirecting to "/".
  */
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormContext } from "../contexts/FormContext";
 import { eligibility } from "../eligibility";
+import { requiredFields } from "../flow";
 import Panel from "../components/Panel";
-
-const FIELDS = ["propertyType", "ownership", "incomeBand", "insulation", "heating"];
 
 /**
  * Renders the panel, recommended measures, and outcome-specific
@@ -27,7 +27,7 @@ export default function ResultPage() {
   }, []);
 
   useEffect(() => {
-    if (FIELDS.some((f) => !answers[f])) navigate("/", { replace: true });
+    if (requiredFields(answers).some((f) => !answers[f])) navigate("/", { replace: true });
   }, [answers, navigate]);
 
   const { outcome, reason, measures } = eligibility(answers);
@@ -78,6 +78,17 @@ export default function ResultPage() {
             We can send you an information pack to share with your landlord. It explains the grant, the
             installation process, and how to apply.
           </p>
+          {measures.length > 0 && (
+            <>
+              <p className="govuk-body">
+                Based on your answers, the following measures may be available for your home, subject to a
+                property assessment:
+              </p>
+              <ul className="govuk-list govuk-list--bullet">
+                {measures.map((m) => <li key={m}>{m}</li>)}
+              </ul>
+            </>
+          )}
           <h2 className="govuk-heading-m">What to do next</h2>
           <p className="govuk-body">
             Ask your landlord to contact an approved installer for a property assessment.
@@ -117,6 +128,18 @@ export default function ResultPage() {
               Your home already has the insulation and heating measures this grant covers. No further measures
               are available under this scheme.
             </p>
+          )}
+          {reason === "no-landlord-consent" && (
+            <>
+              <p className="govuk-body">
+                You told us you do not have your landlord's permission to make energy efficiency improvements.
+                Your landlord needs to agree before you can apply for a Green Home Grant.
+              </p>
+              <p className="govuk-body">
+                If your landlord changes their decision, you can use this service again to check what your home
+                could qualify for.
+              </p>
+            </>
           )}
           <p className="govuk-body">
             You may still be able to improve your home's energy efficiency through other government schemes.

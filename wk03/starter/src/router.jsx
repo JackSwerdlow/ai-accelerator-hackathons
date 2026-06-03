@@ -1,12 +1,14 @@
 /**
  * Route table for the Green Home Grant eligibility checker.
- * Declares all 9 routes per PLAN.md §4.5 in a single <Routes> tree
- * so App.jsx stays focused on chrome and provider wiring.
+ * Declares all 10 routes (the 9 in PLAN.md §4.5 plus the tenant-path
+ * /landlord-consent question from content plan §11) in a single <Routes>
+ * tree so App.jsx stays focused on chrome and provider wiring.
  */
 import { Routes, Route } from "react-router-dom";
 import StartPage from "./pages/StartPage";
 import PropertyTypePage from "./pages/PropertyTypePage";
 import OwnershipPage from "./pages/OwnershipPage";
+import LandlordConsentPage from "./pages/LandlordConsentPage";
 import IncomePage from "./pages/IncomePage";
 import InsulationPage from "./pages/InsulationPage";
 import HeatingPage from "./pages/HeatingPage";
@@ -15,7 +17,7 @@ import ResultPage from "./pages/ResultPage";
 import AccessibilityStatementPage from "./pages/AccessibilityStatementPage";
 
 /**
- * Renders the 9 application routes per PLAN.md §4.5.
+ * Renders the 10 application routes (PLAN.md §4.5 + content plan §11).
  *
  * @returns {JSX.Element}
  */
@@ -25,6 +27,7 @@ export default function AppRoutes() {
       <Route path="/" element={<StartPage />} />
       <Route path="/property-type" element={<PropertyTypePage />} />
       <Route path="/ownership" element={<OwnershipPage />} />
+      <Route path="/landlord-consent" element={<LandlordConsentPage />} />
       <Route path="/income" element={<IncomePage />} />
       <Route path="/insulation" element={<InsulationPage />} />
       <Route path="/heating" element={<HeatingPage />} />

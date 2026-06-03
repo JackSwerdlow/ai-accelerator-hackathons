@@ -4,6 +4,7 @@
  * help-details disclosure.
  */
 import QuestionPage from "../components/QuestionPage";
+import { totalSteps } from "../flow";
 
 const OPTIONS = [
   { value: "low", label: "Under £31,000" },
@@ -13,7 +14,7 @@ const OPTIONS = [
 
 /**
  * Renders the "What is your total annual household income?" question
- * (step 3 of 5), with hint and contextual help details.
+ * (step 3, owner path only), with hint and contextual help details.
  *
  * @returns {JSX.Element}
  */
@@ -23,7 +24,7 @@ export default function IncomePage() {
       pageTitle="What is your total annual household income?"
       fieldName="incomeBand"
       step={3}
-      totalSteps={5}
+      totalSteps={totalSteps}
       options={OPTIONS}
       hint="Include the income of all adults living in your home, before tax and other deductions."
       helpDetails={{

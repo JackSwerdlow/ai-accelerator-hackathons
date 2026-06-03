@@ -98,4 +98,27 @@ describe('QuestionPage', () => {
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.getByTestId('location')).toHaveTextContent('/check-answers');
   });
+
+  it('6. resolves a function onContinueNavigateTo against the live answers', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <QuestionPage
+        {...BASE_PROPS}
+        onContinueNavigateTo={(a) => (a.propertyType === 'flat' ? '/flat-next' : '/other-next')}
+      />
+    );
+    await user.click(screen.getByLabelText('Flat or apartment'));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/flat-next');
+  });
+
+  it('7. resolves a function backHref against the live answers', () => {
+    renderWithProviders(<QuestionPage {...BASE_PROPS} backHref={() => '/dynamic-back'} />);
+    expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/dynamic-back');
+  });
+
+  it('8. resolves a function totalSteps into the step indicator', () => {
+    renderWithProviders(<QuestionPage {...BASE_PROPS} totalSteps={() => 4} />);
+    expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
+  });
 });
