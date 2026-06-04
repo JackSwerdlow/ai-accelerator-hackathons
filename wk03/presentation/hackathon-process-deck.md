@@ -32,6 +32,8 @@ style: |
   /* Diagrams are pre-rendered to PNG (see build step in README); fit them to the slide.
      Fixed px max-height (not %) so it resolves in Marp's layout and tall diagrams don't overflow. */
   img { display:block; margin: 8px auto 0; max-width: 100%; max-height: 340px; }
+  /* Text-dense slides (intro paragraph + diagram + trailing paragraph) need a shorter diagram. */
+  section.dense img { max-height: 230px; }
 ---
 
 <!-- _class: lead -->
@@ -186,6 +188,8 @@ clearly-labelled blocks. `App.css` was declared *do-not-modify*.
 
 ---
 
+<!-- _class: dense -->
+
 # Phase 4 — Standards research, adversarially checked
 
 Agent-Research produced a 10-section report (PSBAR, Equality Act, UK GDPR/PECR,
@@ -225,6 +229,8 @@ The plans genuinely diverged on architecture:
 > then choose deliberately — instead of the first plan winning by default.
 
 ---
+
+<!-- _class: dense -->
 
 # Phase 6 — Collate into one source of truth
 
