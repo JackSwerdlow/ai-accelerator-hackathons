@@ -145,6 +145,10 @@ a:focus {
   color: var(--govuk-white);
   box-shadow: 0 2px 0 #002d18;
   min-height: 40px;
+  /* GOV.UK buttons carry a bottom margin so following content (e.g. a
+     secondary link) is not cramped against them. Button groups reset this
+     to 0 below, so grouped buttons keep their tight gap. */
+  margin-bottom: var(--govuk-spacing-4);
 }
 
 .govuk-button:hover {
@@ -640,4 +644,90 @@ a:focus {
   margin-right: var(--govuk-spacing-1);
   vertical-align: top;
   fill: currentColor;
+}
+
+/* ---------------------------------------------------------------------
+ * PLAN.md §16 (§A4) additions — Semantic Intent Matcher styling for the
+ * Help entry page: multiline query textarea, GOV.UK warning-text pattern
+ * for the keyword-fallback notice, and the custom similarity-badge pill.
+ * Appended only; existing rules and variables are left untouched and use
+ * only the established :root tokens (no new colour literals).
+ * ------------------------------------------------------------------ */
+
+/* Multiline query input — mirrors .govuk-input focus treatment so the
+   textarea behaves identically to existing single-line inputs. */
+.govuk-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--govuk-spacing-1) var(--govuk-spacing-2);
+  border: 2px solid var(--govuk-black);
+  font-size: 19px;
+  font-family: inherit;
+  line-height: 1.3157894737;
+}
+.govuk-textarea:focus {
+  outline: 3px solid var(--govuk-focus-colour);
+  outline-offset: 0;
+  box-shadow: inset 0 0 0 2px var(--govuk-black);
+}
+
+/* Warning-text pattern — circular black icon with a white "!" beside
+   bold text. Used for the keyword-fallback notice on the Help page. */
+.govuk-warning-text {
+  display: flex;
+  align-items: center;
+  gap: var(--govuk-spacing-2);
+  margin-bottom: var(--govuk-spacing-4);
+}
+.govuk-warning-text__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: var(--govuk-black);
+  color: var(--govuk-white);
+  font-weight: 700;
+  text-align: center;
+}
+.govuk-warning-text__text {
+  font-weight: 700;
+}
+
+/* Similarity badge — custom (app-) pill showing a percentage match.
+   Bands match the shared confidence thresholds in PLAN.md §16. */
+.app-similarity-badge {
+  display: inline-block;
+  padding: var(--govuk-spacing-1) var(--govuk-spacing-2);
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.app-similarity-badge--high {
+  background: var(--govuk-green);
+  color: var(--govuk-white);
+}
+.app-similarity-badge--medium {
+  background: var(--govuk-yellow);
+  color: var(--govuk-black);
+}
+.app-similarity-badge--low {
+  background: var(--govuk-mid-grey);
+  color: var(--govuk-black);
+}
+
+/* Results layout helpers — spacing only. The card does NOT force nowrap,
+   so the badge can wrap below the title on narrow (320px) viewports. */
+.app-intent-results {
+  list-style: none;
+  padding: 0;
+}
+.app-intent-card {
+  margin-bottom: var(--govuk-spacing-6);
+  padding-bottom: var(--govuk-spacing-4);
+  border-bottom: 1px solid var(--govuk-mid-grey);
 }

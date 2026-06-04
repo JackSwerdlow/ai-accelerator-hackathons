@@ -868,4 +868,301 @@ Surface to the user before declaring done if they become blockers.
 
 ---
 
+## 16. Stretch — Semantic Intent Matcher
+
+> **Status:** This section opts the project back into the "semantic-intent stretch" item that §14 lists as out of scope. Execute only after the core eligibility service is complete and merged. Each task below is a single commit, scoped to be picked up by an LLM agent without further context.
+
+### 16.1 Goal
+
+Add a free-text "What do you need help with?" entry point at `/help` where the user types a natural-language description ("I need help with my boiler") and the page surfaces the top-3 most relevant entries from a small service catalogue, ranked by cosine similarity over on-device sentence embeddings.
+
+**Constraints (from README line 188):**
+
+- Runs entirely in the browser. No remote inference API.
+- No API key, no server, no per-query cost.
+- Embeddings are computed on first visit and cached locally for subsequent ones.
+- Foreshadows Week 5 RAG — keep the architecture readable, not magic.
+
+### 16.2 References
+
+| Source | What it provides |
+|--------|------------------|
+| README.md §"Stretch challenge: Semantic intent matching" (line 188+) | Original brief and recommended stack (`@xenova/transformers`, MiniLM, top-3 cosine). |
+| [Transformers.js docs](https://huggingface.co/docs/transformers.js) | Runtime — pipeline API, `feature-extraction` task, ONNX models. |
+| [Sentence-Transformers MiniLM-L6-v2 model card](https://huggingface.co/Xenova/all-MiniLM-L6-v2) | The exact model. 384-dim output, ~23 MB compressed, L2-normalised embeddings work well with cosine. |
+| This plan §§3–8 | Existing architecture, GOV.UK styling, file conventions — reuse them. |
+
+### 16.3 Architecture Decisions (additive — do not change without flagging)
+
+| ID | Decision | Reason |
+|----|----------|--------|
+| SI1 | Runtime: `@xenova/transformers` 2.x with model `Xenova/all-MiniLM-L6-v2`. | Browser-native (WASM + ONNX). README's recommended default. |
+| SI2 | Service catalogue is a plain ES module (`src/intent/catalogue.js`) with 8–12 entries. No JSON file, no remote source. | One file, easy to review and diff. |
+| SI3 | Catalogue embeddings are computed once on first `/help` visit, then cached in `localStorage` keyed by both `CATALOGUE_VERSION` and the model name. | Avoids re-encoding ~12 entries every page load. Survives refresh. Invalidation by bumping `CATALOGUE_VERSION`. |
+| SI4 | Ranking: cosine similarity over L2-normalised vectors, top-3 returned. No vector DB, no FAISS — the catalogue is small enough for a linear scan. | README explicitly says no vector DB. |
+| SI5 | New route `/help`. Existing routes untouched. Eligibility flow tests unaffected. | Additive; minimises blast radius. |
+| SI6 | Model and Transformers.js library are loaded **lazily** when the user lands on `/help`, not at app boot. Dynamic `await import('@xenova/transformers')`. | The library + model are heavy; do not penalise users who never use this feature. |
+| SI7 | If the dynamic import or the model load fails (e.g., WebAssembly disabled, network blocked), fall back to a keyword-overlap scorer over the same catalogue. The page never errors — it degrades. | Resilience. Browsers without WASM still get something useful. |
+| SI8 | Below a tunable similarity floor (default `0.30`), no result is shown; the page renders the full catalogue as a fallback list. | Avoids surfacing low-confidence false matches. |
+
+### 16.4 Shared Contracts
+
+**`src/intent/catalogue.js`**
+
+```js
+export const CATALOGUE_VERSION = 1;
+
+/**
+ * @typedef {Object} ServiceEntry
+ * @property {string} id           - stable identifier, slug-style
+ * @property {string} title        - display name
+ * @property {string} description  - 15-25 plain-English words
+ * @property {string} route        - in-app path (e.g. "/") or "#" for placeholders
+ * @property {string[]} phrases    - 4-8 example natural-language phrases (informal OK)
+ */
+
+/** @type {ServiceEntry[]} */
+export const SERVICE_CATALOGUE = [ /* ... entries ... */ ];
+```
+
+**`src/intent/matcher.js`**
+
+```js
+/**
+ * Initialise the matcher. Loads the embedding model, computes (or restores
+ * from cache) the catalogue embeddings. Safe to call multiple times — only
+ * the first call does work.
+ *
+ * @returns {Promise<{ mode: 'embeddings' | 'keyword-fallback' }>}
+ */
+export async function initMatcher();
+
+/** Returns true once initMatcher() has resolved. */
+export function isMatcherReady();
+
+/**
+ * @typedef {Object} RankedIntent
+ * @property {ServiceEntry} entry
+ * @property {number} score   - cosine similarity in [-1, 1]; L2-normalised vectors usually fall in [0, 1]
+ */
+
+/**
+ * Rank the catalogue against a natural-language query.
+ * @param {string} query
+ * @param {number} [k=3]
+ * @returns {Promise<RankedIntent[]>}
+ */
+export async function rankIntents(query, k);
+```
+
+**localStorage cache shape (key `ghg:intent-cache:v1`)**
+
+```json
+{
+  "catalogueVersion": 1,
+  "modelName": "Xenova/all-MiniLM-L6-v2",
+  "embeddings": [{ "id": "green-home-grant", "vector": [/* 384 floats */] }]
+}
+```
+
+### 16.5 Tasks (each = one commit)
+
+#### SI-T1 — Add `@xenova/transformers` dependency  *(~10 min)*
+
+- Files: `wk03/starter/package.json`, `package-lock.json`.
+- `npm install @xenova/transformers` — pin to `^2.x`.
+- Verify `npm run build` exits 0. Note the new bundle size in the commit body.
+- If Vite errors with "Failed to fetch dynamically imported module", add to `vite.config.js`: `optimizeDeps: { exclude: ['@xenova/transformers'] }`.
+- Commit: `[Agent-X] chore(wk03): add @xenova/transformers dependency`.
+
+#### SI-T2 — Service catalogue  *(~20 min)*
+
+- Files: **create** `wk03/starter/src/intent/catalogue.js`.
+- Write 8–12 service entries. At least these IDs (use real GOV.UK service names where applicable):
+  - `green-home-grant` (route `/` — this app)
+  - `apply-universal-credit`
+  - `renew-passport`
+  - `register-to-vote`
+  - `free-school-meals`
+  - `council-tax-reduction`
+  - `replace-driving-licence`
+  - `report-benefit-fraud`
+- Each entry must have 4–8 `phrases` covering formal + informal language. Examples for the heating intent: `"my boiler is broken"`, `"I can't afford my heating bill"`, `"help with home insulation"`, `"replace my gas boiler with a heat pump"`.
+- Export `CATALOGUE_VERSION = 1`.
+- Acceptance: file lints clean and imports without runtime error.
+- Commit: `[Agent-X] feat(wk03): add service catalogue for intent matching`.
+
+#### SI-T3 — Cosine-similarity helper + tests  *(~15 min)*
+
+- Files: **create** `wk03/starter/src/intent/cosine.js`, `wk03/starter/src/__tests__/cosine.test.js`.
+- `cosineSimilarity(a: number[], b: number[]): number`. Guard zero-magnitude (return 0, not NaN). Throw on length mismatch.
+- Optional helper: `normalize(v: number[]): number[]` returning the L2-normalised vector.
+- Tests (Vitest): identical → 1; orthogonal → 0; opposite → -1; zero vector → 0; mismatched lengths → throws.
+- Acceptance: 5 new tests pass.
+
+#### SI-T4 — Matcher skeleton with keyword-overlap fallback  *(~30 min)*
+
+- Files: **create** `wk03/starter/src/intent/matcher.js`, `wk03/starter/src/__tests__/matcher.test.js`.
+- This task implements only the **fallback** path so the UI can be built and tested independently of Transformers.js.
+- Algorithm: tokenise query and each entry's `title + description + phrases.join(' ')` (lowercase, split on `\W+`, drop short tokens). Score = `|Q ∩ E| / max(|Q|, 1)` (a simplified Jaccard / overlap-ratio).
+- Public API matches §16.4. `initMatcher()` resolves with `{ mode: 'keyword-fallback' }`. `rankIntents()` returns top-k.
+- Tests:
+  - Query "my boiler is broken" → top match is `green-home-grant`.
+  - Query "I want a new passport" → top match is `renew-passport`.
+  - Empty query → returns empty array (do not surface garbage).
+  - `rankIntents` returns entries sorted by descending score with stable tiebreak on `id`.
+- Acceptance: 4 new tests pass.
+- Commit: `[Agent-X] feat(wk03): add intent matcher with keyword-overlap fallback`.
+
+#### SI-T5 — `/help` page UI (uses the fallback matcher from T4)  *(~45 min)*
+
+- Files: **create** `wk03/starter/src/pages/HelpEntryPage.jsx`, **create** `wk03/starter/src/components/SimilarityBadge.jsx`. Modify `wk03/starter/src/router.jsx` (add `/help` route). Modify `wk03/starter/src/pages/StartPage.jsx` (add a secondary CTA link "Not sure? Describe your situation in your own words").
+- HelpEntryPage structure (follow §6 reference patterns):
+  - Back link to `/`.
+  - `<h1>` "What do you need help with?".
+  - `<form>` with `<label class="govuk-label">` + `<textarea class="govuk-textarea">` (rows=3) + hint text + submit button "Show services".
+  - Results region with `aria-live="polite"` so screen readers announce updates.
+  - Empty state: short instructional text.
+  - With results: `<ol class="govuk-list">` of cards. Each card: `<h2>` title (acts as a `<Link>` to `route`), description, `<SimilarityBadge score={r.score} />`.
+  - Below-threshold or no-query state: heading "Browse all services" + full catalogue list.
+- `SimilarityBadge`: pill-shaped tag with text "84% match" (Math.round(score*100)). Colour by band — green ≥ 0.55, yellow 0.40–0.55, grey < 0.40.
+- Set `document.title = "What do you need help with? - Green Home Grant - GOV.UK"`.
+- File header comment + JSDoc per §5.
+- Acceptance: in the browser, typing "boiler" then submit shows Green Home Grant as the top card with a non-zero score; tab order is correct.
+- Commit: `[Agent-X] feat(wk03): add /help free-text intent entry page (fallback matcher)`.
+
+#### SI-T6 — Wire Transformers.js + MiniLM embeddings  *(~75 min)*
+
+- Files: rewrite `wk03/starter/src/intent/matcher.js`; **optionally** extract caching to `wk03/starter/src/intent/embeddingCache.js`.
+- `initMatcher()`:
+  1. Try `const { pipeline } = await import('@xenova/transformers')`. On failure, fall through to the keyword-overlap implementation from T4 and return `{ mode: 'keyword-fallback' }`.
+  2. Read cache from `localStorage['ghg:intent-cache:v1']`. If present and `catalogueVersion === CATALOGUE_VERSION` and `modelName === 'Xenova/all-MiniLM-L6-v2'`, restore.
+  3. Otherwise: `const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')`. For each `entry`, embed `${entry.title}. ${entry.description}. ${entry.phrases.join('. ')}`, L2-normalise, store in memory. Write the cache back to `localStorage`.
+  4. Resolve with `{ mode: 'embeddings' }`.
+- `rankIntents(query, k = 3)`:
+  - If keyword-fallback mode, defer to the T4 implementation.
+  - Otherwise: embed the query (same pipeline, same normalisation), compute cosine vs each cached vector, sort desc, return top-k mapped to `{ entry, score }`.
+- Wrap every `localStorage` access in try/catch (private-browsing safety).
+- Tests (Vitest): use `vi.mock('@xenova/transformers', ...)` to stub `pipeline` with a deterministic fake extractor that returns canned vectors. Cover:
+  - Cold start: cache is empty, `pipeline` is called once per catalogue entry; cache is written.
+  - Warm start: cache populated and valid → `pipeline` not called for catalogue entries (only for the live query).
+  - Stale cache: bumping the in-test `CATALOGUE_VERSION` invalidates.
+  - Import failure: forced rejection → returns `{ mode: 'keyword-fallback' }` and `rankIntents` still works.
+  - `rankIntents` returns top-3 sorted desc.
+- Acceptance: 5 new tests pass; in the browser, the matcher uses embeddings (devtools network tab shows the model download once, then nothing on refresh).
+- Commit: `[Agent-X] feat(wk03): swap intent matcher to MiniLM embeddings with localStorage cache`.
+
+#### SI-T7 — Loading + error UX on `/help`  *(~30 min)*
+
+- Files: modify `wk03/starter/src/pages/HelpEntryPage.jsx`.
+- While `initMatcher()` is in flight:
+  - Disable the submit button (`aria-disabled="true"`).
+  - Render a `govuk-notification-banner` (reuse the one already added in the Save-and-return PR) with copy: "Preparing the assistant — this only happens once, around 25 MB."
+  - Provide a "Skip and browse all services" link that renders the full catalogue without waiting.
+- If `initMatcher()` resolves with `{ mode: 'keyword-fallback' }`: render a `govuk-warning-text` (one new class in App.css) saying "Using a basic keyword search — your browser couldn't load the assistant."
+- Use a single status string in an `aria-live="polite"` region: "Searching…", "3 services matched", "No strong matches — browse all services below".
+- Acceptance: with DevTools "Slow 3G", the page is interactive immediately and shows the loading banner.
+
+#### SI-T8 — Threshold tuning + threshold-aware UI  *(~20 min)*
+
+- Files: modify `wk03/starter/src/pages/HelpEntryPage.jsx`, `wk03/starter/src/components/SimilarityBadge.jsx`.
+- Constants at top of HelpEntryPage:
+  - `HIGH_CONFIDENCE = 0.55`
+  - `MEDIUM_CONFIDENCE = 0.40`
+  - `MIN_CONFIDENCE = 0.30` (results below this are dropped)
+- If after ranking the top result is `< MIN_CONFIDENCE`, hide the results list and render the "Browse all services" fallback list instead, with a `govuk-body` paragraph: "We couldn't find a strong match for that description. Browse all services below."
+- Add a manual smoke checklist (in code as a JSDoc comment at the top of HelpEntryPage, or in a small `wk03/docs/research/intent-smoke-queries.md`) listing example queries: "boiler broken", "my house is cold", "I can't pay my rent", "lost my passport", "register to vote".
+- Acceptance: gibberish ("asdf asdf asdf") returns no results and shows fallback; clear queries return matching services.
+
+#### SI-T9 — Component tests for HelpEntryPage  *(~30 min)*
+
+- Files: **create** `wk03/starter/src/__tests__/HelpEntryPage.test.jsx`.
+- Use `vi.mock('../intent/matcher', ...)` to inject a controllable mock that exposes `initMatcher`, `isMatcherReady`, `rankIntents`.
+- Tests:
+  1. On mount, `initMatcher` is called exactly once.
+  2. While not-ready, submit button is disabled and the loading banner is in the DOM.
+  3. After ready, typing + submit calls `rankIntents` with the user query and renders 3 result cards with `SimilarityBadge`.
+  4. Empty input does not call `rankIntents`.
+  5. Failure path: `initMatcher` rejects → fallback list renders with the full catalogue.
+  6. Below-threshold mock result → fallback list renders, top results hidden.
+- Acceptance: 6 new tests pass.
+
+#### SI-T10 — Manual smoke + AI_LOG entry  *(~15 min)*
+
+- Files: append entry to `wk03/starter/AI_LOG.md` per the format in `wk03/CLAUDE.md`.
+- Manual smoke (in browser): try the 5 example queries from SI-T8. Note for each (in the AI_LOG entry) the top match and whether it is sensible.
+- AI_LOG entry must address the README's reflection prompt: "where did the AI help (model selection, similarity-threshold tuning) vs not (vector-DB choice — none needed; in-memory)".
+- Commit: `[Agent-X] docs(wk03): AI_LOG entry for semantic intent matcher`.
+
+### 16.6 Files to Create / Modify (summary)
+
+| File | Status | Introduced in task |
+|------|--------|--------------------|
+| `wk03/starter/package.json` | modify | SI-T1 |
+| `wk03/starter/src/intent/catalogue.js` | create | SI-T2 |
+| `wk03/starter/src/intent/cosine.js` | create | SI-T3 |
+| `wk03/starter/src/__tests__/cosine.test.js` | create | SI-T3 |
+| `wk03/starter/src/intent/matcher.js` | create → rewrite | SI-T4 → SI-T6 |
+| `wk03/starter/src/intent/embeddingCache.js` | create (optional) | SI-T6 |
+| `wk03/starter/src/__tests__/matcher.test.js` | create | SI-T4 (extended SI-T6) |
+| `wk03/starter/src/pages/HelpEntryPage.jsx` | create → extend | SI-T5 (extended SI-T7, SI-T8) |
+| `wk03/starter/src/components/SimilarityBadge.jsx` | create | SI-T5 |
+| `wk03/starter/src/router.jsx` | modify | SI-T5 |
+| `wk03/starter/src/pages/StartPage.jsx` | modify | SI-T5 |
+| `wk03/starter/src/App.css` | modify (small) | SI-T5 (textarea + badge), SI-T7 (warning text) |
+| `wk03/starter/src/__tests__/HelpEntryPage.test.jsx` | create | SI-T9 |
+| `wk03/starter/AI_LOG.md` | append | SI-T10 |
+| `wk03/starter/vite.config.js` | modify (conditional) | SI-T1 only if dynamic-import error occurs |
+
+### 16.7 Sequencing
+
+```
+SI-T1 ── SI-T2 ── SI-T3 ── SI-T4 ── SI-T5 ── SI-T6 ── SI-T7 ── SI-T8 ── SI-T9 ── SI-T10
+   ^             ^             ^             ^
+   pkg          catalogue     fallback     UI works against fallback (real model swapped in T6)
+```
+
+Each task is independently committable. T5 can ship before T6 — the page works with the keyword-overlap matcher and graduates to embeddings without UI changes.
+
+### 16.8 GOV.UK & accessibility constraints
+
+- Re-use GOV.UK classes: `govuk-label`, `govuk-textarea`, `govuk-hint`, `govuk-button`, `govuk-list`, `govuk-notification-banner`. Add the missing `.govuk-textarea` rule to App.css (existing CSS doesn't include it because the core app uses radios only).
+- Results region: `aria-live="polite"` for async updates (WCAG 4.1.3).
+- Disabled submit button must still be keyboard-focusable (don't visually remove from DOM); use `aria-disabled` plus a guard in the click handler.
+- Reflow at 320 px: textarea full width, badge wraps below title on narrow viewports (WCAG 1.4.10).
+- Resize-text test at 200 % zoom: no clipped text (WCAG 1.4.4).
+- Match GOV.UK error pattern (§6.2) if/when validation is added — currently, only "empty input" is treated as "no query", not as an error.
+
+### 16.9 Performance & footprint
+
+- Library + WASM runtime + model ≈ 25–30 MB on first visit; ~12 entries × 384 floats × 4 bytes ≈ 18 KB cached after.
+- Bundle impact at build time: only the Transformers.js library, not the model. Confirm `npm run build` reports the increase honestly in the commit body.
+- Eager-load nothing for `/help` in `App.jsx`. The dynamic `import()` in `initMatcher()` is what triggers the network.
+- Service-worker prefetch and IndexedDB-backed model cache are **out of scope** for this stretch — Transformers.js does its own model caching in browsers that support it; do not work around it.
+
+### 16.10 Definition of Done
+
+- [ ] Navigating to `/help` renders the page even before the model is ready.
+- [ ] Submitting a query returns top-3 results with similarity badges.
+- [ ] Top result for "boiler broken" is `green-home-grant`.
+- [ ] Below-threshold queries fall back to the full catalogue list.
+- [ ] `localStorage['ghg:intent-cache:v1']` is populated after the first run (verified in DevTools).
+- [ ] Bumping `CATALOGUE_VERSION` invalidates the cache (test or manual).
+- [ ] If Transformers.js fails to load, the page still ranks queries via the keyword-overlap fallback and shows a warning.
+- [ ] `npm run test:run` — all pre-existing tests still pass; ~20 new tests pass (5 cosine + 4 matcher-T4 + 5 matcher-T6 + 6 HelpEntryPage).
+- [ ] `npm run build` exits 0.
+- [ ] AI_LOG entry in place per SI-T10.
+- [ ] Smoke queries from SI-T8 produce sensible top matches.
+
+### 16.11 Risks and gotchas
+
+1. **Vite + dynamic imports of native-ish libraries.** If `npm run dev` chokes with `Failed to fetch dynamically imported module`, add `optimizeDeps: { exclude: ['@xenova/transformers'] }` to `vite.config.js` (do this in SI-T1 only if you actually hit the error — don't preemptively complicate the config).
+2. **WebAssembly off / iOS Safari < 17.** Covered by SI-T7's keyword-fallback. Verify the fallback path in a Safari emulator if available.
+3. **First-load size disclosure.** The "~25 MB, one-time" banner is essential — without it, users on metered connections will assume the app is broken. Do not skip SI-T7.
+4. **Catalogue quality dominates results.** The default thresholds in SI-T8 are starting points. Re-tune after writing the catalogue in SI-T2 if smoke queries return weak top matches. Cheaper than swapping models.
+5. **localStorage quota.** ~12 entries × 384 floats encoded as JSON is small (< 50 KB) and well within quota. If the catalogue grows past a few hundred entries, switch to IndexedDB — but not before.
+6. **Privacy posture.** Free-text input could contain personal information. Do not log the query to console or analytics, and do not persist it. The cache holds embeddings of the **catalogue**, never the user's query.
+
+---
+
 *End of plan. Decisions in §3 and §4 are settled — do not change them without flagging to the user. If a task description is ambiguous, prefer fidelity to the content plan over creative interpretation.*

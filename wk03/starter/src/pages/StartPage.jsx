@@ -8,7 +8,7 @@
  * or "Start again".
  */
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import GovukButton from "../components/GovukButton";
 import { useFormContext } from "../contexts/FormContext";
 
@@ -85,6 +85,12 @@ export default function StartPage() {
       <GovukButton variant="start" onClick={() => navigate("/property-type")}>
         Start now
       </GovukButton>
+
+      <p className="govuk-body">
+        <Link className="govuk-link" to="/help">
+          Not sure? Describe your situation in your own words
+        </Link>
+      </p>
     </>
   );
 }
