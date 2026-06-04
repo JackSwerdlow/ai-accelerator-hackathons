@@ -29,7 +29,9 @@ style: |
   section.lead strong { color: var(--gov-yellow); }
   .small { font-size: 0.72em; color: var(--gov-grey); }
   .tag { background: var(--gov-blue); color:#fff; padding:2px 8px; border-radius:3px; font-size:0.7em; }
-  mermaid { display:block; }
+  /* Diagrams are pre-rendered to PNG (see build step in README); fit them to the slide.
+     Fixed px max-height (not %) so it resolves in Marp's layout and tall diagrams don't overflow. */
+  img { display:block; margin: 8px auto 0; max-width: 100%; max-height: 340px; }
 ---
 
 <!-- _class: lead -->
@@ -468,9 +470,4 @@ applied to a team of agents moving fast.
 <br>
 
 <span class="small">Sources: `wk03/starter/AI_LOG.md`, the git history, `wk03/docs/PLAN.md` and the planning/research docs.
-Built on branch `docs/hackathon-deck`; no `wk03` code or content was modified.</span>
-
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
-</script>
+A process retrospective — it documents the build rather than changing the application code.</span>
