@@ -1,11 +1,13 @@
 /**
  * Route table for the Green Home Grant eligibility checker.
- * Declares all 10 routes (the 9 in PLAN.md §4.5 plus the tenant-path
- * /landlord-consent question from content plan §11) in a single <Routes>
+ * Declares all 11 routes (the 9 in PLAN.md §4.5, the tenant-path
+ * /landlord-consent question from content plan §11, and the §16
+ * semantic intent matcher at /help) in a single <Routes>
  * tree so App.jsx stays focused on chrome and provider wiring.
  */
 import { Routes, Route } from "react-router-dom";
 import StartPage from "./pages/StartPage";
+import HelpEntryPage from "./pages/HelpEntryPage";
 import PropertyTypePage from "./pages/PropertyTypePage";
 import OwnershipPage from "./pages/OwnershipPage";
 import LandlordConsentPage from "./pages/LandlordConsentPage";
@@ -17,7 +19,7 @@ import ResultPage from "./pages/ResultPage";
 import AccessibilityStatementPage from "./pages/AccessibilityStatementPage";
 
 /**
- * Renders the 10 application routes (PLAN.md §4.5 + content plan §11).
+ * Renders the 11 application routes (PLAN.md §4.5 + content plan §11 + §16).
  *
  * @returns {JSX.Element}
  */
@@ -25,6 +27,7 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<StartPage />} />
+      <Route path="/help" element={<HelpEntryPage />} />
       <Route path="/property-type" element={<PropertyTypePage />} />
       <Route path="/ownership" element={<OwnershipPage />} />
       <Route path="/landlord-consent" element={<LandlordConsentPage />} />
