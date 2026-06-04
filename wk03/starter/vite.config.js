@@ -11,6 +11,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: PORT,
     strictPort: true,
+    allowedHosts: ['app-lab9102.labs.decoded.com', 'code-lab9102.labs.decoded.com'],
     hmr: { protocol: 'wss', host: HOSTNAME, clientPort: PORT },
     // The /help intent matcher loads its model from the same-origin /models/
     // path (Transformers.js localModelPath). Browsers behind the lab reverse
