@@ -49,12 +49,16 @@ echo "[2/3] Converting to PDF + HTML with Marp..."
 npx --yes @marp-team/marp-cli@latest --html --allow-local-files build/deck.md --pdf -o "$OUT_PDF"
 npx --yes @marp-team/marp-cli@latest --html --allow-local-files build/deck.md -o "$OUT_HTML"
 
-echo "[3/3] Printing the one-pager + timeline to PDF (headless Chrome)..."
+echo "[3/3] Printing the one-pager + timeline (headless Chrome)..."
 # Self-contained HTML infographics -> single-page PDFs. @page CSS sets size + zero margin.
 for html in one-pager timeline; do
   "$CHROME" --headless --no-sandbox --disable-gpu --no-pdf-header-footer \
     --run-all-compositor-stages-before-draw --virtual-time-budget=3000 \
     --print-to-pdf="$html.pdf" "$html.html" 2>/dev/null
 done
+# timeline is a 16:9 presentation slide — also export a crisp 2x PNG for screen-sharing/embedding.
+"$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars \
+  --force-device-scale-factor=2 --window-size=1280,720 \
+  --screenshot="timeline.png" "timeline.html" 2>/dev/null
 
-echo "Done: $OUT_PDF, $OUT_HTML, one-pager.pdf and timeline.pdf"
+echo "Done: $OUT_PDF, $OUT_HTML, one-pager.pdf, timeline.pdf and timeline.png"
