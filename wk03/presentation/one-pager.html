@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Green Home Grant — an AI-mediated hackathon, on one page</title>
+<style>
+  :root{
+    --blue:#1d70b8; --black:#0b0c0c; --green:#00703c; --grey:#505a5f;
+    --yellow:#ffdd00; --light:#f3f2f1; --line:#b1b4b6;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  @page{ size:A4 portrait; margin:0; }
+  html,body{ font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--black); }
+  .page{
+    width:210mm; min-height:297mm; padding:11mm 12mm 9mm; margin:0 auto;
+    display:flex; flex-direction:column; gap:5.5mm; background:#fff;
+  }
+  /* ---- header ---- */
+  header{ background:var(--black); color:#fff; padding:6mm 7mm; border-bottom:5px solid var(--yellow); }
+  header .kick{ font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--yellow); font-weight:700; }
+  header h1{ font-size:24px; line-height:1.12; margin:3px 0 4px; }
+  header p{ font-size:11px; color:#d8d8d8; }
+  header h1 span{ color:var(--yellow); }
+  /* ---- section scaffold ---- */
+  h2{ font-size:11px; text-transform:uppercase; letter-spacing:1.3px; color:var(--blue);
+      border-bottom:2px solid var(--blue); padding-bottom:2px; margin-bottom:4mm; }
+  .row{ display:flex; gap:5mm; }
+  .col{ flex:1; }
+  .card{ border:1px solid var(--line); border-radius:4px; padding:3.4mm 4mm; }
+  /* ---- stats ---- */
+  .stats{ display:grid; grid-template-columns:repeat(6,1fr); gap:3mm; }
+  .stat{ background:var(--light); border-radius:4px; padding:3mm; text-align:center; }
+  .stat b{ display:block; font-size:21px; color:var(--blue); line-height:1; }
+  .stat .lbl{ font-size:8.5px; color:var(--grey); margin-top:3px; line-height:1.2; }
+  /* ---- pipeline ---- */
+  .pipe{ display:flex; align-items:stretch; flex-wrap:wrap; gap:0; }
+  .step{ flex:1 1 0; min-width:0; background:var(--light); border:1px solid var(--line);
+         border-radius:4px; padding:3mm 1mm; text-align:center; font-size:9px; font-weight:600;
+         display:flex; flex-direction:column; justify-content:center; }
+  .step small{ display:block; font-weight:400; color:var(--grey); font-size:7.5px; margin-top:1px; }
+  .step.k{ background:var(--blue); color:#fff; border-color:var(--blue); }
+  .step.k small{ color:#dbe7f2; }
+  .step.g{ background:var(--green); color:#fff; border-color:var(--green); }
+  .step.g small{ color:#cfe6da; }
+  .arrow{ display:flex; align-items:center; color:var(--blue); font-size:13px; padding:0 1.3mm; font-weight:700; }
+  /* ---- loop ---- */
+  .loop{ display:flex; align-items:center; flex-wrap:wrap; gap:0; }
+  .node{ background:var(--light); border:1px solid var(--line); border-radius:4px;
+         padding:2.4mm 1mm; text-align:center; font-size:8px; font-weight:600; flex:1 1 0; }
+  .node.b{ background:var(--blue); color:#fff; border-color:var(--blue); }
+  .node.y{ background:var(--yellow); border-color:#d4b800; }
+  .a2{ color:var(--blue); font-size:11px; padding:0 1mm; font-weight:700; }
+  .feedback{ font-size:8px; color:var(--grey); margin-top:2.5mm; text-align:center; font-style:italic; }
+  /* ---- lists ---- */
+  ul{ list-style:none; }
+  li{ font-size:9.5px; line-height:1.32; margin-bottom:2.4mm; padding-left:8mm; position:relative; }
+  li b{ color:var(--black); }
+  li .ic{ position:absolute; left:0; top:-0.3mm; width:6mm; height:6mm; border-radius:50%;
+          background:var(--blue); color:#fff; font-size:9px; font-weight:700;
+          display:flex; align-items:center; justify-content:center; }
+  /* ---- AI_LOG fields ---- */
+  .fields{ display:flex; flex-direction:column; gap:2mm; }
+  .field{ display:flex; align-items:center; gap:3mm; font-size:9px; }
+  .field .t{ flex:0 0 38mm; font-weight:700; }
+  .field .d{ color:var(--grey); }
+  .field.hot{ background:#fff6cc; border-left:4px solid var(--yellow); padding:2.2mm 3mm; border-radius:0 3px 3px 0; }
+  .field.hot .d{ color:var(--black); }
+  .arrowdown{ text-align:center; color:var(--blue); font-size:11px; line-height:0.5; }
+  /* ---- chips ---- */
+  .chips{ display:flex; flex-wrap:wrap; gap:2.5mm; }
+  .chip{ font-size:9px; border:1.5px solid var(--blue); color:var(--blue); border-radius:20px;
+         padding:1.6mm 3.5mm; font-weight:600; }
+  .chip .who{ color:var(--grey); font-weight:400; }
+  /* ---- footer ---- */
+  footer{ margin-top:auto; border-top:3px solid var(--black); padding-top:3.5mm; }
+  footer .punch{ font-size:14px; font-weight:700; }
+  footer .punch em{ color:var(--blue); font-style:normal; }
+  footer .src{ font-size:8px; color:var(--grey); margin-top:2mm; }
+  .lead-note{ font-size:9.5px; color:var(--grey); margin-bottom:3mm; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="kick">AI-mediated development · process retrospective</div>
+    <h1>Building a GOV.UK service with an <span>agent team</span></h1>
+    <p>A fictional <b>Green Home Grant</b> eligibility checker — built by running AI like a software org:
+       multiple agent identities on one shared repo, planning-first, review-gated, fully audit-logged.</p>
+  </header>
+
+  <section>
+    <h2>The build, by the numbers</h2>
+    <div class="stats">
+      <div class="stat"><b>5</b><div class="lbl">agent identities on one repo</div></div>
+      <div class="stat"><b>40+</b><div class="lbl">commits, 2 days</div></div>
+      <div class="stat"><b>17</b><div class="lbl">architecture decisions in PLAN.md</div></div>
+      <div class="stat"><b>21&rarr;86</b><div class="lbl">unit tests (grew with features)</div></div>
+      <div class="stat"><b>46</b><div class="lbl">Playwright E2E tests + axe scans</div></div>
+      <div class="stat"><b>WCAG</b><div class="lbl">2.2 AA · GOV.UK Design System</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The pipeline — planning makes the build loop safe to run fast</h2>
+    <div class="pipe">
+      <div class="step">Guardrails<small>identity · git · log</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step">Content plan<small>copy is the spec</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step">Work split<small>file ownership</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step">Research<small>+ sanity checks</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step k">PLAN.md<small>one source of truth</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step k">Build in chunks<small>subagent-driven</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step g">Verify<small>tests + browser</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step">Stretch<small>fan-out</small></div>
+    </div>
+  </section>
+
+  <div class="row">
+    <section class="col">
+      <h2>The subagent-driven build loop</h2>
+      <div class="loop">
+        <div class="node">Chunk spec</div>
+        <div class="a2">&rarr;</div>
+        <div class="node b">Implementer</div>
+        <div class="a2">&rarr;</div>
+        <div class="node b">Spec review</div>
+        <div class="a2">&rarr;</div>
+        <div class="node b">Quality review</div>
+        <div class="a2">&rarr;</div>
+        <div class="node y">Fix</div>
+        <div class="a2">&rarr;</div>
+        <div class="node">Commit</div>
+      </div>
+      <div class="feedback">&#8635; fresh subagents each stage — findings loop back before commit</div>
+      <ul style="margin-top:3.5mm;">
+        <li><span class="ic">!</span><b>Caught real defects:</b> an H1-in-legend focus bug that double-announces in NVDA/JAWS; a wordmark link that would wipe form state.</li>
+        <li><span class="ic">!</span><b>Caught a weak test:</b> rule-priority cases added so a re-ordered ruleset can't pass silently.</li>
+      </ul>
+    </section>
+
+    <section class="col">
+      <h2>The audit trail — every AI task logged</h2>
+      <div class="fields">
+        <div class="field"><span class="t">Task</span><span class="d">what was asked of the AI</span></div>
+        <div class="arrowdown">&darr;</div>
+        <div class="field"><span class="t">What AI generated</span><span class="d">concrete output</span></div>
+        <div class="arrowdown">&darr;</div>
+        <div class="field hot"><span class="t">What you changed + why</span><span class="d">the human judgement &amp; review</span></div>
+      </div>
+      <p class="lead-note" style="margin-top:3.5mm;">13&nbsp;entries reconstruct the whole build — planning artefacts
+      accepted as-is, code chunks with named fixes, stretch work with flagged deviations. It is the assessment
+      evidence <em>and</em> the project memory.</p>
+    </section>
+  </div>
+
+  <section>
+    <h2>Principles that made it work</h2>
+    <div class="row">
+      <ul class="col">
+        <li><span class="ic">1</span><b>Guardrails first.</b> Agent identity, a shared-repo git workflow, and "log in the same commit as the work" paid off the moment a second agent pushed.</li>
+        <li><span class="ic">2</span><b>Plan until the contracts are boring.</b> A flat state object, one pure <code>eligibility()</code> function, one generic question page — settled before parallel coding began.</li>
+        <li><span class="ic">3</span><b>Fresh subagents review fresh code.</b> Separating implementer / spec / quality reviewers surfaces defects an author can't see in their own work.</li>
+      </ul>
+      <ul class="col">
+        <li><span class="ic">4</span><b>Verify the feature, not just the code.</b> Tests are necessary; a browser run is proof — the automated E2E suite's 320px check caught a real WCAG reflow bug.</li>
+        <li><span class="ic">5</span><b>Record the <em>why</em> of every change.</b> "What you changed + why" is where the engineering judgement — and the auditability — actually lives.</li>
+        <li><span class="ic">6</span><b>Let strong proposals compete.</b> Two rival plans were kept side-by-side, their trade-offs captured, then chosen deliberately — not by default.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Stretch goals — fan-out on branches, merged via PR</h2>
+    <div class="chips">
+      <div class="chip">Save &amp; return <span class="who">· SK</span></div>
+      <div class="chip">Accessible PDF result <span class="who">· Jack</span></div>
+      <div class="chip">Tenant / owner pathway <span class="who">· Dale</span></div>
+      <div class="chip">Playwright E2E suite <span class="who">· Jack</span></div>
+      <div class="chip">Semantic /help matcher <span class="who">· Satya</span></div>
+      <div class="chip">Links + /feedback form <span class="who">· Satya</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The service it produced</h2>
+    <div class="pipe">
+      <div class="step g">Start now</div>
+      <div class="arrow">&rarr;</div>
+      <div class="step">Property type</div>
+      <div class="arrow">&rarr;</div>
+      <div class="step">Ownership<small>branch point</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step">Tenure-specific Qs<small>owner 5 &middot; tenant 4</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step">Check your answers<small>change any answer</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step k">Result</div>
+    </div>
+    <div class="chips" style="margin-top:3.5mm;">
+      <div class="chip" style="border-color:var(--green);color:var(--green)">&#9679; Eligible &mdash; up to &pound;10,000</div>
+      <div class="chip" style="border-color:var(--blue);color:var(--blue)">&#9679; Partially eligible</div>
+      <div class="chip" style="border-color:var(--grey);color:var(--grey)">&#9679; Not eligible &mdash; with next steps</div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="punch">AI didn't replace the engineering process. <em>It ran on top of it.</em></div>
+    <div class="src">The leverage came from old disciplines — specs, ownership, review, audit trails — applied to a team of agents moving fast.
+    &nbsp;·&nbsp; Sources: <code>wk03/starter/AI_LOG.md</code>, the git history, <code>wk03/docs/PLAN.md</code>.</div>
+  </footer>
+
+</div>
+</body>
+</html>

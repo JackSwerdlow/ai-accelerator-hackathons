@@ -44,9 +44,15 @@ npx --yes @mermaid-js/mermaid-cli@latest \
   -e png -s 3 -b transparent -t neutral \
   -c mermaid-config.json -p puppeteer-config.json
 
-echo "[2/2] Converting to PDF + HTML with Marp..."
+echo "[2/3] Converting to PDF + HTML with Marp..."
 # --allow-local-files lets Marp embed the locally pre-rendered diagram PNGs.
 npx --yes @marp-team/marp-cli@latest --html --allow-local-files build/deck.md --pdf -o "$OUT_PDF"
 npx --yes @marp-team/marp-cli@latest --html --allow-local-files build/deck.md -o "$OUT_HTML"
 
-echo "Done: $OUT_PDF and $OUT_HTML"
+echo "[3/3] Printing the one-pager to PDF (headless Chrome)..."
+# Self-contained A4 HTML infographic -> single-page PDF. @page CSS sets size + zero margin.
+"$CHROME" --headless --no-sandbox --disable-gpu --no-pdf-header-footer \
+  --run-all-compositor-stages-before-draw --virtual-time-budget=3000 \
+  --print-to-pdf="one-pager.pdf" "one-pager.html" 2>/dev/null
+
+echo "Done: $OUT_PDF, $OUT_HTML and one-pager.pdf"
