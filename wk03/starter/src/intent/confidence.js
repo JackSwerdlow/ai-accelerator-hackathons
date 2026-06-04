@@ -10,10 +10,10 @@
 // around 0.53, so MIN sits in that gap: admit real matches, reject the rest.
 
 /** At or above this, a match is badged "high" confidence. */
-export const HIGH_CONFIDENCE = 0.75;
+export const HIGH_CONFIDENCE = 0.65;
 
 /** At or above this (but below HIGH), a match is badged "medium". */
-export const MEDIUM_CONFIDENCE = 0.5;
+export const MEDIUM_CONFIDENCE = 0.40;
 
 /** Below this, a match is dropped and the page falls back to the full catalogue. */
-export const MIN_CONFIDENCE = 0.2;
+export const MIN_CONFIDENCE = 0.3;
