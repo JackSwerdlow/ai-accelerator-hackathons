@@ -4,9 +4,7 @@
  * match at a glance. Thresholds are shared with HelpEntryPage (PLAN.md §16).
  */
 
-// Shared confidence thresholds — MUST match HelpEntryPage (PLAN.md §16).
-const HIGH_CONFIDENCE = 0.55;
-const MEDIUM_CONFIDENCE = 0.4;
+import { HIGH_CONFIDENCE, MEDIUM_CONFIDENCE } from "../intent/confidence";
 
 /**
  * Render a similarity badge for a match score.

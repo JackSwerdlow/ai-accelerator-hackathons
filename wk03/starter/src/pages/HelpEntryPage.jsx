@@ -17,12 +17,7 @@ import { Link } from "react-router-dom";
 import SimilarityBadge from "../components/SimilarityBadge";
 import { SERVICE_CATALOGUE } from "../intent/catalogue";
 import { initMatcher, rankIntents } from "../intent/matcher";
-
-// Shared confidence thresholds — MUST match SimilarityBadge (PLAN.md §16).
-const HIGH_CONFIDENCE = 0.55;
-const MEDIUM_CONFIDENCE = 0.4;
-// Results scoring below this are dropped, falling back to the full catalogue.
-const MIN_CONFIDENCE = 0.3;
+import { MIN_CONFIDENCE } from "../intent/confidence";
 
 /**
  * @typedef {{ entry: import('../intent/catalogue').ServiceEntry, score: number }} RankedIntent

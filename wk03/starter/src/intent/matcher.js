@@ -1,6 +1,11 @@
 // Semantic intent matcher: embeds the service catalogue once (cached) and ranks
 // it against a user query, degrading to a keyword scorer when the embeddings
 // library cannot load (e.g. no WASM support, offline, or private browsing).
+//
+// Each entry is embedded as several *anchors* (its title+description, then every
+// phrase) rather than one blob, and a query scores against an entry by its best
+// (max) matching anchor — so a single colloquial phrase can match strongly
+// without being averaged away by the rest of the entry.
 
 import { CATALOGUE_VERSION, SERVICE_CATALOGUE } from './catalogue.js';
 import { cosineSimilarity, normalize } from './cosine.js';
@@ -8,8 +13,9 @@ import { cosineSimilarity, normalize } from './cosine.js';
 /** Embedding model loaded via @xenova/transformers feature-extraction pipeline. */
 const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
 
-/** localStorage key for the cached catalogue embeddings (versioned). */
-const CACHE_KEY = 'ghg:intent-cache:v1';
+/** localStorage key for the cached catalogue embeddings (versioned). v2 stores
+ *  multiple anchor vectors per entry (`vectors`), not the old single `vector`. */
+const CACHE_KEY = 'ghg:intent-cache:v2';
 
 // Module-level state: the matcher is a singleton initialised once per page load.
 let mode = null;
@@ -68,6 +74,38 @@ function tokenize(s) {
  */
 function entryById(id) {
   return SERVICE_CATALOGUE.find((e) => e.id === id);
+}
+
+/**
+ * Build the anchor texts embedded for an entry: its title+description, then each
+ * phrase. Each anchor is embedded separately so a query can match the single
+ * closest one (see maxSimilarity).
+ *
+ * @param {import('./catalogue.js').ServiceEntry} entry - The catalogue entry.
+ * @returns {string[]} The anchor texts.
+ */
+function anchorsForEntry(entry) {
+  return [`${entry.title}. ${entry.description}`, ...entry.phrases];
+}
+
+/**
+ * Score a query vector against an entry's anchor vectors by their best match.
+ * Using the maximum (not the mean) lets one strongly-matching phrase carry the
+ * entry without dilution from the others.
+ *
+ * @param {number[]} queryVector - The embedded, normalised query.
+ * @param {number[][]} vectors - The entry's anchor vectors.
+ * @returns {number} The maximum cosine similarity over all anchors (0 if none).
+ */
+function maxSimilarity(queryVector, vectors) {
+  let best = -Infinity;
+  for (const vector of vectors) {
+    const score = cosineSimilarity(queryVector, vector);
+    if (score > best) {
+      best = score;
+    }
+  }
+  return best === -Infinity ? 0 : best;
 }
 
 /**
@@ -137,7 +175,10 @@ function readCachedVectors() {
     }
     const cachedIds = new Set(parsed.embeddings.map((e) => e.id));
     const coversAll = SERVICE_CATALOGUE.every((entry) => cachedIds.has(entry.id));
-    if (!coversAll) {
+    // Guard the v2 shape: every entry must carry a `vectors` array (a stale v1
+    // payload with a single `vector` would otherwise slip through and break.)
+    const shapeOk = parsed.embeddings.every((e) => Array.isArray(e.vectors));
+    if (!coversAll || !shapeOk) {
       return null;
     }
     return parsed.embeddings;
@@ -188,19 +229,20 @@ async function loadEmbeddings() {
   const cached = readCachedVectors();
   if (cached) {
     // Warm start: reuse cached vectors without loading the model.
-    catalogueVectors = cached.map((e) => ({ id: e.id, vector: e.vector }));
+    catalogueVectors = cached.map((e) => ({ id: e.id, vectors: e.vectors }));
     return;
   }
 
-  // Cold or stale start: embed every catalogue entry, then cache the result.
+  // Cold or stale start: embed each entry's anchors separately, then cache.
   // getExtractor() runs here, so a model-load failure surfaces as a throw and
   // is caught by runInit() — exactly the SI7 degradation path.
   catalogueVectors = [];
   for (const entry of SERVICE_CATALOGUE) {
-    const vector = await embedText(
-      `${entry.title}. ${entry.description}. ${entry.phrases.join('. ')}`
-    );
-    catalogueVectors.push({ id: entry.id, vector });
+    const vectors = [];
+    for (const anchor of anchorsForEntry(entry)) {
+      vectors.push(await embedText(anchor));
+    }
+    catalogueVectors.push({ id: entry.id, vectors });
   }
   writeCachedVectors(catalogueVectors);
 }
@@ -265,9 +307,9 @@ export async function rankIntents(query, k = 3) {
   }
 
   const queryVector = await embedText(trimmed);
-  const ranked = catalogueVectors.map(({ id, vector }) => ({
+  const ranked = catalogueVectors.map(({ id, vectors }) => ({
     entry: entryById(id),
-    score: cosineSimilarity(queryVector, vector),
+    score: maxSimilarity(queryVector, vectors),
   }));
   return topK(ranked, k);
 }

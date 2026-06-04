@@ -6,7 +6,7 @@
 import { SERVICE_CATALOGUE, CATALOGUE_VERSION } from '../intent/catalogue.js';
 
 const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
-const CACHE_KEY = 'ghg:intent-cache:v1';
+const CACHE_KEY = 'ghg:intent-cache:v2';
 
 // Mock the embeddings library; each test configures `pipeline` per scenario.
 vi.mock('@xenova/transformers', () => ({ pipeline: vi.fn() }));
@@ -52,6 +52,20 @@ function makeFakeExtractor() {
 }
 
 /**
+ * Anchor texts embedded per entry — must mirror matcher.js anchorsForEntry
+ * (title+description, then each phrase).
+ *
+ * @param {object} entry - A catalogue entry.
+ * @returns {string[]} The anchor texts.
+ */
+function anchorsFor(entry) {
+  return [`${entry.title}. ${entry.description}`, ...entry.phrases];
+}
+
+// Total anchor embeds the cold-start path makes across the whole catalogue.
+const TOTAL_ANCHORS = SERVICE_CATALOGUE.reduce((n, e) => n + anchorsFor(e).length, 0);
+
+/**
  * Pre-seed localStorage with a valid embedding cache covering every catalogue
  * id, so initMatcher takes the warm-start path.
  *
@@ -61,7 +75,7 @@ function makeFakeExtractor() {
 function seedCache(version = CATALOGUE_VERSION) {
   const embeddings = SERVICE_CATALOGUE.map((entry) => ({
     id: entry.id,
-    vector: vectorForText(`${entry.title}. ${entry.description}. ${entry.phrases.join('. ')}`),
+    vectors: anchorsFor(entry).map((text) => vectorForText(text)),
   }));
   localStorage.setItem(
     CACHE_KEY,
@@ -119,7 +133,7 @@ describe('matcher — keyword fallback', () => {
 });
 
 describe('matcher — embeddings mode', () => {
-  it('E1. cold start embeds every entry once and writes a valid cache', async () => {
+  it('E1. cold start embeds every anchor once and writes a valid cache', async () => {
     const matcher = await import('../intent/matcher.js');
     const { pipeline } = await import('@xenova/transformers');
     const fakeExtractor = makeFakeExtractor();
@@ -128,7 +142,7 @@ describe('matcher — embeddings mode', () => {
     const result = await matcher.initMatcher();
 
     expect(result.mode).toBe('embeddings');
-    expect(fakeExtractor).toHaveBeenCalledTimes(SERVICE_CATALOGUE.length);
+    expect(fakeExtractor).toHaveBeenCalledTimes(TOTAL_ANCHORS);
 
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
     expect(cached.catalogueVersion).toBe(CATALOGUE_VERSION);
@@ -136,6 +150,12 @@ describe('matcher — embeddings mode', () => {
     const cachedIds = cached.embeddings.map((e) => e.id);
     for (const entry of SERVICE_CATALOGUE) {
       expect(cachedIds).toContain(entry.id);
+    }
+    // v2 shape: each entry caches one vector per anchor, not a single vector.
+    for (const e of cached.embeddings) {
+      const entry = SERVICE_CATALOGUE.find((s) => s.id === e.id);
+      expect(Array.isArray(e.vectors)).toBe(true);
+      expect(e.vectors.length).toBe(anchorsFor(entry).length);
     }
   });
 
@@ -162,7 +182,7 @@ describe('matcher — embeddings mode', () => {
 
     await matcher.initMatcher();
 
-    expect(fakeExtractor).toHaveBeenCalledTimes(SERVICE_CATALOGUE.length);
+    expect(fakeExtractor).toHaveBeenCalledTimes(TOTAL_ANCHORS);
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
     expect(cached.catalogueVersion).toBe(CATALOGUE_VERSION);
   });
