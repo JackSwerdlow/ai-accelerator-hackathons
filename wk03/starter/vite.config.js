@@ -1,34 +1,56 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import os from 'node:os';
 
-const PORT = Number(process.env.VITE_PORT) || 5002;
-const HOSTNAME = process.env.VITE_PUBLIC_HOSTNAME || os.hostname();
+// Decoded lab reverse-proxy environment.
+// The app is only ever reached at https://<app>.labs.decoded.com/ — the proxy
+// terminates TLS on 443 and forwards to this dev server over the VM network.
+// Default to the proxy-published port 5000; override with VITE_PORT if needed.
+const PORT = Number(process.env.VITE_PORT) || 5000;
+
+// The /help intent matcher loads its model from the same-origin /models/ path
+// (Transformers.js localModelPath). Browsers behind the lab reverse proxy can't
+// reach huggingface.co directly, but the dev server can — so proxy
+// /models/<org>/<repo>/<file> to the model's resolve URL on the Hub and follow
+// the redirect to the weights CDN. Without this, /models/ hits the SPA
+// history-fallback (index.html) and the matcher degrades to a keyword search.
+const modelProxy = {
+  '/models': {
+    target: 'https://huggingface.co',
+    changeOrigin: true,
+    followRedirects: true,
+    rewrite: (path) =>
+      path.replace(/^\/models\/([^/]+\/[^/]+)\/(.+)$/, '/$1/resolve/main/$2'),
+  },
+};
 
 export default defineConfig({
   plugins: [react()],
   server: {
+    // (1) Bind every interface so the proxy can reach us over the network —
+    //     a 127.0.0.1-only bind is unreachable and shows "Nothing on port N".
+    host: '0.0.0.0',
+    // (2) A port the proxy publishes (5000 -> app-lab….labs.decoded.com).
+    port: PORT,
+    strictPort: true,
+    // (3) Accept the external Host header. Vite >=5.4 blocks unknown hosts with
+    //     a "Blocked request" page; pin this VM's two published hostnames
+    //     (app- = the running app, code- = the IDE). For a different lab VM,
+    //     swap lab9102, or use '.labs.decoded.com' to allow any subdomain.
+    allowedHosts: ['app-lab9102.labs.decoded.com', 'code-lab9102.labs.decoded.com'],
+    // (6) HMR runs through the same HTTPS proxy. The browser must open the
+    //     websocket at wss://<public-host>:443 — protocol wss + clientPort 443.
+    //     Leaving `host` unset makes the client reuse window.location.hostname,
+    //     so it resolves to the public proxy host on whatever lab VM this is.
+    hmr: { protocol: 'wss', clientPort: 443 },
+    proxy: modelProxy,
+  },
+  // Same proxy rules for `vite preview` (smoke-testing a production build).
+  preview: {
     host: '0.0.0.0',
     port: PORT,
     strictPort: true,
     allowedHosts: ['app-lab9102.labs.decoded.com', 'code-lab9102.labs.decoded.com'],
-    hmr: { protocol: 'wss', host: HOSTNAME, clientPort: PORT },
-    // The /help intent matcher loads its model from the same-origin /models/
-    // path (Transformers.js localModelPath). Browsers behind the lab reverse
-    // proxy can't reach huggingface.co directly, but the dev server can — so
-    // proxy /models/<org>/<repo>/<file> to the model's resolve URL on the Hub
-    // and follow the redirect to the weights CDN. Without this, /models/ hits
-    // the SPA history-fallback (index.html) and the matcher degrades to a
-    // basic keyword search.
-    proxy: {
-      '/models': {
-        target: 'https://huggingface.co',
-        changeOrigin: true,
-        followRedirects: true,
-        rewrite: (path) =>
-          path.replace(/^\/models\/([^/]+\/[^/]+)\/(.+)$/, '/$1/resolve/main/$2'),
-      },
-    },
+    proxy: modelProxy,
   },
   test: {
     globals: true,
