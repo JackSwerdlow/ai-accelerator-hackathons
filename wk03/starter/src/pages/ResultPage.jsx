@@ -78,7 +78,7 @@ export default function ResultPage() {
             scheme administrator.
           </p>
           <p className="govuk-body">
-            <a className="govuk-link" href="#">Find an approved installer</a>
+            <a className="govuk-link" href="https://www.gov.uk/green-deal" rel="noreferrer">Find an approved installer</a>
           </p>
         </>
       )}
@@ -107,7 +107,7 @@ export default function ResultPage() {
             Landlords can apply directly through the Green Home Grant scheme.
           </p>
           <p className="govuk-body">
-            <a className="govuk-link" href="#">Find an approved installer</a>
+            <a className="govuk-link" href="https://www.gov.uk/green-deal" rel="noreferrer">Find an approved installer</a>
           </p>
         </>
       )}
@@ -125,7 +125,7 @@ export default function ResultPage() {
             The installer will apply for the grant on your behalf.
           </p>
           <p className="govuk-body">
-            <a className="govuk-link" href="#">Find an approved installer</a>
+            <a className="govuk-link" href="https://www.gov.uk/green-deal" rel="noreferrer">Find an approved installer</a>
           </p>
         </>
       )}
@@ -157,7 +157,7 @@ export default function ResultPage() {
             You may still be able to improve your home's energy efficiency through other government schemes.
           </p>
           <p className="govuk-body">
-            <a className="govuk-link" href="#">Find other energy efficiency schemes</a>
+            <a className="govuk-link" href="https://www.gov.uk/improve-energy-efficiency" rel="noreferrer">Find other energy efficiency schemes</a>
           </p>
         </>
       )}
