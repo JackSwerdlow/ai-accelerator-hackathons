@@ -25,7 +25,7 @@ Do not add an entry for follow-up clarifications, selecting between options the 
 
 | Field | Detail |
 |-------|--------|
-| **Date + Time** | YYYY-MM-DD |
+| **Date** | YYYY-MM-DD |
 | **Task** | What you asked the AI to do |
 | **What AI Generated** | Specific description of the output — be concrete enough that another agent can understand what was built without reading the code or the plan |
 | **What You Changed + Why** | What you modified before committing, and why. If nothing was changed, say so explicitly and state why the output was accepted as-is. |
