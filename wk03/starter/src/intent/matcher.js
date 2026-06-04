@@ -180,6 +180,15 @@ async function loadEmbeddings() {
   const mod = await import('@xenova/transformers');
   pipelineRef = mod.pipeline;
 
+  // Load model files from the remote host, never the app's own origin.
+  // Transformers.js defaults to allowLocalModels=true and probes a local
+  // `/models/<model>/…` path first. Under any SPA history-fallback (the Vite
+  // dev server, or a static SPA host in production) that path returns
+  // index.html with HTTP 200, so the JSON parse of that HTML throws and we
+  // silently degrade to keyword-fallback. Disabling the local probe sends the
+  // request straight to the (reachable, cached-after-first-load) remote model.
+  mod.env.allowLocalModels = false;
+
   const cached = readCachedVectors();
   if (cached) {
     // Warm start: reuse cached vectors without loading the model.
