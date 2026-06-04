@@ -9,12 +9,7 @@ const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
 const CACHE_KEY = 'ghg:intent-cache:v1';
 
 // Mock the embeddings library; each test configures `pipeline` per scenario.
-// `env` mirrors the real module so matcher.js can flip `allowLocalModels`
-// (the local-model probe vs SPA-fallback bug guarded by E6).
-vi.mock('@xenova/transformers', () => ({
-  pipeline: vi.fn(),
-  env: { allowLocalModels: true, allowRemoteModels: true },
-}));
+vi.mock('@xenova/transformers', () => ({ pipeline: vi.fn() }));
 
 // matcher.js holds module-level singleton state, so reset the module registry
 // and storage between tests to guarantee a clean init each time. Re-importing
@@ -199,21 +194,5 @@ describe('matcher — embeddings mode', () => {
     for (let i = 1; i < results.length; i += 1) {
       expect(results[i - 1].score).toBeGreaterThanOrEqual(results[i].score);
     }
-  });
-
-  it('E6. disables the local-model probe so models load from the remote host', async () => {
-    const matcher = await import('../intent/matcher.js');
-    const transformers = await import('@xenova/transformers');
-    transformers.pipeline.mockResolvedValue(makeFakeExtractor());
-    // The mock `env` is a single shared object across tests, so own the
-    // precondition: the real library default is allowLocalModels=true.
-    transformers.env.allowLocalModels = true;
-
-    const result = await matcher.initMatcher();
-
-    // init must flip the probe off; otherwise a SPA host serves index.html for
-    // /models/… and the JSON parse throws (the bug this guards).
-    expect(result.mode).toBe('embeddings');
-    expect(transformers.env.allowLocalModels).toBe(false);
   });
 });

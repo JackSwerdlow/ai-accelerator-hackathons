@@ -12,6 +12,22 @@ export default defineConfig({
     port: PORT,
     strictPort: true,
     hmr: { protocol: 'wss', host: HOSTNAME, clientPort: PORT },
+    // The /help intent matcher loads its model from the same-origin /models/
+    // path (Transformers.js localModelPath). Browsers behind the lab reverse
+    // proxy can't reach huggingface.co directly, but the dev server can — so
+    // proxy /models/<org>/<repo>/<file> to the model's resolve URL on the Hub
+    // and follow the redirect to the weights CDN. Without this, /models/ hits
+    // the SPA history-fallback (index.html) and the matcher degrades to a
+    // basic keyword search.
+    proxy: {
+      '/models': {
+        target: 'https://huggingface.co',
+        changeOrigin: true,
+        followRedirects: true,
+        rewrite: (path) =>
+          path.replace(/^\/models\/([^/]+\/[^/]+)\/(.+)$/, '/$1/resolve/main/$2'),
+      },
+    },
   },
   test: {
     globals: true,
