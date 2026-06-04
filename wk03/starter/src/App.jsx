@@ -31,7 +31,7 @@ export default function App() {
     <FormProvider>
       <SkipLink />
       <GovukHeader />
-      <PhaseBanner phase="alpha" feedbackHref="#" />
+      <PhaseBanner phase="alpha" feedbackHref="/feedback" />
       <div className="govuk-width-container">
         <main
           id="main-content"

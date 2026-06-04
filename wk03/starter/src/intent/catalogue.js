@@ -6,7 +6,7 @@
  * @property {string} id - Stable identifier used as a cache key and tiebreak sort key.
  * @property {string} title - Human-readable service name shown in results.
  * @property {string} description - Short plain-English summary (15-25 words).
- * @property {string} route - In-app path, or "#" for a placeholder route.
+ * @property {string} route - In-app path ("/") or external gov.uk URL.
  * @property {string[]} phrases - Example natural-language queries (formal and informal).
  */
 
@@ -45,7 +45,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Apply for Universal Credit',
     description:
       'Claim a monthly payment to help with your living costs if you are on a low income, out of work, or unable to work.',
-    route: '#',
+    route: 'https://www.gov.uk/universal-credit',
     phrases: [
       'I want to apply for Universal Credit',
       'I lost my job and need money to live on',
@@ -60,7 +60,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Renew or replace your passport',
     description:
       'Apply online to renew an adult passport, replace a lost or stolen passport, or get your first adult passport.',
-    route: '#',
+    route: 'https://www.gov.uk/renew-adult-passport',
     phrases: [
       'I want a new passport',
       'lost my passport',
@@ -75,7 +75,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Register to vote',
     description:
       'Add yourself to the electoral register so you can vote in elections and referendums in England, Scotland or Wales.',
-    route: '#',
+    route: 'https://www.gov.uk/register-to-vote',
     phrases: [
       'I want to register to vote',
       'sign up to vote in the next election',
@@ -90,7 +90,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Apply for free school meals',
     description:
       'Check if your child can get free meals at school and apply through your local council if you receive certain benefits.',
-    route: '#',
+    route: 'https://www.gov.uk/apply-free-school-meals',
     phrases: [
       'apply for free school meals',
       'can my kids get free dinners at school',
@@ -105,7 +105,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Apply for Council Tax Reduction',
     description:
       'Get money off your council tax bill if you are on a low income or claim certain benefits, applied for through your council.',
-    route: '#',
+    route: 'https://www.gov.uk/apply-council-tax-reduction',
     phrases: [
       'reduce my council tax bill',
       "I can't afford my council tax",
@@ -120,7 +120,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Replace your driving licence',
     description:
       'Apply for a replacement if your driving licence is lost, stolen, damaged or has changes to your name or address.',
-    route: '#',
+    route: 'https://www.gov.uk/replace-a-driving-licence',
     phrases: [
       'replace my driving licence',
       'I lost my driving licence',
@@ -135,7 +135,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Report benefit fraud',
     description:
       'Tell the government anonymously if you think someone is claiming benefits they are not entitled to.',
-    route: '#',
+    route: 'https://www.gov.uk/report-benefit-fraud',
     phrases: [
       'report someone for benefit fraud',
       'I think my neighbour is cheating benefits',
@@ -150,7 +150,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Apply for Pension Credit',
     description:
       'Claim extra money to help with living costs if you are over State Pension age and on a low income.',
-    route: '#',
+    route: 'https://www.gov.uk/pension-credit',
     phrases: [
       'apply for Pension Credit',
       'extra money for pensioners on a low income',
@@ -165,7 +165,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Claim Child Benefit',
     description:
       'Get a regular payment to help with the cost of raising a child if you are responsible for a child under 16.',
-    route: '#',
+    route: 'https://www.gov.uk/child-benefit',
     phrases: [
       'claim Child Benefit',
       'I just had a baby and want child benefit',
@@ -180,7 +180,7 @@ export const SERVICE_CATALOGUE = [
     title: 'Apply for a Blue Badge',
     description:
       'Apply for a parking permit that lets disabled or less mobile people park closer to where they need to go.',
-    route: '#',
+    route: 'https://www.gov.uk/apply-blue-badge',
     phrases: [
       'apply for a Blue Badge',
       'disabled parking permit',

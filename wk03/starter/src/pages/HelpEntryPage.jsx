@@ -29,6 +29,29 @@ const MIN_CONFIDENCE = 0.3;
  */
 
 /**
+ * Render a service link that respects the catalogue target: an external
+ * https URL becomes a normal same-tab anchor, while an in-app path stays
+ * a client-side react-router <Link>.
+ *
+ * @param {{ to: string, children: React.ReactNode }} props - Target and label.
+ * @returns {JSX.Element} The appropriate link element.
+ */
+function ServiceLink({ to, children }) {
+  if (/^https?:\/\//.test(to)) {
+    return (
+      <a className="govuk-link" href={to} rel="noreferrer">
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link className="govuk-link" to={to}>
+      {children}
+    </Link>
+  );
+}
+
+/**
  * Render the help-entry page: a free-text intent search backed by the semantic
  * matcher, with a full-catalogue fallback for cold loads, weak matches, or when
  * the embeddings backend is unavailable.
@@ -215,9 +238,7 @@ export default function HelpEntryPage() {
           {visibleResults.map(({ entry, score }) => (
             <li key={entry.id} className="app-intent-card">
               <h2 className="govuk-heading-m">
-                <Link className="govuk-link" to={entry.route}>
-                  {entry.title}
-                </Link>
+                <ServiceLink to={entry.route}>{entry.title}</ServiceLink>
               </h2>
               <p className="govuk-body">{entry.description}</p>
               <SimilarityBadge score={score} />
@@ -238,9 +259,7 @@ export default function HelpEntryPage() {
           <ul className="govuk-list">
             {SERVICE_CATALOGUE.map((entry) => (
               <li key={entry.id}>
-                <Link className="govuk-link" to={entry.route}>
-                  {entry.title}
-                </Link>
+                <ServiceLink to={entry.route}>{entry.title}</ServiceLink>
                 <p className="govuk-body">{entry.description}</p>
               </li>
             ))}
