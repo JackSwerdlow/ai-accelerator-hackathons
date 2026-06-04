@@ -91,11 +91,11 @@ every commit and log entry is prefixed `[Agent-Name]`.
 
 | Agent | Primary contribution |
 |---|---|
-| **Agent-Jack** | Content plan · work split · collated `PLAN.md` · build chunks · verification · PDF · E2E spec |
+| **Agent-Jack** | Content plan · work split · collated `PLAN.md` · build chunks · verification · PDF · E2E suite |
 | **Agent-SK** | Parallel implementation plan (coding standards) · save-and-return (localStorage) |
 | **Agent-Research** | GOV.UK / WCAG / Service-Standard standards research report |
 | **Agent-Dale** | Build chunks · second eligibility pathway (research + impl) |
-| **Agent-Satya** | Semantic intent-matcher `/help` page (stretch) |
+| **Agent-Satya** | Semantic intent-matcher `/help` page · link-wiring + `/feedback` form |
 
 <span class="small">Why identities matter: in a shared repo, attribution + a consistent commit convention make the
 history auditable and merge conflicts traceable to a responsible owner.</span>
@@ -359,7 +359,8 @@ flowchart LR
   style PW fill:#00703c,color:#fff
 ```
 
-<span class="small">Findings were environment-only (HMR socket, favicon 404) — no app errors.</span>
+<span class="small">Findings were environment-only (HMR socket, favicon 404) — no app errors. Day 2 hardened this
+manual pass into a committed, automated Playwright E2E suite (see the stretch slide).</span>
 
 ---
 
@@ -372,14 +373,17 @@ flowchart TB
   M[main: MVS complete] --> S1[Save & return<br/>localStorage · Agent-SK]
   M --> S2[Accessible PDF<br/>of result · Agent-Jack]
   M --> S3[Second pathway<br/>tenant vs owner · Agent-Dale]
-  M --> S4[Playwright E2E<br/>design spec · Agent-Jack]
+  M --> S4[Playwright E2E suite<br/>~46 tests · Agent-Jack]
   M --> S5[Semantic intent<br/>matcher /help · Agent-Satya]
-  S1 & S2 & S3 --> PR[Merge via PR<br/>preserve every agent's work]
+  M --> S6[Wire links + /feedback<br/>form · Agent-Satya]
+  S1 & S2 & S3 & S4 & S5 & S6 --> PR[Merge via PR<br/>preserve every agent's work]
   style M fill:#1d70b8,color:#fff
+  style S4 fill:#00703c,color:#fff
 ```
 
-The branch-per-stretch model let five workstreams proceed without stepping on each
-other — the file-ownership principle, scaled up to whole features.
+Branch-per-stretch scaled the file-ownership principle up to whole features. The unit
+suite grew **21 → 86 tests**, joined by a **46-test Playwright E2E suite** (with axe WCAG 2.2
+AA scans) — which caught a real **320px reflow** bug the unit tests had missed.
 
 ---
 
@@ -432,7 +436,7 @@ flowchart LR
   end
   subgraph Day2[Day 2 — stretch]
     direction TB
-    ST1[Save & return] --> ST2[PDF] --> ST3[2nd pathway] --> ST4[E2E spec] --> ST5[Intent matcher]
+    ST1[Save & return] --> ST2[PDF] --> ST3[2nd pathway] --> ST4[E2E suite] --> ST5[Intent matcher] --> ST6[Links + feedback]
   end
   Day1 --> Day2
 ```
@@ -450,7 +454,8 @@ all reconstructable from the git log + `AI_LOG.md`, which is the point.
   generic page component — settled in `PLAN.md` — made parallel building safe.
 - **Fresh subagents review fresh code.** Separating implementer / spec-reviewer /
   quality-reviewer caught defects an author wouldn't see in their own work.
-- **Verify the feature, not just the code.** Tests are necessary; a browser run is the proof.
+- **Verify the feature, not just the code.** Tests are necessary; a browser run is the proof —
+  and the automated E2E suite's 320px check caught a real WCAG reflow bug the unit tests missed.
 - **Record the *why* of every change.** "What you changed + why" is where the engineering
   judgement — and the auditability — actually lives.
 
