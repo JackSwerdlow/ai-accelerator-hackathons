@@ -18,5 +18,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/__tests__/setup.js'],
     css: false,
+    // Scope Vitest to src/ so it never tries to run the Playwright e2e specs
+    // (whose `test`/`expect` come from @playwright/test, not Vitest).
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
   },
 });

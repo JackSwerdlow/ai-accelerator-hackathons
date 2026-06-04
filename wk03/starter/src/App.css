@@ -271,17 +271,23 @@ a:focus {
   padding: var(--govuk-spacing-3) 0;
 }
 
+/* margin:0 resets the UA default margin-left:40px on the <dd> value/actions
+ * cells. Without it, the stacked (width:100%) mobile layout overflows the
+ * viewport by 40px, breaking 320px reflow (WCAG 2.2 AA 1.4.10). */
 .govuk-summary-list__key {
   width: 30%;
+  margin: 0;
   font-weight: 700;
 }
 
 .govuk-summary-list__value {
   width: 50%;
+  margin: 0;
 }
 
 .govuk-summary-list__actions {
   width: 20%;
+  margin: 0;
   text-align: right;
 }
 
