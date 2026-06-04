@@ -442,7 +442,7 @@ flowchart LR
   end
   subgraph Day2[Day 2 — stretch]
     direction TB
-    ST1[Save & return] --> ST2[PDF] --> ST3[2nd pathway] --> ST4[E2E suite] --> ST5[Intent matcher] --> ST6[Links + feedback]
+    ST1[Save & return] --> ST2[PDF] --> ST3[2nd pathway] --> ST4[E2E suite] --> ST5[Intent matcher] --> ST6[Links + feedback] --> ST7[Harden /help matcher]
   end
   Day1 --> Day2
 ```

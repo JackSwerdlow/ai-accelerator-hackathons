@@ -25,10 +25,9 @@
   .legend{ display:flex; gap:18px; }
   .legend i{ display:inline-block; width:13px; height:13px; border-radius:3px;
              vertical-align:middle; margin-right:5px; }
-  /* svg text helpers */
   text{ font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; }
   .ph{ font-size:16px; font-weight:700; letter-spacing:.5px; }
-  .ms{ font-size:14.5px; } .ms b{ font-weight:700; }
+  .ms{ font-size:14px; } .ms .sm{ font-size:11.5px; fill:var(--grey); }
   .tick{ font-size:13px; fill:var(--grey); }
   .day{ font-size:15px; font-weight:700; fill:var(--grey); }
   .val{ font-size:14.5px; font-weight:700; fill:var(--black); }
@@ -42,10 +41,11 @@
       <h1>From plan to <span>continuous improvement</span></h1>
       <div class="sub">Green Home Grant — every objective &amp; stretch goal at the clock time it landed</div>
     </div>
-    <div class="arc"><b>Day 1</b> 10:30–16:30 · <b>overnight pause</b> (17.5h, no work) · <b>Day 2</b> from 10:00<br>5 agents · plan → develop → improve</div>
+    <div class="arc"><b>Day 1</b> 10:30–16:30 · <b>overnight pause</b> (17.5h, no work) · <b>Day 2</b> 10:00–14:00<br>5 agents · plan → develop → improve</div>
   </header>
 
   <div class="chart">
+  <!-- time scale: Day1 10:30–16:30 (360m) + gap + Day2 10:00–14:00 (240m); ~1.86 px/min -->
   <svg viewBox="0 0 1280 600" preserveAspectRatio="xMidYMid meet">
     <defs>
       <pattern id="hatch" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
@@ -54,117 +54,121 @@
       </pattern>
     </defs>
 
-    <!-- phase background bands (faint), along the time axis -->
-    <rect x="60"  y="34" width="381" height="526" fill="#1f4e79" fill-opacity="0.06"/>
-    <rect x="455" y="34" width="170" height="526" fill="#00703c" fill-opacity="0.07"/>
-    <rect x="640" y="34" width="203" height="526" fill="#b58800" fill-opacity="0.08"/>
-    <rect x="913" y="34" width="326" height="526" fill="#b58800" fill-opacity="0.08"/>
+    <!-- phase background bands -->
+    <rect x="60"  y="34" width="345" height="526" fill="#1f4e79" fill-opacity="0.06"/>
+    <rect x="415" y="34" width="125" height="526" fill="#00703c" fill-opacity="0.07"/>
+    <rect x="555" y="34" width="175" height="526" fill="#b58800" fill-opacity="0.08"/>
+    <rect x="794" y="34" width="446" height="526" fill="#b58800" fill-opacity="0.08"/>
 
-    <!-- overnight gap (no work) -->
-    <rect x="843" y="34" width="70" height="526" fill="url(#hatch)" stroke="#d9cba0" stroke-width="1"/>
-    <text x="878" y="300" class="ph" fill="#9a7d1e" text-anchor="middle" transform="rotate(-90 878 300)">OVERNIGHT · NO WORK · 17.5 h</text>
+    <!-- overnight gap -->
+    <rect x="730" y="34" width="64" height="526" fill="url(#hatch)" stroke="#d9cba0" stroke-width="1"/>
+    <text x="762" y="300" class="ph" fill="#9a7d1e" text-anchor="middle" transform="rotate(-90 762 300)">OVERNIGHT · NO WORK · 17.5 h</text>
 
-    <!-- phase name labels -->
-    <text x="250" y="24" class="ph" fill="#1f4e79" text-anchor="middle">1 · PLAN</text>
-    <text x="540" y="24" class="ph" fill="#00703c" text-anchor="middle">2 · DEVELOP</text>
-    <text x="1010" y="24" class="ph" fill="#b58800" text-anchor="middle">3 · IMPROVE  (spans the pause)</text>
+    <!-- phase names -->
+    <text x="232"  y="24" class="ph" fill="#1f4e79" text-anchor="middle">1 · PLAN</text>
+    <text x="477"  y="24" class="ph" fill="#00703c" text-anchor="middle">2 · DEVELOP</text>
+    <text x="1017" y="24" class="ph" fill="#b58800" text-anchor="middle">3 · IMPROVE  (spans the pause)</text>
 
     <!-- hour gridlines -->
     <g stroke="#e6e6e6" stroke-width="1">
-      <line x1="125" y1="34" x2="125" y2="438"/><line x1="256" y1="34" x2="256" y2="438"/>
-      <line x1="386" y1="34" x2="386" y2="438"/><line x1="517" y1="34" x2="517" y2="438"/>
-      <line x1="647" y1="34" x2="647" y2="438"/><line x1="778" y1="34" x2="778" y2="438"/>
-      <line x1="1044" y1="34" x2="1044" y2="438"/><line x1="1174" y1="34" x2="1174" y2="438"/>
+      <line x1="116" y1="34" x2="116" y2="438"/><line x1="227" y1="34" x2="227" y2="438"/>
+      <line x1="339" y1="34" x2="339" y2="438"/><line x1="451" y1="34" x2="451" y2="438"/>
+      <line x1="562" y1="34" x2="562" y2="438"/><line x1="674" y1="34" x2="674" y2="438"/>
+      <line x1="906" y1="34" x2="906" y2="438"/><line x1="1017" y1="34" x2="1017" y2="438"/>
+      <line x1="1129" y1="34" x2="1129" y2="438"/>
     </g>
 
-    <!-- ===== milestone track ===== -->
-    <!-- axis line (broken across the gap) -->
-    <line x1="60" y1="300" x2="843" y2="300" stroke="#0b0c0c" stroke-width="2"/>
-    <line x1="913" y1="300" x2="1239" y2="300" stroke="#0b0c0c" stroke-width="2"/>
+    <!-- axis (broken across the gap) -->
+    <line x1="60" y1="300" x2="730" y2="300" stroke="#0b0c0c" stroke-width="2"/>
+    <line x1="794" y1="300" x2="1240" y2="300" stroke="#0b0c0c" stroke-width="2"/>
 
-    <!-- leaders + dots + labels (tiers at y 70/118/166; axis at 300) -->
+    <!-- leaders -->
     <g stroke="#c4c4c4" stroke-width="1">
-      <line x1="178" y1="300" x2="178" y2="78"/>
-      <line x1="248" y1="300" x2="248" y2="126"/>
-      <line x1="371" y1="300" x2="371" y2="174"/>
-      <line x1="487" y1="300" x2="487" y2="126"/>
-      <line x1="594" y1="300" x2="594" y2="78"/>
-      <line x1="696" y1="300" x2="696" y2="126"/>
-      <line x1="735" y1="300" x2="735" y2="174"/>
-      <line x1="822" y1="300" x2="822" y2="78"/>
-      <line x1="1081" y1="300" x2="1081" y2="78"/>
-      <line x1="1135" y1="300" x2="1135" y2="126"/>
-      <line x1="1189" y1="300" x2="1189" y2="174"/>
+      <line x1="116" y1="300" x2="116" y2="78"/>
+      <line x1="203" y1="300" x2="203" y2="126"/>
+      <line x1="326" y1="300" x2="326" y2="174"/>
+      <line x1="425" y1="300" x2="425" y2="126"/>
+      <line x1="506" y1="300" x2="506" y2="78"/>
+      <line x1="603" y1="300" x2="603" y2="126"/>
+      <line x1="637" y1="300" x2="637" y2="174"/>
+      <line x1="711" y1="300" x2="711" y2="78"/>
+      <line x1="937" y1="300" x2="937" y2="78"/>
+      <line x1="984" y1="300" x2="984" y2="126"/>
+      <line x1="1052" y1="300" x2="1052" y2="174"/>
+      <line x1="1185" y1="300" x2="1185" y2="92"/>
     </g>
 
     <!-- dots -->
     <g>
-      <circle cx="178" cy="300" r="5" fill="#1f4e79"/>
-      <circle cx="248" cy="300" r="5" fill="#1f4e79"/>
-      <circle cx="371" cy="300" r="5" fill="#1f4e79"/>
-      <circle cx="487" cy="300" r="5" fill="#00703c"/>
-      <circle cx="594" cy="300" r="5" fill="#00703c"/>
-      <circle cx="696" cy="300" r="5" fill="#1d70b8"/>
-      <circle cx="735" cy="300" r="5" fill="#1d70b8"/>
-      <circle cx="822" cy="300" r="5" fill="#1d70b8"/>
-      <circle cx="1081" cy="300" r="5" fill="#1d70b8"/>
-      <circle cx="1135" cy="300" r="5" fill="#1d70b8"/>
-      <circle cx="1189" cy="300" r="5" fill="#768692"/>
+      <circle cx="116" cy="300" r="5" fill="#1f4e79"/>
+      <circle cx="203" cy="300" r="5" fill="#1f4e79"/>
+      <circle cx="326" cy="300" r="5" fill="#1f4e79"/>
+      <circle cx="425" cy="300" r="5" fill="#00703c"/>
+      <circle cx="506" cy="300" r="5" fill="#00703c"/>
+      <circle cx="603" cy="300" r="5" fill="#1d70b8"/>
+      <circle cx="637" cy="300" r="5" fill="#1d70b8"/>
+      <circle cx="711" cy="300" r="5" fill="#1d70b8"/>
+      <circle cx="937" cy="300" r="5" fill="#1d70b8"/>
+      <circle cx="984" cy="300" r="5" fill="#1d70b8"/>
+      <circle cx="1052" cy="300" r="5" fill="#768692"/>
+      <circle cx="1185" cy="300" r="5" fill="#1d70b8"/>
     </g>
 
-    <!-- labels (time + text) -->
+    <!-- labels -->
     <g class="ms" text-anchor="middle">
-      <text x="178" y="62"  fill="#1f4e79" font-weight="700">10:30</text><text x="178" y="78">Guardrails + content plan</text>
-      <text x="248" y="110" fill="#1f4e79" font-weight="700">11:50</text><text x="248" y="126">Research + rival plans</text>
-      <text x="371" y="158" fill="#1f4e79" font-weight="700">12:53</text><text x="371" y="174"><tspan font-weight="700">PLAN.md</tspan> — single source</text>
-      <text x="487" y="110" fill="#00703c" font-weight="700">13:46</text><text x="487" y="126">Chunk 1 · 16 tests</text>
-      <text x="594" y="62"  fill="#00703c" font-weight="700">14:30</text><text x="594" y="78">Chunks 2–4 + browser-verified</text>
-      <text x="696" y="110" fill="#1d70b8" font-weight="700">15:22</text><text x="696" y="126"><tspan font-weight="700">Save &amp; return</tspan></text>
-      <text x="735" y="158" fill="#1d70b8" font-weight="700">15:40</text><text x="735" y="174"><tspan font-weight="700">Second pathway</tspan></text>
-      <text x="822" y="62"  fill="#1d70b8" font-weight="700">16:20</text><text x="822" y="78"><tspan font-weight="700">Accessible PDF</tspan></text>
-      <text x="1081" y="62"  fill="#1d70b8" font-weight="700">11:17</text><text x="1081" y="78"><tspan font-weight="700">Semantic /help</tspan> matcher</text>
-      <text x="1135" y="110" fill="#1d70b8" font-weight="700">11:42</text><text x="1135" y="126"><tspan font-weight="700">Playwright E2E</tspan> suite</text>
-      <text x="1189" y="158" fill="#768692" font-weight="700">12:07</text><text x="1189" y="174">Links + /feedback</text>
+      <text x="116" y="62"  fill="#1f4e79" font-weight="700">10:30</text><text x="116" y="78">Guardrails + content plan</text>
+      <text x="203" y="110" fill="#1f4e79" font-weight="700">11:47</text><text x="203" y="126">Research + rival plans</text>
+      <text x="326" y="158" fill="#1f4e79" font-weight="700">12:53</text><text x="326" y="174"><tspan font-weight="700">PLAN.md</tspan> — single source</text>
+      <text x="425" y="110" fill="#00703c" font-weight="700">13:46</text><text x="425" y="126">Chunk 1 · 16 tests</text>
+      <text x="506" y="62"  fill="#00703c" font-weight="700">14:30</text><text x="506" y="78">Chunks 2–4 + browser-verified</text>
+      <text x="603" y="110" fill="#1d70b8" font-weight="700">15:22</text><text x="603" y="126"><tspan font-weight="700">Save &amp; return</tspan></text>
+      <text x="637" y="158" fill="#1d70b8" font-weight="700">15:40</text><text x="637" y="174"><tspan font-weight="700">Second pathway</tspan></text>
+      <text x="711" y="62"  fill="#1d70b8" font-weight="700">16:20</text><text x="711" y="78"><tspan font-weight="700">Accessible PDF</tspan></text>
+      <text x="937" y="62"  fill="#1d70b8" font-weight="700">11:17</text><text x="937" y="78"><tspan font-weight="700">Semantic /help</tspan> matcher</text>
+      <text x="984" y="110" fill="#1d70b8" font-weight="700">11:42</text><text x="984" y="126"><tspan font-weight="700">Playwright E2E</tspan> suite</text>
+      <text x="1052" y="158" fill="#768692" font-weight="700">12:15</text><text x="1052" y="174">Links, feedback + result links</text>
+      <text x="1185" y="62" fill="#1d70b8" font-weight="700">13:00–14:00</text>
+        <text x="1185" y="78"><tspan font-weight="700">Harden /help matcher</tspan></text>
+        <text x="1185" y="92" class="sm">proxy · 12-agent catalogue · max-sim</text>
     </g>
 
-    <!-- hour tick labels under the axis -->
+    <!-- hour tick labels -->
     <g class="tick" text-anchor="middle">
       <text x="60"  y="322">10:30</text>
-      <text x="125" y="322">11</text><text x="256" y="322">12</text><text x="386" y="322">13</text>
-      <text x="517" y="322">14</text><text x="647" y="322">15</text><text x="778" y="322">16</text>
-      <text x="843" y="322">16:30</text>
-      <text x="913" y="322">10:00</text><text x="1044" y="322">11</text><text x="1174" y="322">12</text>
-      <text x="1213" y="322">12:10</text>
+      <text x="116" y="322">11</text><text x="227" y="322">12</text><text x="339" y="322">13</text>
+      <text x="451" y="322">14</text><text x="562" y="322">15</text><text x="674" y="322">16</text>
+      <text x="730" y="322">16:30</text>
+      <text x="794" y="322">10:00</text><text x="906" y="322">11</text><text x="1017" y="322">12</text>
+      <text x="1129" y="322">13</text><text x="1240" y="322">14:00</text>
     </g>
-    <text x="450" y="346" class="day" text-anchor="middle">— DAY 1 (06-03) —</text>
-    <text x="1076" y="346" class="day" text-anchor="middle">— DAY 2 (06-04) —</text>
+    <text x="395"  y="346" class="day" text-anchor="middle">— DAY 1 (06-03) —</text>
+    <text x="1017" y="346" class="day" text-anchor="middle">— DAY 2 (06-04) —</text>
 
     <!-- ===== cumulative-tests curve, same time axis ===== -->
-    <!-- baseline -->
-    <line x1="60" y1="540" x2="1239" y2="540" stroke="#dcdcdc" stroke-width="1"/>
+    <line x1="60" y1="540" x2="1240" y2="540" stroke="#dcdcdc" stroke-width="1"/>
     <text x="60" y="380" class="tick" text-anchor="start">tests</text>
 
     <!-- Day 1 area + line (0→61) -->
-    <path d="M441,540 L487,495 L528,481 L735,431 L778,414 L822,370 L843,370 L843,540 Z" fill="#1d70b8" fill-opacity="0.10"/>
-    <polyline points="441,540 487,495 528,481 735,431 778,414 822,370 843,370" fill="none" stroke="#1d70b8" stroke-width="3"/>
-    <!-- frozen across the gap (no work) -->
-    <line x1="843" y1="370" x2="913" y2="370" stroke="#9a7d1e" stroke-width="2" stroke-dasharray="3 4"/>
-    <!-- Day 2 area + line (61→86) -->
-    <path d="M913,370 L1081,308 L1135,300 L1189,300 L1189,540 L913,540 Z" fill="#1d70b8" fill-opacity="0.10"/>
-    <polyline points="913,370 1081,308 1135,300 1189,300" fill="none" stroke="#1d70b8" stroke-width="3"/>
+    <path d="M386,540 L425,495 L460,481 L637,431 L679,414 L711,370 L730,370 L730,540 Z" fill="#1d70b8" fill-opacity="0.10"/>
+    <polyline points="386,540 425,495 460,481 637,431 679,414 711,370 730,370" fill="none" stroke="#1d70b8" stroke-width="3"/>
+    <!-- frozen across the gap -->
+    <line x1="730" y1="370" x2="794" y2="370" stroke="#9a7d1e" stroke-width="2" stroke-dasharray="3 4"/>
+    <!-- Day 2 area + line (61→86, then quality work at a plateau) -->
+    <path d="M794,370 L937,308 L984,300 L1231,300 L1231,540 L794,540 Z" fill="#1d70b8" fill-opacity="0.10"/>
+    <polyline points="794,370 937,308 984,300 1231,300" fill="none" stroke="#1d70b8" stroke-width="3"/>
 
-    <!-- points + value labels -->
     <g class="val" text-anchor="middle">
-      <circle cx="487" cy="495" r="4.5" fill="#00703c"/><text x="487" y="487">16</text>
-      <circle cx="528" cy="481" r="4.5" fill="#00703c"/><text x="540" y="474">21</text>
-      <circle cx="735" cy="431" r="4.5" fill="#1d70b8"/><text x="735" y="423">39</text>
-      <circle cx="778" cy="414" r="4.5" fill="#1d70b8"/><text x="778" y="406">45</text>
-      <circle cx="822" cy="370" r="4.5" fill="#1d70b8"/><text x="822" y="362">61</text>
-      <circle cx="1081" cy="308" r="4.5" fill="#1d70b8"/><text x="1081" y="300">83</text>
-      <circle cx="1135" cy="300" r="4.5" fill="#1d70b8"/><text x="1135" y="292">86</text>
+      <circle cx="425" cy="495" r="4.5" fill="#00703c"/><text x="425" y="487">16</text>
+      <circle cx="460" cy="481" r="4.5" fill="#00703c"/><text x="472" y="474">21</text>
+      <circle cx="637" cy="431" r="4.5" fill="#1d70b8"/><text x="637" y="423">39</text>
+      <circle cx="679" cy="414" r="4.5" fill="#1d70b8"/><text x="679" y="406">45</text>
+      <circle cx="711" cy="370" r="4.5" fill="#1d70b8"/><text x="711" y="362">61</text>
+      <circle cx="937" cy="308" r="4.5" fill="#1d70b8"/><text x="937" y="300">83</text>
+      <circle cx="984" cy="300" r="4.5" fill="#1d70b8"/><text x="984" y="292">86</text>
     </g>
-    <text x="1200" y="318" class="val" fill="#00703c" text-anchor="start">+46 E2E</text>
-    <text x="450" y="558" class="tick" text-anchor="middle">cumulative passing tests — every step shippable, build always green</text>
+    <text x="1010" y="296" class="val" fill="#00703c" text-anchor="start">+46 E2E</text>
+    <text x="1090" y="366" class="tick" text-anchor="middle">plateau — afternoon was matcher quality, not new tests</text>
+    <text x="430" y="558" class="tick" text-anchor="middle">cumulative passing tests — every step shippable, build always green</text>
   </svg>
   </div>
 
