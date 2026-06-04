@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Green Home Grant — plan, develop, improve: a two-day timeline</title>
+<style>
+  :root{
+    --blue:#1d70b8; --black:#0b0c0c; --green:#00703c; --grey:#505a5f;
+    --yellow:#ffdd00; --amber:#b58800; --light:#f3f2f1; --line:#b1b4b6;
+    --plan:#1d70b8; --dev:#00703c; --imp:#b58800;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  @page{ size:A4 landscape; margin:0; }
+  html,body{ font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--black); }
+  .page{ width:297mm; height:210mm; padding:8mm 9mm; margin:0 auto; display:flex; flex-direction:column; gap:3.2mm; background:#fff; }
+
+  header{ display:flex; align-items:flex-end; justify-content:space-between; border-bottom:4px solid var(--black); padding-bottom:2.4mm; }
+  header h1{ font-size:20px; }
+  header h1 span{ color:var(--blue); }
+  header .sub{ font-size:10px; color:var(--grey); margin-top:1.5mm; }
+  header .arc{ font-size:9.5px; color:var(--grey); text-align:right; }
+  header .arc b{ color:var(--black); }
+
+  /* phase band header */
+  .phases{ display:flex; gap:2mm; }
+  .phase{ color:#fff; border-radius:4px 4px 0 0; padding:2.6mm 4mm; }
+  .phase.p{ flex:30; background:var(--plan); }
+  .phase.d{ flex:18; background:var(--dev); }
+  .phase.i{ flex:52; background:var(--imp); }
+  .phase .nm{ font-size:13px; font-weight:700; letter-spacing:0.5px; }
+  .phase .mt{ font-size:8.5px; opacity:.9; margin-top:1px; }
+
+  /* milestone columns */
+  .lanes{ display:flex; gap:2mm; flex:1; }
+  .lane{ background:var(--light); border-radius:0 0 4px 4px; padding:2.8mm 2.6mm; display:flex; flex-direction:column; gap:1.7mm; }
+  .lane.p{ flex:30; } .lane.d{ flex:18; } .lane.i{ flex:52; }
+  .lane.i .grid{ display:grid; grid-template-columns:1fr 1fr; gap:1.7mm 2mm; }
+  .lane .hd{ font-size:8px; text-transform:uppercase; letter-spacing:1px; color:var(--grey); font-weight:700; margin-bottom:0.6mm; }
+
+  .ms{ background:#fff; border:1px solid var(--line); border-left:3px solid var(--grey); border-radius:3px; padding:1.7mm 2.2mm; }
+  .ms.obj{ border-left-color:var(--green); }
+  .ms.str{ border-left-color:var(--blue); }
+  .ms.pol{ border-left-color:var(--grey); }
+  .ms.pln{ border-left-color:var(--blue); }
+  .ms .tm{ font-size:7.5px; color:var(--grey); font-weight:700; }
+  .ms .ti{ font-size:9px; line-height:1.2; margin-top:0.4mm; }
+  .ms .ti b{ font-weight:700; }
+  .pill{ display:inline-block; font-size:6.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+         padding:0.3mm 1.4mm; border-radius:8px; vertical-align:middle; margin-left:1mm; }
+  .pill.s{ background:#d2e2f1; color:var(--blue); }
+  .pill.o{ background:#cfe6da; color:var(--green); }
+
+  .devnote{ font-size:8px; color:var(--green); font-weight:700; margin-top:0.8mm; }
+  .night{ grid-column:1 / -1; display:flex; align-items:center; gap:2mm; font-size:7.5px; color:var(--amber); font-weight:700; margin:0.4mm 0; }
+  .night::before,.night::after{ content:""; flex:1; border-top:1px dashed var(--amber); }
+
+  /* improvement curve */
+  .curve{ border:1px solid var(--line); border-radius:4px; padding:2.6mm 3mm 1.8mm; }
+  .curve .ct{ font-size:9px; font-weight:700; color:var(--black); }
+  .curve .ct span{ color:var(--grey); font-weight:400; }
+  svg{ display:block; width:100%; height:30mm; }
+
+  footer{ display:flex; justify-content:space-between; align-items:center; font-size:8px; color:var(--grey); }
+  .legend{ display:flex; gap:4mm; }
+  .legend i{ display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:middle; margin-right:2px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div>
+      <h1>From plan to <span>continuous improvement</span> — a two-day build</h1>
+      <div class="sub">Green Home Grant eligibility checker · every README objective &amp; stretch goal, mapped to when it landed (commit times)</div>
+    </div>
+    <div class="arc"><b>~2&nbsp;days</b>, 5 agent identities<br>plan <b>2h</b> → develop <b>1h</b> → improve <b>continuous</b></div>
+  </header>
+
+  <div class="phases">
+    <div class="phase p"><div class="nm">1 · PLAN</div><div class="mt">Day 1 · 11:24–13:24 — settle the contracts before any code</div></div>
+    <div class="phase d"><div class="nm">2 · DEVELOP</div><div class="mt">Day 1 · 13:46–14:43 — the MVS, in one tight burst</div></div>
+    <div class="phase i"><div class="nm">3 · IMPROVE</div><div class="mt">Day 1 15:09 → Day 2 12:07 — stretch goals &amp; polish, one after another</div></div>
+  </div>
+
+  <div class="lanes">
+
+    <div class="lane p">
+      <div class="hd">Guardrails &amp; planning artefacts</div>
+      <div class="ms pln"><div class="tm">11:24 · 11:36</div><div class="ti"><b>Guardrails first</b> — agent identity, shared-repo git workflow, AI_LOG rules</div></div>
+      <div class="ms pln"><div class="tm">11:24</div><div class="ti"><b>Content plan</b> — copy, options, rules, result text</div></div>
+      <div class="ms pln"><div class="tm">11:32</div><div class="ti"><b>4-agent work split</b> — strict file ownership</div></div>
+      <div class="ms pln"><div class="tm">11:47</div><div class="ti"><b>Standards research</b> — GOV.UK / WCAG / Service Std, sanity-checked by subagents</div></div>
+      <div class="ms pln"><div class="tm">11:55 · 12:14</div><div class="ti"><b>Two rival plans</b> — kept side-by-side, trade-offs captured</div></div>
+      <div class="ms pln"><div class="tm">12:53</div><div class="ti"><b>PLAN.md</b> — one source of truth (17 decisions, contracts, test matrix)</div></div>
+    </div>
+
+    <div class="lane d">
+      <div class="hd">MVS — the six objectives</div>
+      <div class="ms obj"><div class="tm">13:46 · Chunk 1</div><div class="ti">Eligibility logic + state + <b>16 unit tests</b> <span class="pill o">obj 5+ tests</span></div></div>
+      <div class="ms obj"><div class="tm">14:05 · Chunk 2</div><div class="ti">Question page, validation, summary, panel <span class="pill o">err pattern</span></div></div>
+      <div class="ms obj"><div class="tm">14:19 · Chunk 3</div><div class="ti">GOV.UK chrome, routing, back/continue, focus <span class="pill o">DS · WCAG</span></div></div>
+      <div class="ms obj"><div class="tm">14:30 · Chunk 4</div><div class="ti">All 9 pages: flow · check-answers · result · a11y statement</div></div>
+      <div class="ms obj"><div class="tm">14:41</div><div class="ti"><b>Verified in a real browser</b> (Playwright MCP)</div></div>
+      <div class="devnote">✓ Delivers all 6 MVS objectives + acceptance criteria</div>
+    </div>
+
+    <div class="lane i">
+      <div class="hd">Stretch goals &amp; polish — continued improvement</div>
+      <div class="grid">
+        <div class="ms pol"><div class="tm">15:39 · Day 1</div><div class="ti">Tudor crown logotype + disclosure polish</div></div>
+        <div class="ms str"><div class="tm">15:40 · Day 1</div><div class="ti"><b>Second eligibility pathway</b> — tenant vs owner <span class="pill s">stretch</span></div></div>
+        <div class="ms str"><div class="tm">16:03 · Day 1</div><div class="ti"><b>Save &amp; return</b> — localStorage <span class="pill s">stretch</span></div></div>
+        <div class="ms pol"><div class="tm">16:45 · Day 1</div><div class="ti">Dev-server / reverse-proxy config</div></div>
+        <div class="ms str"><div class="tm">17:14 · Day 1</div><div class="ti"><b>Accessible PDF</b> of the result <span class="pill s">stretch</span></div></div>
+        <div class="night">overnight</div>
+        <div class="ms str"><div class="tm">11:17 · Day 2</div><div class="ti"><b>Semantic /help matcher</b> — on-device MiniLM <span class="pill s">stretch</span></div></div>
+        <div class="ms str"><div class="tm">11:42 · Day 2</div><div class="ti"><b>Playwright E2E suite</b> — 46 tests + axe; caught a 320px bug <span class="pill s">stretch</span></div></div>
+        <div class="ms pol"><div class="tm">12:07 · Day 2</div><div class="ti">Wire dead links to gov.uk + add /feedback form</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="curve">
+    <div class="ct">Continued improvement, measured <span>— cumulative passing tests across the build (each step shippable, build always green)</span></div>
+    <svg viewBox="0 0 1000 150" preserveAspectRatio="none">
+      <!-- gridline baseline -->
+      <line x1="40" y1="120" x2="1000" y2="120" stroke="#dcdcdc" stroke-width="1"/>
+      <!-- phase separators -->
+      <line x1="300" y1="10" x2="300" y2="120" stroke="#e6e6e6" stroke-width="1"/>
+      <line x1="470" y1="10" x2="470" y2="120" stroke="#e6e6e6" stroke-width="1"/>
+      <line x1="795" y1="14" x2="795" y2="120" stroke="#b58800" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <text x="800" y="22" font-size="11" fill="#b58800" font-weight="700">overnight</text>
+      <!-- area under curve (monotonically rising: 16,21,39,45,61,83,86) -->
+      <path d="M300,120 L360,99 L440,93 L560,69 L650,61 L745,41 L880,12 L905,8 L905,120 Z"
+            fill="#1d70b8" fill-opacity="0.10"/>
+      <!-- the rising line -->
+      <polyline points="300,120 360,99 440,93 560,69 650,61 745,41 880,12 905,8"
+                fill="none" stroke="#1d70b8" stroke-width="2.4"/>
+      <!-- points + value labels -->
+      <g font-size="11" fill="#0b0c0c" font-weight="700">
+        <circle cx="360" cy="99" r="3.5" fill="#00703c"/><text x="360" y="93" text-anchor="middle">16</text>
+        <circle cx="440" cy="93" r="3.5" fill="#00703c"/><text x="448" y="86">21</text>
+        <circle cx="560" cy="69" r="3.5" fill="#1d70b8"/><text x="560" y="62" text-anchor="middle">39</text>
+        <circle cx="650" cy="61" r="3.5" fill="#1d70b8"/><text x="650" y="54" text-anchor="middle">45</text>
+        <circle cx="745" cy="41" r="3.5" fill="#1d70b8"/><text x="745" y="34" text-anchor="middle">61</text>
+        <circle cx="880" cy="12" r="3.5" fill="#1d70b8"/><text x="874" y="26" text-anchor="middle">83</text>
+        <circle cx="905" cy="8"  r="3.5" fill="#1d70b8"/><text x="930" y="12">86</text>
+      </g>
+      <!-- E2E annotation -->
+      <text x="820" y="58" font-size="10" fill="#00703c" font-weight="700">+46 E2E</text>
+      <!-- phase captions on axis -->
+      <g font-size="10" fill="#505a5f">
+        <text x="150" y="138" text-anchor="middle">PLAN — no code yet</text>
+        <text x="385" y="138" text-anchor="middle">DEVELOP (MVS)</text>
+        <text x="640" y="138" text-anchor="middle">IMPROVE · Day 1</text>
+        <text x="900" y="138" text-anchor="middle">IMPROVE · Day 2</text>
+      </g>
+    </svg>
+  </div>
+
+  <footer>
+    <div class="legend">
+      <span><i style="background:#00703c"></i>MVS objective</span>
+      <span><i style="background:#1d70b8"></i>Stretch goal</span>
+      <span><i style="background:#505a5f"></i>Polish / infra</span>
+      <span><i style="background:#1d70b8;opacity:.35"></i>Cumulative tests passing</span>
+    </div>
+    <div>Reconstructed from commit timestamps · <code>wk03/starter/AI_LOG.md</code> · <code>wk03/README.md</code> objectives &amp; stretch goals</div>
+  </footer>
+
+</div>
+</body>
+</html>

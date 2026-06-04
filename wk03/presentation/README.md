@@ -7,6 +7,7 @@ Audience: engineers with a moderate understanding of AI-mediated development.
 
 - **Deck:** [`hackathon-process-deck.md`](./hackathon-process-deck.md) — [Marp](https://marp.app/) Markdown (22 slides). Diagrams use [Mermaid](https://mermaid.js.org/) fenced code blocks.
 - **One-pager:** [`one-pager.html`](./one-pager.html) — a self-contained A4 infographic distilling the whole story onto a single page.
+- **Timeline:** [`timeline.html`](./timeline.html) — a landscape A4 timeline mapping every README objective + stretch goal to when it landed (commit times), across the plan → develop → improve phases, with a rising cumulative-tests curve.
 
 > This deck is a process retrospective; it documents the wk03 build rather than
 > changing any application code.
@@ -34,8 +35,8 @@ cd wk03/presentation
    diagram at full size first sidesteps that entirely.
 2. **`marp-cli`** converts `build/deck.md` to `deck.pdf` and `deck.html`
    (`--allow-local-files`, so the local diagram PNGs embed).
-3. **headless Chrome** prints `one-pager.html` to a single-page A4 `one-pager.pdf`
-   (`--print-to-pdf`; the file is self-contained, so no pre-render step is needed).
+3. **headless Chrome** prints the self-contained infographics `one-pager.html` and
+   `timeline.html` to single-page PDFs (`--print-to-pdf`; no pre-render step needed).
 
 If you don't have a browser installed, grab the puppeteer one once:
 
@@ -56,7 +57,8 @@ The script auto-detects that browser (or any `google-chrome`/`chromium` on `PATH
 |---|---|
 | `hackathon-process-deck.md` | The deck — Marp Markdown with `mermaid` diagrams (the source) |
 | `one-pager.html` | Self-contained A4 infographic (the whole story on one page) |
-| `build.sh` | Three-stage build (mmdc → marp → Chrome) producing `deck.pdf`, `deck.html`, `one-pager.pdf` |
+| `timeline.html` | Self-contained landscape-A4 timeline (objectives + stretch goals over time) |
+| `build.sh` | Three-stage build (mmdc → marp → Chrome) producing `deck.pdf`, `deck.html`, `one-pager.pdf`, `timeline.pdf` |
 | `mermaid-config.json` | Mermaid theme/layout used by the pre-render step |
 | `puppeteer-config.json` | Headless-Chrome args (`--no-sandbox`) for both tools |
 | `README.md` | This file |

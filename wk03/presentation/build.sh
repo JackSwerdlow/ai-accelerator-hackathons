@@ -49,10 +49,12 @@ echo "[2/3] Converting to PDF + HTML with Marp..."
 npx --yes @marp-team/marp-cli@latest --html --allow-local-files build/deck.md --pdf -o "$OUT_PDF"
 npx --yes @marp-team/marp-cli@latest --html --allow-local-files build/deck.md -o "$OUT_HTML"
 
-echo "[3/3] Printing the one-pager to PDF (headless Chrome)..."
-# Self-contained A4 HTML infographic -> single-page PDF. @page CSS sets size + zero margin.
-"$CHROME" --headless --no-sandbox --disable-gpu --no-pdf-header-footer \
-  --run-all-compositor-stages-before-draw --virtual-time-budget=3000 \
-  --print-to-pdf="one-pager.pdf" "one-pager.html" 2>/dev/null
+echo "[3/3] Printing the one-pager + timeline to PDF (headless Chrome)..."
+# Self-contained HTML infographics -> single-page PDFs. @page CSS sets size + zero margin.
+for html in one-pager timeline; do
+  "$CHROME" --headless --no-sandbox --disable-gpu --no-pdf-header-footer \
+    --run-all-compositor-stages-before-draw --virtual-time-budget=3000 \
+    --print-to-pdf="$html.pdf" "$html.html" 2>/dev/null
+done
 
-echo "Done: $OUT_PDF, $OUT_HTML and one-pager.pdf"
+echo "Done: $OUT_PDF, $OUT_HTML, one-pager.pdf and timeline.pdf"
