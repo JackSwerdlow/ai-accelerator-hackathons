@@ -77,3 +77,24 @@ Rule of thumb: if a task was a **one-shot success**, the commit message says
 everything and no AI_LOG entry is needed. If it took **meaningful iteration**
 (substantive correction or change of direction — not a typo fix), log the
 trajectory in AI_LOG.md.
+
+## Instruction File Refinement
+
+Where a recurring pattern or preference is encountered, suggest adding or
+updating one or more agent instruction files (this file and any nested
+equivalents) to most efficiently achieve the desired behaviour going forwards.
+
+## Web Research
+
+When performing web research, save the content of important sources to a local
+document store with clear research provenance (source URL and date retrieved).
+In wk06, save research to `wk06/docs/research/`. This store can be referenced
+and updated as necessary going forward.
+
+## User-Specific Preferences
+
+Some team members have personal preferences files that agents should load at
+session start:
+
+- **Tom Farley** — if `git config user.name` returns "Tom Farley", consult
+  `TOM_PREFERENCES.md` at the repo root before starting work.
