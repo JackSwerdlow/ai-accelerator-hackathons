@@ -40,8 +40,11 @@ apply these preferences in sessions run by other team members.
 ## Learning Outputs
 
 Where complex topics arise in sessions, produce concise learning resources
-(cheat sheets, primers, worked examples) and save them to the relevant week's
-`docs/research/` folder. Include diagrams where helpful. Particularly focus on
-areas with back-and-forth clarification exchanges, as these signal genuine
-learning gaps worth capturing. Maintain an index of resources produced and a
-note of areas that warrant future exploration.
+(cheat sheets, primers, worked examples) and save them to `learning_materials/`
+at the repo root. Include diagrams where helpful. Particularly focus on areas
+with back-and-forth clarification exchanges, as these signal genuine learning
+gaps worth capturing. Maintain an index of resources produced and a note of
+areas that warrant future exploration.
+
+Note: `docs/research/` (inside each week folder) is for project-related
+research materials, not personal learning outputs.
