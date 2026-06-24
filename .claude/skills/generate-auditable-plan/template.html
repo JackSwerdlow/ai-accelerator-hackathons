@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{TITLE}}</title>
+
+  <!-- ====================================================================
+       MACHINERY — styling. Restyle freely (it is user preference): change
+       colours/fonts here, but KEEP the class names so the wizard keeps working,
+       and keep it accessible (visible focus, 4.5:1 contrast, works at 320px).
+       ==================================================================== -->
+  <style>
+    /* RESTYLE BY OVERRIDING THESE VARIABLES — every colour is a token, so you
+       never hunt literals. The verifier checks real WCAG contrast for: body text
+       (--ink on --bg), the primary button (--on-accent on --accent), the selected
+       option (--ink on --surface-sel) and muted text (--muted on --bg) — all must
+       be ≥4.5:1. For white button text pick a dark --accent; for a dark theme set
+       --on-accent to a dark ink over a bright --accent. */
+    :root {
+      --ink: #1a1a1a;          /* body / heading / option text */
+      --muted: #5a5a5a;        /* lede, captions, secondary text (≥4.5:1 on --bg) */
+      --line: #cfcfcf;         /* borders */
+      --track: #e5e4e2;        /* progress track + task row rules */
+      --bg: #f4f4f5;           /* page background */
+      --surface: #ffffff;      /* cards, panels, inputs, options, textarea */
+      --surface-sel: #eef3fe;  /* selected option background (keep --ink readable on it) */
+      --accent: #2b5fd9;       /* links, primary button, tags (white text → 5.4:1) */
+      --accent-dark: #1b3f99;  /* button shadow / hover */
+      --on-accent: #ffffff;    /* text ON the accent (button label, tag, header) */
+      --done: #1c7d4d;         /* progress fill / checkbox accent */
+      --done-bg: #e7f4ee;      /* "plan agreed" note background */
+      --focus: #ffbf47;        /* focus halo */
+      --header-bg: #1a1a1a;    /* top header band — its OWN pair (verified ≥4.5:1) */
+      --header-ink: #ffffff;   /* header text — must contrast with --header-bg, not --ink */
+    }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); background: var(--bg); margin: 0; line-height: 1.4; }
+    a { color: var(--accent); }
+    button:focus, .opt:focus, input:focus, select:focus { outline: 3px solid var(--focus); outline-offset: 0; }
+    .site-header { background: var(--header-bg); color: var(--header-ink); padding: 12px 0; border-bottom: 6px solid var(--accent); }
+    .site-header__title { font-size: 1.4rem; font-weight: 700; }
+    .phase-banner { background: var(--surface); border-bottom: 1px solid var(--line); padding: 10px 0; font-size: 1rem; }
+    .tag { background: var(--accent); color: var(--on-accent); font-weight: 700; text-transform: uppercase; font-size: .75rem; padding: 4px 8px; margin-right: 10px; letter-spacing: 1px; border-radius: 3px; }
+    .container { max-width: 760px; margin: 0 auto; padding: 0 15px; }
+    main { padding: 25px 0 60px; }
+    h1 { font-size: 2rem; font-weight: 700; margin: 10px 0 8px; }
+    .lede { font-size: 1.25rem; color: var(--muted); margin: 0 0 20px; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; margin-bottom: 18px; }
+    .panel h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 0 0 10px; }
+    .names { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 540px) { .names { grid-template-columns: 1fr; } }
+    .names label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 3px; }
+    .names input { width: 100%; font: inherit; font-size: 1rem; padding: 7px 9px; border: 2px solid var(--ink); border-radius: 4px; background: var(--surface); color: var(--ink); }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 25px; box-shadow: 0 2px 0 var(--line); }
+    .kicker { display: inline-block; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); background: var(--bg); padding: 3px 10px; border-radius: 12px; }
+    h2.step { font-size: 1.6rem; font-weight: 700; margin: 10px 0 12px; line-height: 1.15; }
+    p, li { font-size: 1.1875rem; }
+    code { font-family: ui-monospace, monospace; background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+    .progress { font-size: 14px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .bar { height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; margin-bottom: 22px; }
+    .bar > span { display: block; height: 100%; background: var(--done); transition: width .2s; }
+    .choices { margin: 14px 0; }
+    .opt { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 6px; padding: 14px; margin-bottom: 10px; cursor: pointer; }
+    .opt:hover { border-color: var(--accent); }
+    .opt.sel { border-color: var(--accent); border-width: 4px; padding: 12px; background: var(--surface-sel); }
+    .opt .dot { flex: 0 0 auto; width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 50%; margin-top: 2px; position: relative; }
+    .opt.sel .dot { border-color: var(--accent); }
+    .opt.sel .dot::after { content: ''; position: absolute; inset: 3px; background: var(--accent); border-radius: 50%; }
+    .opt .lbl { font-size: 1.0625rem; }
+    ul.tasks { list-style: none; padding: 0; margin: 14px 0; }
+    ul.tasks li { display: flex; align-items: flex-start; gap: 12px; padding: 11px 6px; border-bottom: 1px solid var(--track); }
+    ul.tasks li:first-child { border-top: 1px solid var(--track); }
+    ul.tasks input[type="checkbox"] { width: 28px; height: 28px; min-width: 28px; margin: 0; cursor: pointer; accent-color: var(--done); }
+    ul.tasks label { cursor: pointer; padding-top: 2px; font-size: 1.0625rem; flex: 1; }
+    ul.tasks .done label { text-decoration: line-through; color: var(--muted); }
+    ul.tasks select { font: inherit; font-size: .9rem; padding: 4px 6px; border: 2px solid var(--ink); background: var(--surface); color: var(--ink); align-self: flex-start; border-radius: 4px; }
+    ul.bullets { padding-left: 20px; } ul.bullets li { margin-bottom: 6px; }
+    .step-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 26px; }
+    .btn { font: inherit; font-weight: 700; font-size: 1.0625rem; color: var(--on-accent); background: var(--accent); border: 0; box-shadow: 0 2px 0 var(--accent-dark); padding: 11px 20px; border-radius: 4px; cursor: pointer; }
+    .btn:hover { background: var(--accent-dark); }
+    .btn.sec { background: var(--surface); color: var(--accent); border: 2px solid var(--accent); box-shadow: 0 2px 0 var(--accent-dark); }
+    .btn[hidden] { display: none; }
+    .done-note { background: var(--done-bg); border-left: 8px solid var(--done); padding: 12px 15px; font-weight: 700; margin-top: 16px; }
+    .export { margin-top: 22px; }
+    .export .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .export .status { font-size: 14px; color: var(--done); font-weight: 700; }
+    .export textarea { width: 100%; min-height: 150px; margin-top: 12px; font-family: ui-monospace, monospace; font-size: 13px; padding: 12px; border: 2px solid var(--ink); border-radius: 6px; background: var(--surface); color: var(--ink); }
+    .editor-block { margin: 16px 0; }
+    .editor-block label { display: block; font-size: .95rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+    .editor-block textarea { width: 100%; min-height: 110px; padding: 10px 12px; border: 2px solid var(--ink); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; resize: vertical; }
+    .editor-block-config textarea { min-height: 180px; font-family: ui-monospace, monospace; font-size: .95rem; }
+    .editor-meta { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 6px; }
+    .export .hint { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+    .skip-link { position: absolute; left: -9999px; } .skip-link:focus { left: 0; top: 0; background: var(--focus); padding: 10px; z-index: 10; }
+    .format-note { background: var(--accent); color: var(--on-accent); padding: 10px 15px; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  <div class="format-note"><div class="container">Interactive wizard driven by one markdown document — the <code>&lt;script id="plan"&gt;</code> block. Choices, tasks, notes, and editable config live in markdown; team names, owner dropdowns, and JSON export are machinery.</div></div>
+  <header class="site-header"><div class="container"><span class="site-header__title">{{HEADER_TITLE}}</span></div></header>
+  <div class="phase-banner"><div class="container"><span class="tag">{{BANNER_TAG}}</span>{{BANNER_TEXT}}</div></div>
+
+  <!-- ====================================================================
+       THE PLAN — review THIS, top to bottom. Plain markdown only.
+       `# `  = the plan title (first non-blank line after it = the lede).
+       `## ` = a step.  `- ( )`/`- (x)` = a single choice ({id} tags it).
+       `## … @if=id` = step shown only if that choice is picked (add a one-line
+                       note under such a heading so the file stays auditable).
+      `## … {assign}` = the machinery adds owner dropdowns to this step's tasks
+              (no-op when there is no team).
+      ` ```note [label...]` renders a notes textarea whose body is written back
+             into the markdown on save.
+      ` ```config [format] [label...]` renders an editable monospace block whose
+                   body is written back into the markdown.
+      `- [ ]`/`- [x]` = a checkbox.   `**bold**  *italic*  `code`  [link](url)`.
+       ==================================================================== -->
+  <script type="text/markdown" id="plan">
+{{PLAN_MARKDOWN}}
+  </script>
+
+  <!-- ====================================================================
+       TEAM CONFIG — set from the user's answers.
+       hasTeam:false  => solo plan: no names panel, no owner dropdowns, no team
+                         in the JSON, and any {assign} step is a no-op.
+       members: display names; the machinery derives ids m1, m2, … from them.
+       ==================================================================== -->
+  <script type="application/json" id="config">
+{{CONFIG_JSON}}
+  </script>
+
+  <!-- ====================================================================
+      SAVED STATE — written by "Save to this file". Holds only the team names
+      and per-task owners (machinery not expressed in the markdown). Ticks,
+      choices, notes, and editable config blocks are saved into the markdown
+      markers above, so a git diff reads as plain content. Safe to read; the
+      machinery rewrites it.
+       ==================================================================== -->
+  <script type="application/json" id="state">
+{}
+  </script>
+
+  <div class="container"><main id="main">
+    <h1 id="doc-title"></h1>
+    <p class="lede" id="doc-lede"></p>
+
+    <div class="panel" id="teamPanel">
+      <h2>Your team</h2>
+      <div class="names" id="names"></div>
+    </div>
+
+    <div class="card">
+      <p class="progress" id="progress"></p>
+      <div class="bar" aria-hidden="true"><span id="barfill"></span></div>
+      <div id="stepbody" aria-live="polite"></div>
+      <div class="step-nav">
+        <button class="btn sec" id="backBtn" type="button">Back</button>
+        <button class="btn" id="nextBtn" type="button">Continue</button>
+      </div>
+    </div>
+
+    <div class="export panel">
+      <h2>Export &amp; save</h2>
+      <div class="toolbar">
+        <button class="btn" id="genBtn" type="button">Generate &amp; copy JSON</button>
+        <button class="btn sec" id="saveBtn" type="button">Save to this file</button>
+        <span class="status" id="status" role="status" aria-live="polite"></span>
+      </div>
+      <textarea id="jsonOut" readonly aria-label="Plan as JSON" placeholder="Click Generate &amp; copy JSON…"></textarea>
+      <p class="hint">“Save to this file” writes your ticks, choices, notes, and editable config blocks straight into the markdown markers above (so a <code>git diff</code> reads as plain content), and your names &amp; owners into the state block (Chrome/Edge). You pick the file once per session; reopen the saved file to see your changes. Other browsers: use “Generate &amp; copy JSON” and paste it back. The file only changes when you click — a field edit alone can't rewrite a file on disk.</p>
+    </div>
+  </main></div>
+
+  <!-- ====================================================================
+       MACHINERY — markdown-driven wizard + team/owners + JSON export/save.
+       Do NOT edit this block. It is identical across every plan this skill
+       produces; all variation lives in the markdown, the #config, and styling.
+       ==================================================================== -->
+  <script>
+    (function () {
+      "use strict";
+      var CFG = { hasTeam: true, members: [] };
+      try { CFG = JSON.parse(document.getElementById('config').textContent); } catch (e) {}
+      var HAS_TEAM = !!(CFG && CFG.hasTeam && CFG.members && CFG.members.length);
+      var MEMBERS = HAS_TEAM ? CFG.members.slice() : [];
+      var IDS = MEMBERS.map(function (_, i) { return 'm' + (i + 1); });
+      function defaultName(id) { var i = IDS.indexOf(id); return i >= 0 ? MEMBERS[i] : id; }
+      function ownerDefault(i) { return IDS.length ? IDS[i % IDS.length] : null; }
+
+      function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+      function fmt(s) {
+        s = esc(s);
+        s = s.replace(/`([^`]+?)`/g, '<code>$1</code>');
+        s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+        s = s.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+        s = s.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+        return s;
+      }
+      function sortVal(v) { if (Array.isArray(v)) return v.map(sortVal); if (v && typeof v === 'object') return Object.keys(v).sort().reduce(function (a, k) { a[k] = sortVal(v[k]); return a; }, {}); return v; }
+
+      // --- parse markdown -> title, lede, steps ------------------------
+      function parse(src) {
+        var lines = src.replace(/\r/g, '').split('\n'), title = '', lede = '', steps = [], cur = null, sawLede = false;
+        lines.forEach(function (raw) {
+          var t = raw.trim();
+          if (!cur && /^# /.test(t)) { title = t.slice(2); return; }
+          if (/^## /.test(t)) {
+            var ht = t.slice(3), cond = null, assign = false;
+            if (/\{assign\}/.test(ht)) { assign = true; ht = ht.replace(/\s*\{assign\}\s*/, ' ').trim(); }
+            var m = ht.match(/\s*@if=(\S+)\s*$/); if (m) { cond = m[1]; ht = ht.slice(0, m.index).trim(); }
+            cur = { title: ht, condId: cond, assign: assign, lines: [] }; steps.push(cur); return;
+          }
+          if (!cur) { if (t && !sawLede) { lede = t; sawLede = true; } return; }
+          cur.lines.push(raw);
+        });
+        return { title: title, lede: lede, steps: steps };
+      }
+      var doc = parse(document.getElementById('plan').textContent);
+
+      // --- pre-scan: stable ids, order tasks ---------------------------
+      var orderLabels = [];
+      doc.steps.forEach(function (st, idx) {
+        var c = 0;
+        st.lines.forEach(function (l) {
+          var t = l.trim(), mk = t.match(/^- \[[ xX]\]\s+(.*)$/);
+          if (mk) { var id = 's' + idx + 'c' + (c++); if (st.assign) orderLabels.push({ id: id, label: mk[1] }); }
+        });
+      });
+
+      // --- state: the FILE is the single source of truth ---------------
+      // Ticks/choices come from the markdown markers (defaults scan below);
+      // names/owners come from the #state block. Nothing is read from browser
+      // storage, so a freshly downloaded copy never inherits stale state.
+      var state = { sel: {}, cks: {}, names: {}, owners: {}, notes: {}, configs: {} };
+      function mergeInto(src) { if (!src) return; ['sel', 'cks', 'names', 'owners'].forEach(function (k) { if (src[k]) Object.keys(src[k]).forEach(function (kk) { state[k][kk] = src[k][kk]; }); }); }
+      try { mergeInto(JSON.parse(document.getElementById('state').textContent || '{}')); } catch (e) {}
+
+      function noteId(stepIdx, i) { return 's' + stepIdx + 'n' + i; }
+      function configId(stepIdx, i) { return 's' + stepIdx + 'g' + i; }
+      function readFence(lines, start) {
+        var open = lines[start].trim().match(/^```([^\s`]+)?\s*(.*)$/);
+        if (!open) return null;
+        var kind = (open[1] || '').toLowerCase(), meta = open[2] || '', body = [], end = start + 1;
+        while (end < lines.length && lines[end].trim() !== '```') { body.push(lines[end]); end++; }
+        return { kind: kind, meta: meta, body: body.join('\n'), closed: end < lines.length, closeLine: end < lines.length ? lines[end] : '```', next: end < lines.length ? end + 1 : end };
+      }
+      function noteMeta(meta) { return { label: meta.trim() || 'Notes' }; }
+      function configMeta(meta) {
+        var parts = meta.trim() ? meta.trim().split(/\s+/) : [];
+        var format = parts.length ? parts[0] : '';
+        var label = parts.length > 1 ? parts.slice(1).join(' ') : 'Editable config';
+        return { format: format, label: label };
+      }
+      function configLabel(cfg) { return cfg.label + (cfg.format ? ' (' + cfg.format + ')' : ''); }
+
+      doc.steps.forEach(function (st, idx) {
+        var def = null, first = null, has = false;
+        st.lines.forEach(function (l) { var m = l.trim().match(/^- \(([ xX])\)\s*(?:\{([^}]+)\}\s*)?(.*)$/); if (m) { has = true; var id = m[2] || null; if (first === null) first = id; if (/x/i.test(m[1])) def = id; } });
+        if (has && !(idx in state.sel)) state.sel[idx] = def || first;
+        var noteN = 0, cfgN = 0;
+        for (var lineIdx = 0; lineIdx < st.lines.length;) {
+          var raw = st.lines[lineIdx].trim();
+          if (/^```/.test(raw)) {
+            var fence = readFence(st.lines, lineIdx);
+            if (fence && fence.kind === 'note') {
+              var noteKey = noteId(idx, noteN++);
+              if (!(noteKey in state.notes)) state.notes[noteKey] = fence.body;
+              lineIdx = fence.next;
+              continue;
+            }
+            if (fence && fence.kind === 'config') {
+              var cfgKey = configId(idx, cfgN++);
+              if (!(cfgKey in state.configs)) state.configs[cfgKey] = fence.body;
+              lineIdx = fence.next;
+              continue;
+            }
+          }
+          lineIdx++;
+        }
+      });
+      if (HAS_TEAM) {
+        orderLabels.forEach(function (t, i) { if (!(i in state.owners)) state.owners[i] = ownerDefault(i); });
+        IDS.forEach(function (id, i) { if (!(id in state.names)) state.names[id] = MEMBERS[i]; });
+      }
+
+      function nameOf(id) { var n = state.names[id]; return (n && n.trim()) ? n.trim() : defaultName(id); }
+      function activeIds() { var s = {}; Object.keys(state.sel).forEach(function (k) { if (state.sel[k]) s[state.sel[k]] = true; }); return s; }
+      function visibleSteps() { var a = activeIds(); return doc.steps.filter(function (st) { return !st.condId || a[st.condId]; }); }
+      function visibleIdx() { var s = {}; visibleSteps().forEach(function (st) { s[doc.steps.indexOf(st)] = true; }); return s; }
+      // Drop ticks belonging to steps that are no longer shown (e.g. a branch you
+      // turned off), so hidden data never leaks into the JSON or the markdown.
+      function pruneHidden() { var vis = visibleIdx(); Object.keys(state.cks).forEach(function (id) { var m = id.match(/^s(\d+)c/); if (m && !vis[+m[1]]) delete state.cks[id]; }); }
+
+      // --- team names panel -------------------------------------------
+      function renderNames() {
+        var wrap = document.getElementById('teamPanel');
+        if (!HAS_TEAM) { if (wrap) wrap.style.display = 'none'; return; }
+        document.getElementById('names').innerHTML = IDS.map(function (id, i) {
+          return '<div><label for="nm-' + id + '">Member ' + (i + 1) + '</label><input type="text" id="nm-' + id + '" value="' + esc(state.names[id]) + '" autocomplete="off"></div>';
+        }).join('');
+        IDS.forEach(function (id) {
+          document.getElementById('nm-' + id).addEventListener('input', function (e) { state.names[id] = e.target.value; });
+        });
+      }
+
+      // --- render the blocks inside one step ---------------------------
+      function ownerSelect(i) {
+        var cur = state.owners[i] || ownerDefault(i);
+        return '<select data-owner="' + i + '" aria-label="Owner">' + IDS.map(function (id) { return '<option value="' + id + '"' + (id === cur ? ' selected' : '') + '>' + esc(nameOf(id)) + '</option>'; }).join('') + '</select>';
+      }
+      function renderBlocks(lines, stepIdx, assign) {
+        var out = [], i = 0, ck = 0, taskN = 0, noteN = 0, cfgN = 0;
+        while (i < lines.length) {
+          var t = lines[i].trim();
+          if (!t) { i++; continue; }
+          if (/^```/.test(t)) {
+            var fence = readFence(lines, i);
+            if (fence && fence.kind === 'note') {
+              var noteKey = noteId(stepIdx, noteN++), noteCfg = noteMeta(fence.meta), noteVal = (noteKey in state.notes) ? state.notes[noteKey] : fence.body;
+              out.push('<div class="editor-block"><label for="' + noteKey + '">' + fmt(noteCfg.label) + '</label><textarea id="' + noteKey + '" data-note="' + noteKey + '">' + esc(noteVal) + '</textarea></div>');
+              i = fence.next;
+              continue;
+            }
+            if (fence && fence.kind === 'config') {
+              var cfgKey = configId(stepIdx, cfgN++), cfg = configMeta(fence.meta), cfgVal = (cfgKey in state.configs) ? state.configs[cfgKey] : fence.body;
+              out.push('<div class="editor-block editor-block-config"><label for="' + cfgKey + '">' + fmt(configLabel(cfg)) + '</label>' + (cfg.format ? '<span class="editor-meta">Format: ' + esc(cfg.format) + '</span>' : '') + '<textarea id="' + cfgKey + '" data-config="' + cfgKey + '">' + esc(cfgVal) + '</textarea></div>');
+              i = fence.next;
+              continue;
+            }
+          }
+          if (/^- \([ xX]\)/.test(t)) {
+            var opts = [];
+            while (i < lines.length && /^- \([ xX]\)/.test(lines[i].trim())) { var m = lines[i].trim().match(/^- \(([ xX])\)\s*(?:\{([^}]+)\}\s*)?(.*)$/); opts.push({ id: m[2] || ('opt' + opts.length), label: m[3] }); i++; }
+            var chosen = state.sel[stepIdx];
+            out.push('<div class="choices">' + opts.map(function (o) {
+              var on = chosen === o.id;
+              return '<button type="button" class="opt' + (on ? ' sel' : '') + '" data-step="' + stepIdx + '" data-id="' + esc(o.id) + '" aria-pressed="' + on + '"><span class="dot" aria-hidden="true"></span><span class="lbl">' + fmt(o.label) + '</span></button>';
+            }).join('') + '</div>');
+            continue;
+          }
+          if (/^- \[[ xX]\]/.test(t)) {
+            var items = [];
+            while (i < lines.length && /^- \[[ xX]\]/.test(lines[i].trim())) { var mm = lines[i].trim().match(/^- \[([ xX])\]\s+(.*)$/); items.push({ def: /x/i.test(mm[1]), label: mm[2] }); i++; }
+            out.push('<ul class="tasks">' + items.map(function (it) {
+              var id = 's' + stepIdx + 'c' + (ck++);
+              var checked = (id in state.cks) ? state.cks[id] : it.def;
+              var owner = (assign && HAS_TEAM) ? ownerSelect(taskN++) : '';
+              return '<li class="' + (checked ? 'done' : '') + '"><input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + '><label for="' + id + '">' + fmt(it.label) + '</label>' + owner + '</li>';
+            }).join('') + '</ul>');
+            continue;
+          }
+          if (/^- /.test(t)) { var bs = []; while (i < lines.length && /^- /.test(lines[i].trim()) && !/^- \([ xX]\)/.test(lines[i].trim()) && !/^- \[[ xX]\]/.test(lines[i].trim())) { bs.push(lines[i].trim().slice(2)); i++; } out.push('<ul class="bullets">' + bs.map(function (x) { return '<li>' + fmt(x) + '</li>'; }).join('') + '</ul>'); continue; }
+          var para = []; while (i < lines.length && lines[i].trim() && !/^- /.test(lines[i].trim())) { para.push(lines[i].trim()); i++; }
+          out.push('<p>' + fmt(para.join(' ')) + '</p>');
+        }
+        return out.join('');
+      }
+
+      // --- stepper -----------------------------------------------------
+      var curVis = 0, body = document.getElementById('stepbody');
+      document.getElementById('doc-title').textContent = doc.title;
+      document.getElementById('doc-lede').textContent = doc.lede;
+      document.title = doc.title;
+
+      function render() {
+        pruneHidden();
+        var vis = visibleSteps();
+        if (curVis > vis.length - 1) curVis = vis.length - 1;
+        if (curVis < 0) curVis = 0;
+        var step = vis[curVis], gIdx = doc.steps.indexOf(step), last = curVis === vis.length - 1;
+        body.innerHTML = '<span class="kicker">Step ' + (curVis + 1) + ' of ' + vis.length + '</span>' +
+          '<h2 class="step" tabindex="-1">' + fmt(step.title) + '</h2>' +
+          renderBlocks(step.lines, gIdx, step.assign) +
+          (last ? '<div class="done-note">✓ Plan agreed. Save it to the file or export JSON below; your edits live here until you do.</div>' : '');
+        document.getElementById('progress').textContent = 'Step ' + (curVis + 1) + ' of ' + vis.length;
+        document.getElementById('barfill').style.width = Math.round(((curVis + 1) / vis.length) * 100) + '%';
+        document.getElementById('backBtn').hidden = curVis === 0;
+        document.getElementById('nextBtn').hidden = last;
+        body.querySelectorAll('.opt').forEach(function (b) { b.addEventListener('click', function () { state.sel[b.getAttribute('data-step')] = b.getAttribute('data-id'); render(); }); });
+        body.querySelectorAll('input[type="checkbox"]').forEach(function (b) { b.addEventListener('change', function () { state.cks[b.id] = b.checked; var li = b.closest('li'); if (li) li.classList.toggle('done', b.checked); }); });
+        body.querySelectorAll('select[data-owner]').forEach(function (s) { s.addEventListener('change', function () { state.owners[s.getAttribute('data-owner')] = s.value; }); });
+        body.querySelectorAll('textarea[data-note]').forEach(function (ta) { ta.addEventListener('input', function () { state.notes[ta.getAttribute('data-note')] = ta.value; }); });
+        body.querySelectorAll('textarea[data-config]').forEach(function (ta) { ta.addEventListener('input', function () { state.configs[ta.getAttribute('data-config')] = ta.value; }); });
+        var h = body.querySelector('h2.step'); if (h) h.focus();
+      }
+      document.getElementById('nextBtn').addEventListener('click', function () { if (curVis < visibleSteps().length - 1) { curVis++; render(); } });
+      document.getElementById('backBtn').addEventListener('click', function () { if (curVis > 0) { curVis--; render(); } });
+
+      // --- JSON export + save -----------------------------------------
+      // A complete, ordered snapshot of every VISIBLE step: each choice (id +
+      // label), every checkbox (label, done, and owner on an {assign} step
+      // when there is a team), and every editable note/config block.
+      function buildPlan() {
+        pruneHidden();
+        var vis = visibleIdx(), steps = [];
+        doc.steps.forEach(function (st, idx) {
+          if (!vis[idx]) return;
+          var entry = { step: st.title }, ck = 0, taskN = 0, noteN = 0, cfgN = 0, tasks = [], notes = [], configs = [];
+          for (var lineIdx = 0; lineIdx < st.lines.length;) {
+            var raw = st.lines[lineIdx], t = raw.trim();
+            if (/^```/.test(t)) {
+              var fence = readFence(st.lines, lineIdx);
+              if (fence && fence.kind === 'note') {
+                var noteKey = noteId(idx, noteN++), noteCfg = noteMeta(fence.meta);
+                notes.push({ label: noteCfg.label, text: (noteKey in state.notes) ? state.notes[noteKey] : fence.body });
+                lineIdx = fence.next;
+                continue;
+              }
+              if (fence && fence.kind === 'config') {
+                var cfgKey = configId(idx, cfgN++), cfg = configMeta(fence.meta), cfgVal = (cfgKey in state.configs) ? state.configs[cfgKey] : fence.body;
+                configs.push({ label: cfg.label, format: cfg.format, content: cfgVal });
+                lineIdx = fence.next;
+                continue;
+              }
+            }
+            var ch = t.match(/^- \(([ xX])\)\s*(?:\{([^}]+)\}\s*)?(.*)$/);
+            if (ch) { var oid = ch[2] || null; if (state.sel[idx] === oid) entry.choice = { label: ch[3], id: oid }; lineIdx++; continue; }
+            var mk = t.match(/^- \[([ xX])\]\s+(.*)$/);
+            if (mk) {
+              var id = 's' + idx + 'c' + (ck++), task = { task: mk[2], done: !!state.cks[id] };
+              if (st.assign && HAS_TEAM) task.owner = nameOf(state.owners[taskN++] || ownerDefault(taskN - 1));
+              tasks.push(task);
+            }
+            lineIdx++;
+          }
+          if (tasks.length) entry.tasks = tasks;
+          if (notes.length) entry.notes = notes;
+          if (configs.length) entry.configs = configs;
+          if (entry.choice || entry.tasks || entry.notes || entry.configs) steps.push(entry);
+        });
+        // Keys are emitted in a deliberate title-first order (not alphabetical),
+        // so each step's title precedes its content. Output is still
+        // deterministic: steps follow document order, team is fixed.
+        var out = {};
+        if (HAS_TEAM) out.team = IDS.map(function (id) { return { id: id, name: nameOf(id) }; });
+        out.steps = steps;
+        return JSON.stringify(out, null, 2);
+      }
+      // #state holds only the machinery NOT expressed in the markdown (names, owners).
+      function rawState() { return JSON.stringify(HAS_TEAM ? sortVal({ names: state.names, owners: state.owners }) : {}, null, 2); }
+
+      // Reflect ticks (- [ ] / - [x]), choices (- ( ) / - (x)), and editable
+      // fenced note/config blocks back into the markdown source, reproducing the
+      // parser's exact id scheme so the markers stay the single source of truth.
+      // Conditional (@if=) sections are KEPT in the file so the branch always
+      // works on reopen and the plan stays auditable top-to-bottom; if a branch
+      // isn't currently active its boxes are just reset to [ ], so the file
+      // reflects only the path you actually took.
+      function serializeMarkdown(src) {
+        var vis = visibleIdx(), stepIdx = -1, ck = 0, optIdx = 0, noteN = 0, cfgN = 0, inChoice = false, out = [];
+        var lines = src.replace(/\r/g, '').split('\n');
+        for (var lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+          var raw = lines[lineIdx], trimmed = raw.trim();
+          if (/^## /.test(trimmed)) { stepIdx++; ck = 0; optIdx = 0; noteN = 0; cfgN = 0; inChoice = false; out.push(raw); continue; }
+          if (stepIdx >= 0 && /^```/.test(trimmed)) {
+            var fence = readFence(lines, lineIdx);
+            if (fence && fence.kind === 'note') {
+              var noteKey = noteId(stepIdx, noteN++), noteVal = !vis[stepIdx] ? fence.body : ((noteKey in state.notes) ? state.notes[noteKey] : fence.body);
+              out.push(raw);
+              String(noteVal == null ? '' : noteVal).replace(/\r/g, '').split('\n').forEach(function (line) { out.push(line); });
+              if (fence.closed) out.push(fence.closeLine);
+              lineIdx = fence.next - 1;
+              inChoice = false; optIdx = 0;
+              continue;
+            }
+            if (fence && fence.kind === 'config') {
+              var cfgKey = configId(stepIdx, cfgN++), cfgVal = !vis[stepIdx] ? fence.body : ((cfgKey in state.configs) ? state.configs[cfgKey] : fence.body);
+              out.push(raw);
+              String(cfgVal == null ? '' : cfgVal).replace(/\r/g, '').split('\n').forEach(function (line) { out.push(line); });
+              if (fence.closed) out.push(fence.closeLine);
+              lineIdx = fence.next - 1;
+              inChoice = false; optIdx = 0;
+              continue;
+            }
+          }
+          var cb = raw.match(/^(\s*- )\[([ xX])\](\s+.*)$/);
+          if (cb) {
+            inChoice = false; optIdx = 0;
+            var id = 's' + stepIdx + 'c' + (ck++);
+            var checked = !vis[stepIdx] ? false : (id in state.cks) ? state.cks[id] : /x/i.test(cb[2]);
+            out.push(cb[1] + '[' + (checked ? 'x' : ' ') + ']' + cb[3]);
+            continue;
+          }
+          var ch = raw.match(/^(\s*- )\(([ xX])\)(\s*(?:\{([^}]+)\}\s*)?.*)$/);
+          if (ch) {
+            if (!inChoice) { inChoice = true; optIdx = 0; }
+            var oid = ch[4] || ('opt' + optIdx); optIdx++;
+            var on = state.sel[stepIdx] === oid;
+            out.push(ch[1] + '(' + (on ? 'x' : ' ') + ')' + ch[3]);
+            continue;
+          }
+          inChoice = false; optIdx = 0;
+          out.push(raw);
+        }
+        return out.join('\n');
+      }
+      function setStatus(msg) { document.getElementById('status').textContent = msg; }
+      document.getElementById('genBtn').addEventListener('click', function () {
+        var ta = document.getElementById('jsonOut'); ta.value = buildPlan(); ta.select();
+        if (navigator.clipboard) navigator.clipboard.writeText(ta.value).then(function () { setStatus('Generated & copied ✓'); }, function () { setStatus('Generated — press Ctrl/Cmd+C to copy.'); });
+        else setStatus('Generated — press Ctrl/Cmd+C to copy.');
+      });
+
+      async function ensurePermission(h) { var opts = { mode: 'readwrite' }; if ((await h.queryPermission(opts)) === 'granted') return true; return (await h.requestPermission(opts)) === 'granted'; }
+
+      // Persist the LAST-picked file handle in IndexedDB, but use it ONLY to
+      // position the picker (startIn) — never as the save target. The save target
+      // is always the handle you pick fresh each session.
+      function idb(fn) { try { var r = indexedDB.open('interactive-plan-fs', 1); r.onupgradeneeded = function () { if (!r.result.objectStoreNames.contains('h')) r.result.createObjectStore('h'); }; r.onsuccess = function () { fn(r.result); }; r.onerror = function () { fn(null); }; } catch (e) { fn(null); } }
+      function loadStartHandle() { return new Promise(function (res) { idb(function (db) { if (!db) return res(null); try { var g = db.transaction('h').objectStore('h').get('last'); g.onsuccess = function () { res(g.result || null); }; g.onerror = function () { res(null); }; } catch (e) { res(null); } }); }); }
+      function saveStartHandle(h) { idb(function (db) { if (db) try { db.transaction('h', 'readwrite').objectStore('h').put(h, 'last'); } catch (e) {} }); }
+
+      var fileHandle = null;
+      document.getElementById('saveBtn').addEventListener('click', async function () {
+        if (!window.showOpenFilePicker) { setStatus('This browser can’t write files — use “Generate & copy JSON” instead.'); return; }
+        try {
+          if (!fileHandle) {
+            var opts = { types: [{ description: 'HTML', accept: { 'text/html': ['.html'] } }] };
+            try { var sh = await loadStartHandle(); if (sh) opts.startIn = sh; } catch (e) {}
+            var picked;
+            try { picked = await window.showOpenFilePicker(opts); }
+            catch (e) {
+              if (e && e.name === 'AbortError') throw e;
+              if (opts.startIn) { delete opts.startIn; picked = await window.showOpenFilePicker(opts); }
+              else throw e;
+            }
+            fileHandle = picked[0];
+            saveStartHandle(fileHandle);
+          }
+          if (!(await ensurePermission(fileHandle))) { setStatus('Save needs write permission — try again and choose Allow.'); return; }
+          var file = await fileHandle.getFile();
+          var text = await file.text();
+          text = text.replace(/(<script type="text\/markdown" id="plan">)([\s\S]*?)(<\/script>)/, function (_, a, md, b) { return a + serializeMarkdown(md) + b; });
+          text = text.replace(/(<script type="application\/json" id="state">)[\s\S]*?(<\/script>)/, function (_, a, b) { return a + '\n' + rawState() + '\n  ' + b; });
+          var w = await fileHandle.createWritable(); await w.write(text); await w.close();
+          setStatus('Saved to ' + file.name + ' ✓ — commit it to share / audit.');
+        } catch (e) { setStatus('Save cancelled (or not permitted) — “Generate & copy JSON” still works.'); }
+      });
+
+      renderNames();
+      render();
+    })();
+  </script>
+</body>
+</html>
