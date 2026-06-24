@@ -64,8 +64,9 @@ Naming conventions:
 
 ## AI assistance log (`AI_LOG.md`)
 
-This week's log lives at `AI_LOG.md` in the `wk06/` root (the `starter/` copy is a
-read-only template). It records the **AI-assistance trajectory** for the work — see the
+This week's log lives at `solution/AI_LOG.md` (the `starter/AI_LOG.md` copy is a
+read-only template; all work happens in `solution/`). It records the **AI-assistance
+trajectory** for the work — see the
 repository-root `CLAUDE.md` for how this differs from, and complements, commit
 messages.
 
