@@ -100,8 +100,10 @@ one did.
 **Configuration carry-forward**
 - Should any CLAUDE.md rules be added, sharpened, or retired based on what
   actually happened?
+- Should skills be created or updated?
+- Should reference documents like `LOCAL_DEV_SETUP.md` or `ORGANISATION_CONTEXT.md` be created or updated?
 - Are there new permission allowlist entries worth adding to reduce friction?
-- Should `TOM_PREFERENCES.md` be updated to reflect refined working preferences?
+- Should `TOM_PREFERENCES.md` be updated to reflect refined individual working preferences?
 
 ### Output
 
