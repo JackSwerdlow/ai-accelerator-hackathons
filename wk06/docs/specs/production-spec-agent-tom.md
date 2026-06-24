@@ -1,250 +1,183 @@
-# Production Spec — FOI Multi-Agent CLI
+# Production Requirements — FOI Intelligent Automation System
 
-**Status:** Out of scope for hackathon — reference for real deployment  
+**Author:** Agent-Tom  
 **Date:** 2026-06-24  
-**Prerequisite:** `mvp-spec-agent-tom.md` fully implemented; stretch goals evaluated
-
-This document captures what a production deployment of this system would require beyond
-the hackathon MVP. None of these items are needed to score "Excellent" at the hackathon,
-but a public authority deploying this system in production would need to address all of
-them. They are documented here to inform architecture decisions and avoid traps during MVP
-design (e.g. the audit trail append-only design is already correct for production).
+**Status:** Draft — out of scope for hackathon; reference for real deployment  
+**Sources:** `docs/research/foi-landscape-synthesis.md`; `docs/research/cache-atrs-requirements.md`; `docs/research/cache-uk-ai-playbook-governance.md`; `docs/research/cache-ico-ai-foi-guidance-2026.md`
 
 ---
 
-## 1. Regulatory Compliance
+## Purpose
 
-### 1.1 ATRS Registration (Legal Requirement)
+This document captures requirements that a public authority would need to satisfy before deploying this system in production. None of these items are required for "Excellent" at the hackathon, but they are documented here because:
 
-Any public authority deploying a tool with "significant influence on a decision-making
-process with public effect" must publish an ATRS record before going live. This has been
-mandatory for all central government departments since February 2024.
+1. Some should inform hackathon design decisions (e.g. the append-only audit trail is already correct for production)
+2. Any team considering a real deployment needs to know what the full picture looks like
 
-**What is required:**
-- **Tier 1 record:** Tool name, description, scope, significant influence statement,
-  human oversight mechanism, third-party suppliers, publication date. Must be submitted
-  to the ATRS register at https://www.gov.uk/government/collections/algorithmic-transparency-recording-standard-hub
-- **Tier 2 record:** Additionally requires bias testing results, performance metrics,
-  training data description, equality impact assessment.
+---
 
-**Hackathon shortcut:** `stretch-spec-agent-tom.md S6` auto-generates a Tier 1 draft. Tier 2 requires
-human completion and legal review. Do not deploy to production without completing both.
+## 1. Regulatory compliance requirements
 
-### 1.2 Data (Use and Access) Act 2025 — Automated Decision Rights
+### 1.1 Algorithmic Transparency Recording Standard (ATRS)
 
-The DUAA 2025 (in force February 2026) creates new individual rights around
-AI-assisted decisions with "legal or similarly significant effects." FOI decisions
-almost certainly qualify.
+**Requirement:** Any public authority deploying a tool with "significant influence on a decision-making process with public effect" must publish an ATRS record before going live. This has been mandatory for central government departments since February 2024.
+
+**What must be submitted:**
+- **Tier 1 record** (mandatory): tool name, description, scope, statement of significant influence, human oversight mechanism, named third-party suppliers, publication date — submitted to the ATRS register
+- **Tier 2 record** (for tools in wider use): additionally requires bias testing results, performance metrics, training data description, equality impact assessment
+
+**Implication for design:** The audit trail (capturing operator identity, AI output, and human decision for every processed request) is the primary evidence that the "human oversight mechanism" is operational. This must be preserved.
+
+### 1.2 Data (Use and Access) Act 2025 (DUAA 2025)
+
+**Requirement:** In force February 2026. Creates individual rights around AI-assisted decisions with "legal or similarly significant effects." FOI decisions almost certainly qualify.
 
 **Data subjects have the right to:**
-- Be informed that AI contributed to the decision affecting them
+- Be informed that AI contributed to the decision
 - Make representations before the decision is finalised
 - Request human review of the AI output
 
-**What the MVP already covers:** The audit trail records operator identity and the
-full AI-generated content shown to them (satisfying the "human review" requirement).
-The HITL gate makes the AI's role explicit to the operator.
+**What production adds to the hackathon design:**
+- The FOI response letter must include a disclosure statement (e.g. "This response was drafted with AI assistance and reviewed and approved by [operator name]")
+- The authority must have a data subject rights procedure for requests about the AI's role
+- Evidence of the AI's role must be stored for the retention period of the record
+
+### 1.3 UK GDPR / DPA 2018 — personal data
+
+**Requirements:**
+- A Data Protection Impact Assessment (DPIA) must be completed before deployment
+- A named Data Protection Officer must have oversight
+- A retention policy must be set for audit trail entries
+- Mechanism must exist for data subjects to request audit entries relating to them under Subject Access Requests (SAR)
+- Secure storage for all outputs (access controls, encryption at rest)
+
+### 1.4 FOIA duty to assist (s.16 FOIA 2000)
+
+**Requirement:** The authority has a duty to advise and assist requesters. A system that auto-rejects ambiguous or malformed requests would breach this duty. (The MVP already addresses this by flagging for operator review rather than rejecting — this requirement confirms that design is correct.)
+
+---
+
+## 2. Governance requirements
+
+### 2.1 Bias and drift monitoring
+
+**Requirement:** Required under UK AI Playbook Principle 5 and ATRS Tier 2.
+
+Post-deployment, the authority must track:
+- Triage classification consistency over time (a shift in exemption rates may indicate model drift)
+- Operator override rate (high override rate signals poor compliance recommendations)
+- Operator modification rate (high modification rate signals poor draft quality)
+- Distribution of exemptions applied by topic (checks for systematic over/under-exemption)
+
+**What this requires beyond the hackathon:**
+- A reporting mechanism over the audit trail (e.g. `main.py report` command)
+- A baseline established at launch and reviewed periodically
+- A process for investigating anomalies
+
+### 2.2 Equality impact assessment
+
+**Requirement:** Before deploying a tool that affects public-facing decisions, assess whether the AI's behaviour differs systematically across protected characteristics (Equality Act 2010).
+
+For the FOI context: does the system's recommendation differ by request topic in ways that could disadvantage certain types of requester?
+
+This is largely an organisational exercise rather than a software task, but it requires the audit trail to be queryable by topic over time.
+
+### 2.3 Human oversight — anti-rubber-stamping
+
+**Requirement:** The HITL gate must be genuinely effective, not cosmetic. Research on government automation (the Robodebt scheme — $2.4bn in compensation) shows that when operators are under pressure, a gate that technically requires a click becomes rubber-stamping.
 
 **What production adds:**
-- The FOI response letter should include a disclosure line: "This response was drafted
-  with AI assistance and reviewed and approved by [operator name]."
-- A data subject rights procedure must exist (not in the system — organisational).
-- Evidence of the AI's role must be stored in the audit trail for the life of the record.
-
-### 1.3 UK GDPR / DPA 2018 — s.40 Personal Data at Scale
-
-The MVP s.40 handling (extra instruction to response agent) is a minimum. At production
-scale, systematic personal data mishandling constitutes a notifiable data breach.
-
-**Additional production requirements:**
-- Data Protection Impact Assessment (DPIA) before deployment
-- Named Data Protection Officer oversight
-- Retention policy for audit trail entries (how long to keep per ICO guidance)
-- Mechanism for data subjects to request audit entries relating to them under DSAR
-- Secure storage for `output/` and `chroma_db/` (access controls, encryption at rest)
+- Operator training on FOIA exemptions (to spot errors in compliance recommendations)
+- Training on AI hallucination risks and how to use the evidence display
+- Defined escalation paths (when to refer to a senior officer or legal team)
+- Monitoring of approval-without-modification rate as an early warning indicator
 
 ---
 
-## 2. Algorithmic Governance
+## 3. Security requirements
 
-### 2.1 Bias and Drift Monitoring
+### 3.1 Secrets management
 
-The UK AI Playbook (Principle 5) and ATRS Tier 2 require ongoing performance monitoring
-after deployment. The hackathon MVP has no mechanism for this.
+**Requirement:** Production cannot use `.env` files for API keys on shared infrastructure.
 
-**Metrics to track per-deployment:**
-- Triage classification accuracy (requires labelled ground truth or operator feedback)
-- Operator override rate: `sum(operator_overrode_triage) / total_requests`
-- Operator modification rate: `sum(decision == "modified") / total_requests`
-- Operator rejection rate: `sum(decision == "rejected") / total_requests`
-- Compliance recommendation distribution by topic (are some topics systematically over/under-exempted?)
-- Citation verification failure rate (once S1 is implemented)
-
-**How to implement:**
-- Existing audit trail provides the raw data for all of the above except triage accuracy.
-- Add a `main.py report` subcommand that reads `output/audit_trail.jsonl` and prints
-  summary statistics and a per-topic breakdown.
-- Triage accuracy requires a ground-truth labelling step (human review of a sample).
-
-### 2.2 Performance Benchmarking
-
-Before production deployment, establish a benchmark on a labelled test set:
-- At least 50 representative FOI requests (range of topics, complexity, exemption types)
-- Ground truth: correct exemptions, correct recommendation for each
-- Measure: compliance recommendation accuracy, exemption recall/precision, citation accuracy
-- Re-run benchmark on each major update
-
-### 2.3 Equality Impact Assessment
-
-Required before deploying a tool that affects public-facing decisions. Must assess
-whether the AI's behaviour differs systematically across protected characteristics.
-In the FOI context this means:
-- Are requests from certain demographic groups (identifiable from request language/topic)
-  more likely to be recommended for withholding?
-- Does triage confidence differ by request topic in ways that disadvantage certain types
-  of requesters?
-
-This is largely an organisational/policy exercise, not a software task.
-
----
-
-## 3. Security and Infrastructure
-
-### 3.1 Secrets Management
-
-The hackathon uses `.env` files for API keys. Production requires:
-- Secrets management service (e.g. AWS Secrets Manager, Azure Key Vault, HashiCorp Vault,
-  or GDS Secrets Management)
-- No API keys in environment variables on shared systems
-- Rotation policy for `ANTHROPIC_API_KEY`
+Requires:
+- Secrets management service (e.g. AWS Secrets Manager, Azure Key Vault, GDS Secrets Management)
+- Rotation policy for LLM API keys
 - Audit log of secret access (separate from application audit log)
 
-### 3.2 Containerisation and Deployment
+### 3.2 Access controls
 
-The hackathon runs locally on the developer's machine. Production deployment requires:
-- Docker container (or equivalent) with pinned dependencies and locked `requirements.txt`
-- CI/CD pipeline: automated tests on every commit; container image build on merge to main
-- Container registry (e.g. GCR, ECR, or government container registry)
-- Deployment target: cloud VM, Kubernetes, or serverless — depends on department infrastructure
-- Network policy: restrict outbound calls to `api.anthropic.com` only; HuggingFace
-  model downloaded into the container image at build time (no runtime outbound for
-  embeddings)
+**Requirement:** The hackathon uses an `OPERATOR_ID` environment variable. Production requires:
+- Authentication via SSO / Active Directory — operator identity cannot be self-asserted
+- Role-based access: who can process requests, who can view audit trail, who can re-index policy documents
+- Tamper-evident audit trail storage (append-only log service, not a local file)
 
-### 3.3 Access Controls and Audit
+### 3.3 Data handling
 
-Production operator access requires:
-- Authentication (SSO / Active Directory — not just an `OPERATOR_ID` env var)
-- Role-based access control: who can process requests, who can view audit trail, who
-  can re-index policy documents
-- Tamper-evident audit trail: `output/audit_trail.jsonl` should be write-protected and
-  ideally stored in an append-only log service (e.g. CloudTrail, GCP Audit Logs)
-- Backup and restore procedures for `chroma_db/` and `output/`
-
-### 3.4 Availability and Rate Limit Management
-
-Production systems handling real FOI volumes (UKHSA processes ~500 FOI requests per year;
-large departments 2,000+) must account for:
-- Anthropic API rate limits at scale — consider request queuing rather than on-demand
-  sequential processing
-- SLA for response time: the system adds latency; operators need to know expected
-  processing time per request
-- Graceful degradation: if the Anthropic API is unavailable, the system should queue
-  requests rather than fail silently
+**Requirement:**
+- `output/` and the ChromaDB index must be access-controlled (not world-readable)
+- The system must not write personal data to application logs (only aggregate tokens/costs)
+- Backup and restore procedures for the ChromaDB index and audit trail
 
 ---
 
-## 4. Full Six-Stage Triage (VIDIZMO Production Model)
+## 4. Infrastructure requirements
 
-The MVP triage agent performs Stage 1 (classification) only. A production system
-addressing the full VIDIZMO six-stage model requires additional agents or processing steps:
+### 4.1 Containerisation
 
-| Stage | Current MVP status | Production requirement |
-|-------|--------------------|----------------------|
-| 1. Request classification | ✓ Implemented | Extend with S5 flagging |
-| 2. Entity extraction | ✗ Not implemented | NER over request text and related records |
-| 3. Duplicate detection | ✗ Not implemented | S4 (stretch) + precedent store (S7) |
-| 4. Third-party surfacing | ✗ Not implemented | NER + cross-reference against known third parties |
-| 5. Effort estimation | ✗ Not implemented | Heuristic: record count × complexity weighting |
-| 6. Sensitivity flagging | Partial (`clarification_recommended`) | Structured detection across litigation/media/exec |
+**Requirement:** The hackathon runs locally on a developer machine. Production requires:
+- Container image with pinned dependencies
+- CI/CD pipeline: automated tests on commit, container build on merge
+- Container registry
+- The HuggingFace embedding model baked into the container image (no runtime download from external services)
 
-Stages 2 and 4 require Named Entity Recognition — either a local NER model or an
-additional LLM call. Stage 5 (effort estimation) requires the system to know how many
-source documents are involved in the response, which depends on the records management
-context.
+### 4.2 Rate limit management at scale
 
----
+**Requirement:** The hackathon processes a handful of requests sequentially. A real FOI team processing ~500+ requests per year needs:
+- Request queuing to smooth API rate limit exposure
+- SLA transparency: operators need to know expected processing time per request
+- Graceful degradation: if the LLM API is unavailable, queue requests rather than fail silently
 
-## 5. Case Management Integration
+### 4.3 Availability
 
-The hackathon system processes standalone `.txt` files. Production FOI systems are
-integrated with case management platforms:
-
-- **GovDesk / Civica FOI Pro / Octopus**: departmental case management tools that manage
-  the FOI workflow (receipt, acknowledgement, deadline tracking, correspondence, closure)
-- **What integration requires:** REST API to pull request text, push draft responses,
-  update case status; OAuth2 for authentication; webhook for new request notifications
-- **What this means for architecture:** `main.py` becomes an API service (FastAPI or
-  similar), not a CLI; the HITL gate becomes a web interface
-
-This is a significant architectural change. The CLI architecture chosen for the hackathon
-is appropriate for a standalone tool but would need substantial redesign for case
-management integration.
+**Requirement:** The system is a decision-support tool for a statutory obligation (20-working-day response clock). Downtime that causes missed deadlines is a regulatory breach. Production deployment must define:
+- Target availability
+- Failover/recovery procedures
+- Manual fallback process when the system is unavailable
 
 ---
 
-## 6. Knowledge Management
+## 5. Operational requirements
 
-### 6.1 Policy Document Management
+### 5.1 Policy corpus management
 
-The hackathon uses a static folder of `.txt` policy documents. Production requires:
-- A governed process for adding, updating, and retiring policy documents in the RAG store
-- Versioning: policy chunks should carry a version reference so the audit trail records
-  which version of guidance was in effect when the decision was made
-- Re-indexing workflow: who can trigger a re-index, what quality check runs after
-- Integration with the document management system (e.g. SharePoint, Confluence) used by
-  the authority to manage its policy library
+**Requirement:** The hackathon uses a static set of `.txt` policy documents. Production requires:
+- A governed process for adding, updating, and retiring policy documents
+- Versioning: policy chunks must carry a version reference so the audit trail records which version of guidance was in effect at decision time
+- Integration with the authority's document management system (SharePoint, Confluence, or equivalent)
+- Re-indexing workflow with quality checks
 
-### 6.2 FOIA Exemption Knowledge Graph (Stretch of a Stretch)
+### 5.2 Operator training
 
-Research (arXiv 2606.00898) shows that cross-referencing exemption numbers against a
-structured taxonomy significantly reduces LLM citation hallucination compared to flat RAG.
+**Requirement:** Research (arXiv 2512.02774) found that the top barrier to AI adoption in FOI teams is staff lacking expertise to validate AI outputs. Production deployment requires:
+- Training on FOIA exemptions (staff must be able to spot incorrect compliance recommendations)
+- Training on AI limitations (hallucination, evidence-grounding requirements)
+- Clear escalation paths to senior officers and legal team
+- Supervised rollout: first ~200 decisions reviewed by a senior officer before unmonitored operation
 
-A production knowledge graph would represent:
-- FOIA 2000 sections and subsections as nodes
-- Relationships: "requires public interest test", "absolute exemption", "qualified exemption"
-- Cross-references to UK GDPR articles (for s.40)
-- ICO guidance documents linked to section nodes
+### 5.3 Case management integration
 
-This would replace or augment the flat-text RAG approach for exemption reasoning.
-Significant effort; likely a standalone workstream.
+**Requirement:** Production FOI teams use case management platforms (GovDesk, Civica FOI Pro, Octopus) that track receipt, acknowledgement, deadline management, and correspondence. The hackathon CLI would need to become an API service to integrate with these platforms.
 
 ---
 
-## 7. Operator Training and Change Management
+## 6. Summary: hackathon vs production
 
-The arXiv 2512.02774 study found that the top barrier to AI adoption in FOI teams is
-**"training shortcomings — staff lack expertise to oversee and validate AI-driven outputs."**
-No amount of technical investment overcomes this without:
-
-- Operator training on FOIA exemptions (to spot compliance errors)
-- Training on AI hallucination risks and how to use the evidence display
-- Clear escalation path: when to escalate to a senior officer or legal team
-- Guidance on not rubber-stamping AI outputs (Robodebt risk — see
-  `docs/research/foi-landscape-synthesis.md §2.5`)
-- Review of the first 200 processed requests by a senior officer before routine
-  unmonitored use
-
----
-
-## Summary: Hackathon vs Production
-
-| Area | Hackathon MVP | Production requirement |
-|------|---------------|----------------------|
-| Regulatory | HITL gate satisfies governance intent | ATRS registration, DPIA, DUAA rights disclosure |
-| Security | `.env` file, local `output/` folder | Secrets management, access controls, tamper-evident audit |
-| Infrastructure | CLI on developer machine | Containerised, CI/CD, rate-limit-aware, HA |
-| Triage | Stage 1 classification | All 6 stages; NER; effort estimation |
-| Integration | Standalone file processing | Case management REST API; web HITL interface |
-| Monitoring | Per-request cost log | Bias monitoring, accuracy benchmarking, drift detection |
-| Knowledge | Static policy `.txt` files | Versioned policy store; FOIA knowledge graph |
-| People | Demo | Operator training; change management; legal oversight |
+| Area | Hackathon design | Production requirement |
+|------|-----------------|----------------------|
+| Regulatory | HITL gate satisfies governance intent | ATRS registration, DPIA, DUAA disclosure |
+| Security | `.env` file, local output folder | Secrets management, SSO, access controls |
+| Infrastructure | CLI on developer machine | Containerised, CI/CD, rate-limit-aware |
+| Monitoring | Per-request cost log | Bias monitoring, drift detection, audit reporting |
+| Policy corpus | Static `.txt` files | Versioned, governed, integrated with DMS |
+| People | Demo | Operator training, escalation paths, supervised rollout |

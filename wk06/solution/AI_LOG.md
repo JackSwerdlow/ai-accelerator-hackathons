@@ -38,6 +38,17 @@ The first entry is a worked example of the format; copy its block for new entrie
 
 ---
 
+## [Agent-Tom] 2026-06-24 — Rewrite spec files independently from brief and research
+
+| Field | Detail |
+|-------|--------|
+| **Date** | 2026-06-24 |
+| **Task** | Rewrite the three agent-tom spec files (mvp-spec, stretch-spec, production-spec) from scratch, sourced only from the authoritative brief (`context/slides/`) and the team's research docs (`docs/research/`), without referencing or citing other agents' documents. The team's working approach is for each agent to produce independent spec/architecture/plan documents for review and consolidation at a later stage. |
+| **What AI Generated** | The previous versions of these files had been written after reading Agent-Jack's spec and incorporating its framing. They cited it as a companion document. The initial rewrites used the brief slide text (extracted via HTML parser) and research findings, but retained some structural parallels to the Jack spec. |
+| **What You Changed + Why** | (1) Removed all citations to other agents' documents from the three spec files — they now source only from `context/slides/` and `docs/research/`. (2) `mvp-spec-agent-tom.md` restructured around the brief's explicit requirement categories (agents, RAG, HITL, error handling, cost tracking, structured output) rather than the previous implementation-led structure. The "open questions" section retained because they are genuine spec-level unknowns (chunk size validation, confidence score design) that need answering before architecture decisions can be finalised. (3) `stretch-spec-agent-tom.md` separates brief-specified goals (S-B1–S-B4) from research-derived goals (S-R1–S-R4) to make the source clear for consolidation. (4) `production-spec-agent-tom.md` rewritten to focus on requirements framing (what a production deployment must satisfy) rather than implementation options. |
+
+---
+
 ## [Agent-Tom] 2026-06-24 — Cost tracking: switch from custom BaseCallbackHandler to built-in get_usage_metadata_callback
 
 | Field | Detail |

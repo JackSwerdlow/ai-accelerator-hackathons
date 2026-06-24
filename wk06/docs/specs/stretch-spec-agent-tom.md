@@ -1,168 +1,133 @@
-# Stretch Spec — FOI Multi-Agent CLI
+# Stretch Spec — FOI Intelligent Automation System
 
-**Author:** agent-tom
-**Status:** Reference — implement after MVP is complete and working
-**Date:** 2026-06-24
-**Prerequisite:** `mvp-spec-agent-tom.md` must be fully implemented before any stretch goal is started.
-**Source grounding:** `docs/research/foi-landscape-synthesis.md` (S1–S9) plus team review.
-
-These goals add meaningful value beyond the hackathon rubric's minimum. Tier 1 items are
-architecturally close to the MVP. Tier 2 items require more effort. Tier 3 items are
-significant enough to be their own work items.
-
-Implementation detail (code, schema extensions, effort estimates) lives in `plans/implementation-agent-tom.md`. This document states **what** each stretch goal must do — not how.
+**Author:** Agent-Tom  
+**Date:** 2026-06-24  
+**Status:** Draft — implement after MVP is complete and accepted  
+**Sources:** `context/slides/hackathon-intelligent-automation-system.html` (brief stretch goals); `docs/research/foi-landscape-synthesis.md`
 
 ---
 
-## Tier 1 — High value, architecturally close
+## Overview
 
-### S1. Citation Verification (Post-Compliance Check)
+Stretch goals add value beyond the rubric's "Excellent" threshold. They are not required to pass but demonstrate deeper thinking and improve the system's usefulness in a real operational context.
 
-**Why:** LLMs hallucinate 13–21% of legal citations even with RAG (arXiv 2606.00898). An
-incorrect exemption section number in a draft letter is legally indefensible.
+The brief explicitly identifies four stretch goals. Additional goals arise from FOI domain research. Both are listed here as requirements — implementation detail lives in `docs/plans/`.
 
-**Requirements:**
-- After compliance returns its result, the system must check whether each cited section reference (e.g. `s.43`, `s.40`) appears verbatim in the text of at least one retrieved chunk used as evidence.
-- Any section reference not found verbatim in the retrieved chunks must be recorded as an unverified citation.
-- Unverified citations must be surfaced to the operator at the HITL gate as a prominent warning banner before the decision prompt.
-- The pipeline must **not** be blocked by unverified citations — they are surfaced for human review; the operator decides how to proceed.
-- The operator must be able to approve, reject, or modify regardless of unverified citations.
+**Prerequisite:** MVP spec (`mvp-spec-agent-tom.md`) must be fully implemented and accepted before any stretch goal is started.
 
 ---
 
-### S2. Triage Override with Pipeline Re-Run
+## Brief-specified stretch goals
 
-**Why:** Triage errors cascade downstream (wrong topic → wrong RAG query → wrong compliance
-analysis → wrong draft). The MVP HITL gate is review-only; operators cannot correct a
-mis-classification without re-running the whole pipeline manually.
+### S-B1. Redaction agent
 
-**Requirements:**
-- At the HITL gate, before the A/R/M decision, the operator must be able to indicate that the triage classification is incorrect.
-- If the operator corrects the classification, they must be able to specify the correct topic and/or complexity.
-- The operator's classification supersedes the AI's — the pipeline must not re-call the triage LLM for the override.
-- After a triage override, stages 2–4 (RAG retrieve, compliance, response) must re-run with the corrected classification.
-- The HITL gate must then display the new compliance analysis and draft.
-- The audit trail must record both the AI's original triage and the operator's override, and must flag that a triage override occurred.
+**What:** Add an agent that identifies and masks personal information in draft responses before they reach the HITL gate.
 
----
+**Acceptance criteria:**
+- The agent scans the draft response and masks: names, addresses, email addresses
+- Masked content is replaced with a consistent placeholder (e.g. `[REDACTED]`) rather than deleted, so the operator can see what was removed
+- A redaction schedule is produced alongside the draft: one entry per redaction, recording the category of data removed and the applicable exemption section
+- Where the compliance agent has identified s.40, the redaction agent is automatically triggered
+- If the agent errors, the draft is flagged "redaction incomplete — manual check required" rather than released unredacted
 
-### S3. Policy Document Staleness Warning
+### S-B2. Batch processing with progress display
 
-**Why:** The RAG store is indexed once at setup. FOI exemption guidance changes. Compliance
-reasoning from outdated policy documents could cite superseded guidance.
+**What:** When processing a folder of requests, display progress information throughout the run.
 
-**Requirements:**
-- When the system indexes documents, it must record the timestamp of that index operation.
-- When processing requests, the system must check the age of the current index.
-- If the index age exceeds a configurable threshold (default: 30 days), the system must display a warning before processing begins.
-- The warning must identify the age of the index and suggest a re-index command.
-- Processing must **not** be blocked by a stale index warning — it is advisory only; the operator decides whether to re-index first.
-- The staleness threshold must be configurable without code changes (environment variable or config).
+**Acceptance criteria:**
+- Per-request status is displayed as each request completes (e.g. `[3/8] request-003.txt — approved`)
+- Cumulative cost is shown after each request
+- Estimated time remaining is displayed based on elapsed time per request
+- The progress display does not interfere with the HITL gate interaction
 
----
+### S-B3. Structured audit log
 
-## Tier 2 — Meaningful additions, moderate effort
+**What:** Record every agent decision, human override, and cost entry as structured JSON, suitable for compliance reporting.
 
-### S4. Duplicate / Similar Request Detection
+**Acceptance criteria:**
+- One JSON object per event (agent output, human decision, cost entry)
+- Append-only: the log survives across runs and is never truncated or overwritten
+- Each entry is timestamped and attributed (operator identity where applicable)
+- The log is complete enough to reconstruct the full decision history for any request
 
-**Why:** Real FOI teams waste significant effort re-processing requests that are nearly
-identical to previously answered ones. Surfacing a past decision before the pipeline
-runs saves processing cost and promotes consistent responses.
+Note: this overlaps with the MVP audit trail requirement (§4.1 of `mvp-spec-agent-tom.md`). If the MVP audit trail already satisfies these criteria, S-B3 is met by the MVP. If not, the gap must be closed here.
 
-**Requirements:**
-- Before running the triage pipeline, the system must check whether the incoming request is semantically similar to any previously processed request.
-- If a sufficiently similar past request is found (above a configurable similarity threshold), the system must surface a summary of that past decision to the operator at the HITL gate: the reference ID, date, decision, and exemptions applied.
-- The pipeline must still run fully — duplicate detection informs the operator; it does not skip processing.
-- After an `approved` or `modified` decision, the request must be added to the similarity index for future comparisons.
-- Rejected requests must not be added to the precedent index.
-- The similarity threshold must be configurable.
+### S-B4. Model fallback
 
----
+**What:** If the primary LLM returns an error or exceeds a per-call cost threshold, automatically retry on a cheaper/alternate model.
 
-### S5. Extended Vexatious / Malformed Request Flagging
-
-**Why:** The ICO's May 2026 guidance identifies AI-drafted requests that misquote
-legislation as a rising operational problem. The MVP `clarification_recommended` flag is
-a start; this stretch goal adds structured detection categories.
-
-**Requirements:**
-- The triage stage must detect and classify the following flag types, in addition to the existing `clarification_recommended` boolean:
-  - `malformed_legislation` — the request cites a non-existent FOIA section (e.g. FOIA 2000 sections run to s.88; anything citing s.89+ is malformed)
-  - `ambiguous_scope` — no time period, no subject area, or other missing scope element
-  - `overbroad` — unreasonably broad request (e.g. "all internal communications ever sent")
-  - `bulk_identical` — pattern matching bulk/identical requests (requires S4 to be meaningful)
-  - `wrong_body` — request is clearly addressed to a different public authority
-- The existing `clarification_recommended: bool` must remain as the top-level flag (set True whenever any flag is present).
-- The specific flags must add specificity beyond the top-level boolean, for operator guidance.
-- The HITL display must list detected flags when any are present.
+**Acceptance criteria:**
+- Each agent has a configured primary model and a fallback model
+- If a call to the primary model errors, the system retries automatically on the fallback model
+- If a single call would exceed a configurable cost threshold, it retries on the fallback model instead
+- The fallback event is recorded in the audit trail (which model was used, and why it fell back)
+- The operator is not required to intervene for a fallback — it is automatic
 
 ---
 
-### S6. ATRS Record Auto-Generation
+## Research-derived stretch goals
 
-**Why:** Any public authority deploying a tool with "significant influence on a
-decision-making process with public effect" must publish an ATRS (Algorithmic Transparency
-Recording Standard) record before going live. This has been mandatory for all central
-government departments since February 2024.
+The following goals are not in the brief but are identified from FOI domain research (`docs/research/foi-landscape-synthesis.md`) as high-value additions.
 
-**Requirements:**
-- The system must provide a CLI subcommand (e.g. `atrs-record`) that generates a partially pre-filled ATRS Tier 1 record.
-- The generated record must be written to a file in the output directory.
-- The record must be populated from system metadata where possible: tool name, description, date, operator contact (from config), human oversight mechanism, third-party suppliers (Anthropic, HuggingFace, ChromaDB), audit trail location.
-- The generated record must clearly note which Tier 2 fields (bias testing, performance metrics, training data description, equality impact assessment) require manual completion before submission.
-- The command must not make any LLM calls — pure template substitution from system metadata.
-- The record must include a link to the ATRS submission register.
+### S-R1. Citation verification
+
+**What:** After the compliance agent produces exemption findings, verify that cited section numbers actually appear in the retrieved policy excerpts.
+
+**Why:** Research indicates LLMs hallucinate 13–21% of legal citations even with RAG. An incorrect exemption section number in a draft response is legally indefensible.
+
+**Acceptance criteria:**
+- For each exemption section cited (e.g. "s.43"), the system checks whether that reference appears verbatim in the retrieved chunk text
+- Any citation not found in retrieved text is flagged as unverified
+- Unverified citations are surfaced prominently at the HITL gate as a warning banner
+- The operator can still approve with an unverified citation — surfacing is mandatory, blocking is not
+
+### S-R2. Triage override with pipeline re-run
+
+**What:** Allow the operator to correct the triage classification at the HITL gate, triggering a re-run of compliance and response with the corrected classification.
+
+**Why:** Triage errors cascade — a wrong topic sends the wrong RAG query, which produces wrong exemption analysis. Currently the operator can only accept the mis-classified output.
+
+**Acceptance criteria:**
+- At the HITL gate, before making an A/R/M decision, the operator can view and edit the triage classification (topic, complexity)
+- If the classification is changed, compliance and response agents re-run with the corrected classification
+- The original and corrected classifications are both recorded in the audit entry
+- The re-run produces a new draft which is then presented for the A/R/M decision
+
+### S-R3. Policy document staleness warning
+
+**What:** Warn the operator if the indexed policy documents are older than a configurable threshold.
+
+**Why:** The compliance agent reasons from whatever is in the ChromaDB index. Outdated guidance leads to incorrect exemption analysis without any visible signal.
+
+**Acceptance criteria:**
+- The system records when the policy corpus was last indexed
+- Before processing any request, if the index age exceeds a configurable threshold (e.g. 30 days), a visible warning is printed
+- The warning names the index age and prompts the operator to consider re-indexing
+- Processing is not blocked — the warning is informational
+
+### S-R4. Duplicate / similar request detection
+
+**What:** Before running the full pipeline on a new request, check whether a similar request has been processed before and surface the past decision for reference.
+
+**Why:** FOI teams waste effort re-processing near-duplicate requests. A past decision on a similar topic provides a consistency reference.
+
+**Acceptance criteria:**
+- The new request is compared against past processed requests using embedding similarity
+- If a past request exceeds a configurable similarity threshold, it is surfaced at the start of processing (or at the HITL gate) as a reference
+- The past decision (topic, exemptions, outcome) is shown — the operator is not required to follow it
+- The full pipeline still runs; the past decision is a reference, not a shortcut
 
 ---
 
-## Tier 3 — Larger scope, plan as future work
+## Prioritisation
 
-### S7. Precedent Store
-
-**What it must do:** After a request is approved or modified, persist the decision as a
-precedent entry. Before the compliance stage runs, retrieve semantically similar past
-decisions as few-shot examples to promote consistency.
-
-**Why it is Tier 3:** Requires careful design to avoid poisoning the compliance agent with
-past errors. The retrieval logic (how many examples, how to weight recency vs similarity)
-needs empirical testing. Architecturally it adds a data dependency between runs that
-complicates testing and reproducibility. Depends on S4.
-
----
-
-### S8. Multi-Department Routing
-
-**What it must do:** Detect when an FOI request crosses departmental boundaries and flag
-it for routing to the correct team rather than processing immediately.
-
-**Why it is Tier 3:** Requires a maintained taxonomy of departmental areas and
-sub-authorities. Without that taxonomy, detection is speculative. Out of scope for a
-single-department hackathon demo.
-
----
-
-### S9. Proactive Disclosure Flagging
-
-**What it must do:** After a request is approved, assess whether the response could be
-pre-emptively published to a disclosure log to reduce future duplicate requests on the
-same topic. Flag as a proactive disclosure candidate in the audit entry.
-
-**Why it is Tier 3:** The decision to publish proactively requires legal and policy
-judgement beyond the compliance agent. The flag would need to be acted on by a separate
-publication workflow. Valuable but well beyond hackathon scope.
-
----
-
-## Stretch Goal Summary
-
-| ID | Goal | Tier | Dependency |
-|----|------|------|------------|
-| S1 | Citation verification | 1 | None |
-| S2 | Triage override + re-run | 1 | None |
-| S3 | Policy staleness warning | 1 | None |
-| S4 | Duplicate detection | 2 | None |
-| S5 | Extended vexatious/malformed flagging | 2 | None (S4 for `bulk_identical`) |
-| S6 | ATRS record auto-generation | 2 | None |
-| S7 | Precedent store | 3 | S4 |
-| S8 | Multi-department routing | 3 | External taxonomy |
-| S9 | Proactive disclosure flagging | 3 | External workflow |
+| ID | Goal | Source | Priority |
+|----|------|--------|----------|
+| S-B1 | Redaction agent | Brief | High — brief-specified |
+| S-B2 | Batch progress display | Brief | High — brief-specified |
+| S-B3 | Structured audit log | Brief | High — brief-specified (may be met by MVP) |
+| S-B4 | Model fallback | Brief | High — brief-specified |
+| S-R1 | Citation verification | Research | High — addresses HIGH risk from research |
+| S-R2 | Triage override + re-run | Research | Medium — improves robustness |
+| S-R3 | Policy staleness warning | Research | Low — small effort, useful signal |
+| S-R4 | Duplicate detection | Research | Low — adds value but adds complexity |
