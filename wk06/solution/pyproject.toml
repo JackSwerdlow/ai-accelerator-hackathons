@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "foi-system"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "langchain-anthropic>=1.1.0",
+    "langchain-core",
+    "langchain-text-splitters",
+    "chromadb",
+    "sentence-transformers",
+    "einops",
+    "rich",
+    "pydantic>=2",
+    "python-dotenv",
+]
+
+[project.scripts]
+foi = "foi_system.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "mypy"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+strict = false
