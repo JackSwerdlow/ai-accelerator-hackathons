@@ -32,7 +32,7 @@ The system must implement a multi-agent pipeline with at least the following dis
 
 | Agent role | Input | Required output |
 |------------|-------|-----------------|
-| **Triage** | FOI request text | Classification: topic, complexity, summary |
+| **Triage** | FOI request text | Classification: topic, complexity, summary, confidence score (0–1) |
 | **Compliance** | Request text + triage classification | Applicable FOIA exemptions with citations to retrieved policy excerpts; a recommendation (release / partial release / withhold) |
 | **Response drafting** | Request text + compliance findings | Draft FOI response letter |
 | **Supervisor** | All of the above | Sequences agents, enforces HITL gate, writes outputs |
@@ -230,9 +230,25 @@ The supervisor is a deterministic orchestrator — not itself an LLM agent.
 
 ---
 
-## 10. Open questions
+## 10. Triage confidence score (requirement)
 
-1. Should the triage agent output a structured confidence score? If so, how should low-confidence classifications be surfaced to the operator?
-2. What chunk size and overlap best preserve context for qualified-exemption reasoning (e.g. s.43 public interest test)? This should be validated empirically before implementation.
-3. Is top-k=5 sufficient for requests that may engage multiple overlapping exemptions? There is a cost-accuracy trade-off to profile.
-4. How should the system handle requests that contain no clear FOI question (garbled, non-FOI content)?
+The triage classification must include a confidence score (float, 0–1). At the HITL gate:
+- The confidence score is displayed alongside the classification
+- If confidence is below a configurable threshold, a warning banner is shown and the operator must enter a mandatory review comment before approving
+
+Rationale: triage errors cascade downstream (wrong topic → wrong RAG query → wrong compliance analysis). Making low confidence visible and forcing a comment provides a forcing function without blocking the pipeline.
+
+The threshold value is a configuration parameter (e.g. `TRIAGE_LOW_CONFIDENCE_THRESHOLD = 0.7`).
+
+---
+
+## 11. Resolved questions
+
+| Question | Decision |
+|----------|----------|
+| Triage confidence score | Required; float 0–1; low-confidence triggers mandatory operator comment at HITL gate (see §10) |
+| Non-FOI / garbled input | Triage classifies as `topic="unclear"`, sets `clarification_recommended=True`. Pipeline continues to HITL gate with warning. No auto-rejection (FOIA s.16 duty to assist). |
+| RAG top-k | Default k=5, configurable. Profile on multi-exemption test case after chunk validation; adjust if coverage is thin. |
+| Chunk size/overlap | Validate empirically before coding `rag.py` — see `docs/RAID-log-agent-tom.md` issue I7. |
+| Retry strategy | Tenacity only, wrapping each agent function. No native `ChatAnthropic max_retries` used. |
+| Chroma API pattern | Confirm via Context7 MCP before coding `rag.py` — see `docs/RAID-log-agent-tom.md` issue I8. |
