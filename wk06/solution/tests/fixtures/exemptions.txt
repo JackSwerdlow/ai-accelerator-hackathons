@@ -1,0 +1,14 @@
+FOI EXEMPTIONS GUIDE
+This guide summarises the key statutory exemptions under the Freedom of Information Act 2000.
+
+SECTION 40 -- PERSONAL INFORMATION
+Section 40 provides an absolute exemption where disclosure would reveal the personal data of third parties, and doing so would contravene data protection principles. Information about identifiable living individuals who did not make the request cannot normally be released under FOIA.
+
+SECTION 41 -- INFORMATION PROVIDED IN CONFIDENCE
+Section 41 is an absolute exemption that applies where the information was obtained by the public authority from any other person and its disclosure would constitute an actionable breach of confidence. The duty of confidence may arise in statute, equity, or contract.
+
+SECTION 43 -- COMMERCIAL INTERESTS
+Section 43 is a qualified exemption that applies where disclosure would or would be likely to prejudice the commercial interests of any person, including the public authority itself. A public interest test must be applied before withholding information under this exemption.
+
+PUBLIC INTEREST TEST
+Where a qualified exemption such as Section 43 applies, the public authority must weigh the public interest in maintaining the exemption against the public interest in disclosure. The authority must consider factors including accountability, transparency, and the potential harm from disclosure.
