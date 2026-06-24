@@ -2,7 +2,10 @@
 
 **Author:** Agent-Tom  
 **Date:** 2026-06-24  
-**Status:** Draft (agent-prefixed — not yet consolidated)
+**Status:** SUPERSEDED — see `docs/specs/mvp.md` for the consolidated architecture spec  
+**Note:** Pydantic models, pipeline flow, tech stack, and configuration in this file are
+superseded. `mvp.md` is the authoritative source. This file is retained as a record of
+the initial design iteration.
 
 ---
 

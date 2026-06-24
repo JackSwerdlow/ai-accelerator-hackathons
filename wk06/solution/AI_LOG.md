@@ -27,6 +27,17 @@ The first entry is a worked example of the format; copy its block for new entrie
 
 ---
 
+## [Agent-Tom] 2026-06-24 — Spec tier separation: mvp.md, stretch.md, production.md
+
+| Field | Detail |
+|-------|--------|
+| **Date** | 2026-06-24 |
+| **Task** | Separate draft specs into three tier-based documents — MVP (gates implementation), Stretch (beyond hackathon rubric), and Production (real deployment) — and mark old agent-prefixed drafts as superseded. |
+| **What AI Generated** | Initial draft produced `mvp.md` consolidating `system-architecture-agent-tom.md` and `supervisor-hitl-agent-tom.md`, then `stretch.md` covering S1–S9 from `foi-landscape-synthesis.md`, then `production.md` covering regulatory compliance, security, monitoring, and integration requirements. Schema fixes applied to `AuditEntry` (added `rejection_reason`, `cost_usd`, `triage_topic`, `triage_confidence`), `TriageResult` (added `clarification_recommended`, `clarification_reason`), and `ComplianceResult` (added `third_party_notification_required`). Each stretch goal in `stretch.md` includes an implementation sketch and effort estimate. |
+| **What You Changed + Why** | (1) `tooling-agent-tom.md` was not fully superseded — `mvp.md §9` explicitly references it for implementation patterns; status updated to "Active plan — companion to mvp.md" rather than SUPERSEDED. (2) `foi-brief-agent-david.md` header framed as "superseded for implementation purposes" rather than fully superseded — it remains useful as original brief context. (3) `kickoff_prompt.md` stale references (`BaseCallbackHandler`, agent-prefixed naming) corrected in the same commit to avoid new agents picking up wrong patterns. |
+
+---
+
 ## [Agent-Tom] 2026-06-24 — Cost tracking: switch from custom BaseCallbackHandler to built-in get_usage_metadata_callback
 
 | Field | Detail |

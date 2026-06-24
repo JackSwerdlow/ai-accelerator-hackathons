@@ -2,7 +2,11 @@
 
 **Author:** Agent-Tom  
 **Date:** 2026-06-24  
-**Status:** Draft (agent-prefixed — not yet consolidated)  
+**Status:** Active plan — companion to `docs/specs/mvp.md`  
+**Note:** Pydantic models and configuration values are now authoritative in `mvp.md §§3,8`.
+This file remains the reference for dependency versions, the `CostTracker` implementation
+pattern, two-tier testing strategy, and the project initialisation checklist. Read
+alongside `mvp.md`, not instead of it.  
 **Based on:** `docs/prompts/kickoff_prompt.md` + research in `learning_materials/`
 
 ---

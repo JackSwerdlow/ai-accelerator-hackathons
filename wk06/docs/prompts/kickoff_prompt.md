@@ -22,7 +22,7 @@ Build a CLI multi-agent system that automates FOI request processing: a triage a
 - **Vector store**: ChromaDB via `langchain-chroma`
 - **Chunking**: LangChain `RecursiveCharacterTextSplitter` (built-in — no extra dependency)
 - **Structured I/O**: Pydantic + LangChain `with_structured_output()`
-- **Cost tracking**: LangChain callbacks (`BaseCallbackHandler`) — capture model, prompt tokens, completion tokens, and estimated cost per call without extra dependencies
+- **Cost tracking**: `get_usage_metadata_callback` from `langchain_core.callbacks` — built-in context manager that captures model, input tokens, output tokens, and usage metadata per call; no custom `BaseCallbackHandler` subclass needed (researched and confirmed — see `learning_materials/langchain-callbacks.md`)
 - **Logging**: Python stdlib `logging` with a JSON formatter — structured, free, zero setup
 
 Suggest alternatives where there are clear benefits, but ask before incorporating new libraries.
@@ -44,7 +44,7 @@ Suggest alternatives where there are clear benefits, but ask before incorporatin
 - Implement circuit breakers: disable tools after N consecutive failures
 - Set token budgets per conversation and exit early when exceeded
 - Tier model usage to reduce costs (typically 40–60%): use `claude-haiku-4-5-20251001` for high-volume, well-defined tasks (triage, routing); use `claude-sonnet-4-6` for complex reasoning (compliance analysis, response drafting). Maintain a central reference of input/output token costs for each model used.
-- Use a LangChain `BaseCallbackHandler` subclass to capture model, prompt tokens, completion tokens, and estimated cost at call time; accumulate into a per-request and per-agent breakdown
+- Use `get_usage_metadata_callback` (from `langchain_core.callbacks`) as a context manager around each LLM call to capture token counts; accumulate into a per-request and per-agent breakdown via a `CostTracker` class (see `docs/plans/tooling-agent-tom.md §3`)
 - Evaluate agents with defined test cases: track tool selection accuracy and output correctness
 - Log all tool calls as structured JSON for audit compliance; use Python `logging` with a JSON formatter — no licence, no external service required
 
@@ -72,4 +72,5 @@ Follow each step in order. **Do not jump ahead.**
 
 See `wk06/CLAUDE.md` § "Specs and plans" for the full concurrent team workflow, naming
 conventions, and the consolidation rule that gates implementation. Short version:
-draft files are agent-prefixed; consolidated files drop the prefix.
+draft files carry an agent-name suffix (e.g. `triage-design-agent-jack.md`);
+consolidated files drop the suffix (e.g. `triage-design.md`).

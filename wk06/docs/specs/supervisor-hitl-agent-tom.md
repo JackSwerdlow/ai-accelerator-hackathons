@@ -2,7 +2,10 @@
 
 **Author:** Agent-Tom  
 **Date:** 2026-06-24  
-**Status:** Draft (agent-prefixed — not yet consolidated)
+**Status:** SUPERSEDED — see `docs/specs/mvp.md` for the consolidated HITL and supervisor spec  
+**Note:** HITL display format, audit trail schema, and supervisor call sequence in this
+file are superseded. `mvp.md §§4–5` is authoritative. This file is retained as a record
+of the initial design iteration.
 
 ---
 

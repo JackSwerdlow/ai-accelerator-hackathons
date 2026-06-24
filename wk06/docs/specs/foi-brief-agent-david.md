@@ -1,5 +1,11 @@
 # Week 6 Hackathon — FOI Request Automation
 
+> **Status:** SUPERSEDED for implementation purposes. This brief captures the original
+> problem statement and success criteria. For implementation targets, see `docs/specs/mvp.md`
+> (what to build), `docs/specs/stretch.md` (beyond the rubric), and `docs/specs/production.md`
+> (real deployment requirements). Retained as original brief context.
+
+
 ## Problem
 
 Government departments get a lot of FOI requests. Each one needs an officer to read it, check policy, decide what can be released, draft a response, and get it reviewed — all within 20 working days. Most requests are routine but still take significant time to process manually.
