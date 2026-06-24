@@ -36,10 +36,10 @@ Multiple agents work in parallel producing separate spec and plan documents befo
 implementation begins. The workflow is:
 
 1. **Draft**: each agent creates their own file(s) in `docs/specs/` or `docs/plans/`.
-   Prefix the filename with your agent name while drafting:
-   `docs/specs/agent-jack-triage-design.md`, `docs/plans/agent-tom-rag-plan.md`.
+   Suffix the filename with your agent name while drafting:
+   `docs/specs/triage-design-agent-jack.md`, `docs/plans/rag-plan-agent-tom.md`.
 2. **Review**: before implementation starts, review all draft files together, resolve
-   conflicts, and produce a consolidated final document per topic. Drop the agent prefix
+   conflicts, and produce a consolidated final document per topic. Drop the agent suffix
    once merged: `docs/specs/triage-design.md`.
 3. **Implement**: no implementation code is written until at least one consolidated spec
    exists and has been reviewed by the team.

@@ -254,4 +254,4 @@ CHUNK_OVERLAP = 100
    `Chroma.add_documents()` for adding to an existing collection?
 
 These are resolved in `learning_materials/` and the answers fed back into
-`docs/plans/agent-tom-tooling.md`.
+`docs/plans/tooling-agent-tom.md`.

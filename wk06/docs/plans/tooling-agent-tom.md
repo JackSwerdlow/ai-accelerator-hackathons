@@ -117,7 +117,7 @@ class CostTracker:
 
 Full primer with token-detail notes in `learning_materials/langchain-callbacks.md`.
 
-**Update to `agent-tom-system-architecture.md`:** The `cost_tracker.py` description
+**Update to `system-architecture-agent-tom.md`:** The `cost_tracker.py` description
 should reflect this on consolidation.
 
 ---
@@ -165,7 +165,7 @@ end-to-end checks.
 
 ### Q2: HITL presentation
 
-**Resolved in `agent-tom-supervisor-hitl.md`.** Display format, interaction flow, and
+**Resolved in `supervisor-hitl-agent-tom.md`.** Display format, interaction flow, and
 audit trail schema are specified there. The key design choices:
 - Rich evidence display (classification confidence, top-k RAG chunks with scores,
   compliance reasoning, full draft)
