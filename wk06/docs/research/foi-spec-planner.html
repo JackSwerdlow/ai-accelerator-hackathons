@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FOI Multi-Agent System — Design Brainstorm</title>
+<style>
+  :root{
+    --bg:#f8f9fa; --card:#fff; --border:#dee2e6;
+    --accent:#0d6efd; --accent-light:#e7f1ff;
+    --text:#212529; --muted:#6c757d;
+    --green:#198754; --green-light:#d1e7dd;
+    --red:#dc3545; --red-light:#f8d7da;
+    --amber:#ffc107; --amber-light:#fff3cd;
+    --purple:#6f42c1; --purple-light:#e8dff5;
+    --teal:#20c997; --teal-light:#d2f4ea;
+    --pink:#d63384; --pink-light:#f7d6e6;
+    --orange:#fd7e14; --orange-light:#ffe5d0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);
+    color:var(--text);line-height:1.6;padding:2rem 1rem}
+  .container{max-width:980px;margin:0 auto}
+  code{background:#eef1f4;border:1px solid var(--border);padding:1px 5px;border-radius:4px;
+    font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.82rem;color:#0a3069}
+
+  /* header */
+  .topbar{background:linear-gradient(135deg,#0d6efd,#6f42c1);color:#fff;border-radius:12px;
+    padding:1.6rem 1.8rem;margin-bottom:1.4rem}
+  .topbar h1{font-size:1.5rem;margin-bottom:.35rem}
+  .topbar p{font-size:.92rem;opacity:.95;margin-bottom:.2rem}
+  .locks{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}
+  .lock{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);
+    border-radius:20px;padding:.25rem .8rem;font-size:.8rem}
+  .lock b{color:#ffe89e}
+
+  /* rubric strip */
+  .rubric{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem;margin-bottom:1.4rem}
+  .rax{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;border-left:4px solid var(--accent)}
+  .rax h4{font-size:.85rem;color:var(--accent);margin-bottom:.15rem}
+  .rax p{font-size:.78rem;color:var(--muted)}
+
+  /* section card */
+  .section{background:var(--card);border:1px solid var(--border);border-radius:8px;
+    padding:1.5rem;margin-bottom:1.5rem}
+  .section h2{font-size:1.18rem;margin-bottom:.25rem;color:var(--accent);display:flex;align-items:baseline;gap:.5rem}
+  .secnum{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--accent);
+    color:#fff;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0}
+  .section .description{color:var(--muted);font-size:.9rem;margin:.35rem 0 .9rem}
+  .why{background:var(--accent-light);border-radius:6px;padding:.7rem .9rem;font-size:.85rem;
+    color:#333;margin-bottom:1rem}
+  .why b{color:var(--accent)}
+  .star{background:var(--amber-light);border-left:4px solid var(--amber);border-radius:6px;
+    padding:.55rem .9rem;font-size:.82rem;margin-bottom:.9rem;color:#664d03}
+
+  /* badges */
+  .badge{display:inline-block;font-size:.7rem;padding:.15rem .45rem;border-radius:3px;
+    font-weight:600;vertical-align:middle;margin-left:.4rem}
+  .badge-rec{background:var(--green-light);color:var(--green)}
+  .badge-ac{background:var(--accent-light);color:var(--accent)}
+
+  /* radio option cards */
+  .option-group{margin-bottom:1rem}
+  .option-card{border:2px solid var(--border);border-radius:6px;padding:.85rem 1rem;
+    margin-bottom:.5rem;cursor:pointer;transition:border-color .15s,background .15s;
+    display:flex;align-items:flex-start;gap:.75rem}
+  .option-card:hover{border-color:var(--accent);background:var(--accent-light)}
+  .option-card.selected{border-color:var(--accent);background:var(--accent-light)}
+  .option-card input[type=radio]{margin-top:.3rem;flex-shrink:0;accent-color:var(--accent)}
+  .option-body{flex:1}
+  .option-title{font-weight:600;font-size:.95rem}
+  .option-desc{color:var(--muted);font-size:.84rem;margin:.1rem 0}
+  .option-pro{color:var(--green);font-size:.83rem}
+  .option-con{color:var(--red);font-size:.83rem}
+
+  /* checkboxes */
+  .checkbox-group{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+  .checkbox-card{border:1px solid var(--border);border-radius:4px;padding:.4rem .75rem;
+    cursor:pointer;font-size:.84rem;display:flex;align-items:center;gap:.4rem;
+    transition:border-color .15s,background .15s}
+  .checkbox-card:hover{border-color:var(--accent)}
+  .checkbox-card.checked{border-color:var(--accent);background:var(--accent-light)}
+  .checkbox-card input{accent-color:var(--accent)}
+
+  /* notes */
+  .text-input-group{margin-bottom:.5rem}
+  .text-input-group label{display:block;font-weight:600;font-size:.85rem;margin-bottom:.3rem;color:#444}
+  .text-input-group textarea{width:100%;border:1px solid var(--border);border-radius:4px;
+    padding:.5rem .75rem;font-size:.88rem;font-family:inherit;min-height:60px;resize:vertical}
+
+  /* config editor */
+  .config-edit-group{margin:.5rem 0 1rem}
+  .config-edit-group label{display:block;font-weight:600;font-size:.85rem;margin-bottom:.3rem;color:#444}
+  .config-editor{width:100%;min-height:150px;resize:vertical;background:#1e1e1e;color:#d4d4d4;
+    border-radius:6px;padding:1rem;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    font-size:.8rem;line-height:1.5;border:none;tab-size:2}
+
+  /* sub-decision table */
+  .validation{width:100%;border-collapse:collapse;font-size:.84rem;margin:.5rem 0 1rem}
+  .validation th,.validation td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--border);vertical-align:top}
+  .validation th{background:var(--bg);font-weight:600;position:sticky;top:0}
+  .validation select{font-size:.82rem;padding:.2rem;border:1px solid var(--border);border-radius:4px}
+  .validation input[type=text]{font-size:.82rem;padding:.25rem .4rem;border:1px solid var(--border);
+    border-radius:4px;width:150px;font-family:inherit}
+
+  /* data/price table */
+  .data-table{width:100%;border-collapse:collapse;font-size:.83rem;margin:.4rem 0 .9rem}
+  .data-table th,.data-table td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--border)}
+  .data-table th{background:var(--bg);font-weight:600}
+  .data-table tbody tr:nth-child(even){background:#f8f9fa}
+  .data-table td b{color:var(--green)}
+
+  /* buttons */
+  .btn-row{display:flex;gap:.6rem;flex-wrap:wrap;margin:1.4rem 0 .5rem}
+  .btn{border:none;border-radius:6px;padding:.6rem 1.1rem;font-size:.9rem;font-weight:600;
+    cursor:pointer;transition:background .15s,opacity .15s}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:#0b5ed7}
+  .btn-secondary{background:#e9ecef;color:#333}
+  .btn-secondary:hover{background:#dde1e6}
+  .btn-save{background:var(--green);color:#fff}
+  .btn-save:hover{background:#157347}
+
+  #output-section{display:none;margin-top:1rem}
+  #output-section.visible{display:block}
+  #output-section h2{font-size:1.05rem;margin-bottom:.5rem;color:var(--accent)}
+  #output-json{background:#1e1e1e;color:#d4d4d4;border-radius:6px;padding:1rem;
+    font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.8rem;
+    white-space:pre-wrap;word-break:break-word;max-height:460px;overflow:auto}
+
+  .copied-toast{position:fixed;bottom:2rem;right:2rem;background:var(--green);color:#fff;
+    padding:.6rem 1.2rem;border-radius:6px;font-weight:600;opacity:0;transition:opacity .3s;
+    pointer-events:none;z-index:999}
+  .copied-toast.show{opacity:1}
+
+  details{margin:.5rem 0}
+  details summary{cursor:pointer;font-weight:600;font-size:.85rem;color:var(--accent);padding:.25rem 0}
+  .footnote{color:var(--muted);font-size:.8rem;border-top:1px solid var(--border);padding-top:1rem;margin-top:1.5rem}
+  @media(max-width:640px){.validation,.data-table{font-size:.78rem}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="topbar">
+    <h1>FOI Multi-Agent System — Design Brainstorm</h1>
+    <p>An interactive questionnaire for the open design decisions. The brief fixes <em>what</em> we build; this fixes <em>how</em>.</p>
+    <p>Work through each card, adjust the recommended defaults, add notes — then <b>Generate Summary</b> and paste the JSON back to me.</p>
+    <div class="locks">
+      <span class="lock">Scope: <b>all of project_brief.md</b></span>
+      <span class="lock">Provider: <b>Anthropic / Claude</b></span>
+      <span class="lock">Build: <b>small team · parallel · AI-driven</b></span>
+      <span class="lock">Target: <b>Excellent on all 4 rubric axes</b></span>
+    </div>
+  </div>
+
+  <div class="rubric">
+    <div class="rax"><h4>Automation value</h4><p>End-to-end, minimal human input; accurate, evidence-backed classification &amp; exemption checks.</p></div>
+    <div class="rax"><h4>Reliability</h4><p>All error paths handled; recovers from API failures, malformed input, empty results.</p></div>
+    <div class="rax"><h4>Governance</h4><p>Rich HITL evidence; timestamped override audit trail with operator identity + evidence refs.</p></div>
+    <div class="rax"><h4>Cost awareness</h4><p>Per-agent &amp; per-request token/cost breakdown; end-of-run summary.</p></div>
+  </div>
+
+  <!-- ============ 1 ============ -->
+  <div class="section">
+    <h2><span class="secnum">1</span> Orchestration approach</h2>
+    <p class="description">How the four agents get wired together and run.</p>
+    <div class="why"><b>Why it matters.</b> This is the spine — it decides how testable, debuggable and demoable the pipeline is, and how cleanly a team can split work. The brief only requires a supervisor that enforces a HITL gate.</div>
+    <div class="option-group" data-name="orchestration">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="orchestration" value="code_supervisor" checked>
+        <div class="option-body">
+          <div class="option-title">Code-orchestrated supervisor (plain Python + Anthropic SDK) <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">A supervisor function calls triage → compliance → response → HITL in sequence; you own the loop.</div>
+          <div class="option-pro">+ Total control over sequencing, the HITL pause, retries &amp; cost capture; deterministic = reliable demo; trivially unit-testable; lowest 2-day risk.</div>
+          <div class="option-con">− You write ~50 lines of loop yourself; less "agentic magic" to show off.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="orchestration" value="sdk_tool_loop">
+        <div class="option-body">
+          <div class="option-title">SDK tool-use loop (agents as tools, model drives routing)</div>
+          <div class="option-desc">Expose agents as tools and let Claude's tool_runner decide the order.</div>
+          <div class="option-pro">+ Feels more agentic; built-in loop handling.</div>
+          <div class="option-con">− Non-deterministic ordering fights the HITL gate &amp; cost attribution; harder to test/demo; overkill for a fixed 4-stage pipeline.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="orchestration" value="framework">
+        <div class="option-body">
+          <div class="option-title">Managed Agents / framework (LangGraph, CMA)</div>
+          <div class="option-desc">Delegate orchestration to a managed-agent platform or graph framework.</div>
+          <div class="option-pro">+ Powerful for open-ended, long-horizon agents; server-managed state.</div>
+          <div class="option-con">− Heavy setup tax for little payoff in 2 days; obscures the cost/HITL logic the rubric scores.</div>
+        </div>
+      </label>
+    </div>
+    <div class="text-input-group"><label for="notes_orchestration">Notes / modifications</label>
+      <textarea id="notes_orchestration" placeholder="e.g. concerns about the loop, or a hybrid you'd prefer…"></textarea></div>
+  </div>
+
+  <!-- ============ 2 ============ -->
+  <div class="section">
+    <h2><span class="secnum">2</span> Inter-agent contracts &amp; team split</h2>
+    <p class="description">How parallel builders avoid colliding.</p>
+    <div class="why"><b>Why it matters.</b> A small team building in parallel with AI. The highest-leverage move is to freeze the data contracts first, then let each person/agent own one stage behind a stable typed interface.</div>
+    <div class="option-group" data-name="team_contracts">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="team_contracts" value="schema_first" checked>
+        <div class="option-body">
+          <div class="option-title">Pydantic schemas first, then parallel agent ownership <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Define every stage's typed input/output up front; agents become pure functions of typed in→out.</div>
+          <div class="option-pro">+ No merge collisions; independently testable; schemas double as the structured-output contract (#3) and JSON result (#14); AI can fill one file at a time.</div>
+          <div class="option-con">− ~1 hour of up-front design before code flows.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="team_contracts" value="shared_dict">
+        <div class="option-body">
+          <div class="option-title">Shared dict + convention</div>
+          <div class="option-desc">Agents pass a loosely-typed dict around by agreed keys.</div>
+          <div class="option-pro">+ Fast to start; no schema layer.</div>
+          <div class="option-con">− Key drift between stages is the #1 documented failure mode; painful merges; weak validation.</div>
+        </div>
+      </label>
+    </div>
+    <div class="config-edit-group">
+      <label for="cfg_data_contracts">Proposed data contracts (edit freely):</label>
+      <textarea id="cfg_data_contracts" class="config-editor"># shared/schemas.py  (Pydantic models — the contract between agents)
+
+class TriageResult(BaseModel):
+    topic: Literal["spending","procurement","staffing","policy",
+                   "personal_data","correspondence","other"]
+    complexity: Literal["low","medium","high"]
+    summary: str
+
+class ComplianceResult(BaseModel):
+    exemptions: list[ExemptionFinding]      # section, applies, reasoning, policy_ref
+    recommendation: Literal["release","partial_release","withhold"]
+    public_interest_test: str | None        # for qualified exemptions (s36, s43)
+
+class DraftResult(BaseModel):
+    draft_response: str
+    evidence_summary: str
+
+class Decision(BaseModel):
+    decision: Literal["approved","rejected","modified"]
+    operator: str
+    timestamp: str
+    notes: str
+    evidence_refs: list[str]                # chunk ids / source sections</textarea>
+    </div>
+    <div class="text-input-group"><label for="notes_team">Notes / modifications</label>
+      <textarea id="notes_team" placeholder="e.g. add a field, change a stage boundary, who owns what…"></textarea></div>
+  </div>
+
+  <!-- ============ 3 ============ -->
+  <div class="section">
+    <h2><span class="secnum">3</span> Structured-output mechanism</h2>
+    <p class="description">How we guarantee parseable agent output.</p>
+    <div class="why"><b>Why it matters.</b> Flaky JSON is the most common reliability failure (the brief calls out "unparseable response"). Opus 4.8 / Sonnet 4.6 / Haiku 4.5 all support native structured outputs.</div>
+    <div class="option-group" data-name="structured_output">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="structured_output" value="native_structured" checked>
+        <div class="option-body">
+          <div class="option-title">Native structured outputs (<code>output_config.format</code> + JSON schema) <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Constrain each agent's response to its Pydantic schema; the API enforces it.</div>
+          <div class="option-pro">+ Schema-enforced, model retries on mismatch; pairs with #2; kills the unparseable-response error class; <code>messages.parse()</code> returns validated objects.</div>
+          <div class="option-con">− Flat-schema constraints only (no min/max, recursion) — fine here; tiny first-call compile latency.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="structured_output" value="prompt_parse">
+        <div class="option-body">
+          <div class="option-title">Prompt "return JSON" + <code>json.loads</code> + retry</div>
+          <div class="option-desc">Ask for JSON in the prompt and parse defensively.</div>
+          <div class="option-pro">+ No schema authoring; works on any model.</div>
+          <div class="option-con">− Models wrap JSON in prose/fences; you hand-roll retry-on-parse-fail; weakest on reliability.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="structured_output" value="strict_tool">
+        <div class="option-body">
+          <div class="option-title">Strict tool use (force a typed tool call)</div>
+          <div class="option-desc">Make each agent emit a forced tool call with strict-typed arguments.</div>
+          <div class="option-pro">+ Strong typing guarantee for a single structured action.</div>
+          <div class="option-con">− Awkward when you just want data, not an action; two mechanisms if mixed with the above.</div>
+        </div>
+      </label>
+    </div>
+    <div class="text-input-group"><label for="notes_structured">Notes / modifications</label>
+      <textarea id="notes_structured" placeholder="e.g. mix mechanisms per agent…"></textarea></div>
+  </div>
+
+  <!-- ============ 4 ============ -->
+  <div class="section">
+    <h2><span class="secnum">4</span> Core stack &amp; CLI ergonomics</h2>
+    <p class="description">Libraries that shape the build and the demo.</p>
+    <div class="why"><b>Why it matters.</b> The brief wants a CLI that processes a folder and prints a cost summary. Small choices set team velocity and demo polish.</div>
+    <div class="option-group" data-name="core_stack">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="core_stack" value="typer_rich_pydantic" checked>
+        <div class="option-body">
+          <div class="option-title">Typer + Rich + Pydantic + anthropic + chromadb <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Typer for subcommands, Rich for tables/progress/HITL panels, Pydantic for schema+validation.</div>
+          <div class="option-pro">+ Clean <code>index</code>/<code>process</code> commands; demo-quality tables &amp; a HITL panel; validation+serialisation in one; all AI-implementable.</div>
+          <div class="option-con">− A few extra deps vs stdlib.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="core_stack" value="stdlib">
+        <div class="option-body">
+          <div class="option-title">Stdlib argparse + print()</div>
+          <div class="option-desc">No extra dependencies; matches the starter.</div>
+          <div class="option-pro">+ Zero extra deps.</div>
+          <div class="option-con">− Bland demo; reinvent tables/progress by hand; weaker HITL evidence presentation.</div>
+        </div>
+      </label>
+    </div>
+    <div class="text-input-group"><label for="notes_stack">Notes / modifications</label>
+      <textarea id="notes_stack" placeholder="e.g. swap a library, pin versions…"></textarea></div>
+  </div>
+
+  <!-- ============ 5 ============ -->
+  <div class="section">
+    <h2><span class="secnum">5</span> Model assignment per agent</h2>
+    <p class="description">Where to spend intelligence vs save cost — directly drives the Cost-awareness axis.</p>
+    <div class="why"><b>Why it matters.</b> Match model tier to task difficulty. Pick a model per agent below; the recommendation is a deliberate tier mix that makes the cost summary tell a real story.</div>
+    <table class="data-table">
+      <thead><tr><th>Model</th><th>ID</th><th>In&nbsp;$/1M</th><th>Out&nbsp;$/1M</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td>Haiku 4.5</td><td><code>claude-haiku-4-5</code></td><td>$1</td><td>$5</td><td>triage, redaction</td></tr>
+        <tr><td>Sonnet 4.6</td><td><code>claude-sonnet-4-6</code></td><td>$3</td><td>$15</td><td>drafting</td></tr>
+        <tr><td><b>Opus 4.8</b></td><td><code>claude-opus-4-8</code></td><td>$5</td><td>$25</td><td>compliance reasoning</td></tr>
+      </tbody>
+    </table>
+    <table class="validation">
+      <thead><tr><th>Agent</th><th>Recommended</th><th>Model</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Triage</td><td>Haiku 4.5</td>
+          <td><select data-decision="model_triage">
+            <option value="claude-haiku-4-5" selected>Haiku 4.5</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+            <option value="claude-opus-4-8">Opus 4.8</option>
+          </select></td>
+          <td><input type="text" data-note="model_triage" placeholder="Reason…"></td>
+        </tr>
+        <tr>
+          <td>Compliance (RAG)</td><td>Opus 4.8</td>
+          <td><select data-decision="model_compliance">
+            <option value="claude-haiku-4-5">Haiku 4.5</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+            <option value="claude-opus-4-8" selected>Opus 4.8</option>
+          </select></td>
+          <td><input type="text" data-note="model_compliance" placeholder="Reason…"></td>
+        </tr>
+        <tr>
+          <td>Response drafting</td><td>Sonnet 4.6</td>
+          <td><select data-decision="model_response">
+            <option value="claude-haiku-4-5">Haiku 4.5</option>
+            <option value="claude-sonnet-4-6" selected>Sonnet 4.6</option>
+            <option value="claude-opus-4-8">Opus 4.8</option>
+          </select></td>
+          <td><input type="text" data-note="model_response" placeholder="Reason…"></td>
+        </tr>
+        <tr>
+          <td>Redaction</td><td>Haiku 4.5</td>
+          <td><select data-decision="model_redaction">
+            <option value="claude-haiku-4-5" selected>Haiku 4.5</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+            <option value="claude-opus-4-8">Opus 4.8</option>
+          </select></td>
+          <td><input type="text" data-note="model_redaction" placeholder="Reason…"></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="text-input-group"><label for="notes_models">Notes / modifications</label>
+      <textarea id="notes_models" placeholder="e.g. budget cap per run, when to escalate a tier…"></textarea></div>
+  </div>
+
+  <!-- ============ 6 ============ -->
+  <div class="section">
+    <h2><span class="secnum">6</span> Triage taxonomy</h2>
+    <p class="description">What the triage agent classifies into.</p>
+    <div class="star">⭐ <b>High human-input decision.</b> Your knowledge of real FOI request types is the differentiator here. Edit the proposed taxonomy directly.</div>
+    <div class="why"><b>Why it matters.</b> MVS needs one field, but "Excellent" wants accurate, useful classification that drives routing and complexity. Enums give reliable structured output.</div>
+    <div class="config-edit-group">
+      <label for="cfg_taxonomy">Proposed triage taxonomy (edit freely):</label>
+      <textarea id="cfg_taxonomy" class="config-editor"># Triage classification scheme
+
+topic:                      # what the request is about
+  - spending                # budgets, contracts, expenditure
+  - procurement             # tenders, suppliers, evaluation
+  - staffing                # headcount, pay, recruitment
+  - policy                  # decisions, guidance, deliberation
+  - personal_data           # about identifiable individuals (s40 risk)
+  - correspondence          # emails, meeting notes, communications
+  - other
+
+complexity: [low, medium, high]
+complexity_drivers:         # what pushes complexity up
+  - likely_exemptions       # one or more exemptions probably apply
+  - data_volume             # large or scattered information
+  - cross_team              # needs input from multiple teams
+  - public_interest_test    # qualified exemption needs balancing
+  - third_party_personal_data</textarea>
+    </div>
+    <div class="text-input-group"><label for="notes_taxonomy">Notes / modifications</label>
+      <textarea id="notes_taxonomy" placeholder="e.g. categories your department actually sees, merge/split topics…"></textarea></div>
+  </div>
+
+  <!-- ============ 7 ============ -->
+  <div class="section">
+    <h2><span class="secnum">7</span> Compliance / exemption decision policy</h2>
+    <p class="description">How RAG output becomes a recommendation.</p>
+    <div class="star">⭐ <b>High human-input decision.</b> The biggest domain-judgment opportunity — absolute vs qualified exemptions, the public-interest test, when to recommend partial release.</div>
+    <div class="why"><b>Why it matters.</b> The policy distinguishes absolute (s40, s41) from qualified (s36, s43, need a public-interest test) and supports partial release/redaction. A naive "ask the LLM" misses this structure.</div>
+    <div class="option-group" data-name="exemption_policy">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="exemption_policy" value="rule_assisted" checked>
+        <div class="option-body">
+          <div class="option-title">Rule-assisted: retrieve → identify exemptions → public-interest test for qualified ones → recommend <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Encode the absolute/qualified split; run the PIT only where it applies; cite chunks per exemption.</div>
+          <div class="option-pro">+ <code>recommendation ∈ {release, partial_release, withhold}</code> with per-exemption reasoning and citations → evidence-backed (Automation axis); mirrors a real FOI officer.</div>
+          <div class="option-con">− More prompt engineering; must encode the exemption taxonomy.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="exemption_policy" value="single_shot">
+        <div class="option-body">
+          <div class="option-title">Single-shot LLM judgment over retrieved chunks</div>
+          <div class="option-desc">One prompt: here are the chunks, decide.</div>
+          <div class="option-pro">+ Fast to build; still cites chunks.</div>
+          <div class="option-con">− Skips the public-interest test → legally shallow; weaker governance story.</div>
+        </div>
+      </label>
+    </div>
+    <div class="text-input-group"><label for="notes_exemption">Notes / modifications</label>
+      <textarea id="notes_exemption" placeholder="e.g. which exemptions to prioritise, how strict the PIT, partial-release rules…"></textarea></div>
+  </div>
+
+  <!-- ============ 8 ============ -->
+  <div class="section">
+    <h2><span class="secnum">8</span> RAG: embeddings, chunking &amp; retrieval</h2>
+    <p class="description">How the policy knowledge base is built and queried.</p>
+    <div class="why"><b>Why it matters.</b> The compliance agent must retrieve excerpts and cite them. The exemptions guide is already structured by section (s12, s21, s36, s40, s41, s43) — a gift for chunking.</div>
+    <div class="option-group" data-name="rag_design">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="rag_design" value="local_section_aware" checked>
+        <div class="option-body">
+          <div class="option-title">Local embeddings (Chroma default) + section-aware chunking, k=3–4 <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Chunk one exemption section per chunk; embed locally; retrieve top 3–4.</div>
+          <div class="option-pro">+ Clean, quotable citations mapped to exemptions; no embedding key/cost; offline; high retrieval quality because policy is well-structured.</div>
+          <div class="option-con">− First run downloads the HF model (network) — keep a fallback.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="rag_design" value="openai_fixed">
+        <div class="option-body">
+          <div class="option-title">OpenAI embeddings + fixed-size chunking</div>
+          <div class="option-desc">Hosted embeddings, character-window chunks.</div>
+          <div class="option-pro">+ Strong embeddings; no local model download.</div>
+          <div class="option-con">− Needs an OpenAI key just for embeddings; fixed chunks can split an exemption mid-definition.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="rag_design" value="naive">
+        <div class="option-body">
+          <div class="option-title">Naive: whole-doc, no real retrieval</div>
+          <div class="option-desc">Stuff the whole policy in the prompt.</div>
+          <div class="option-pro">+ Trivial.</div>
+          <div class="option-con">− Fails the RAG requirement; no genuine retrieval/citation.</div>
+        </div>
+      </label>
+    </div>
+    <div class="text-input-group"><label for="notes_rag">Notes / modifications</label>
+      <textarea id="notes_rag" placeholder="e.g. k value, chunk size, persistent vs in-memory Chroma, HF-blocked fallback…"></textarea></div>
+  </div>
+
+  <!-- ============ 9 ============ -->
+  <div class="section">
+    <h2><span class="secnum">9</span> HITL gate placement &amp; "modify" semantics</h2>
+    <p class="description">Where the human sits, and what they can do.</p>
+    <div class="star">⭐ <b>High human-input decision.</b> The brief mandates an approve/reject/modify gate that pauses, shows evidence, and logs a timestamped decision.</div>
+    <div class="why"><b>Why it matters.</b> The design choices are how many gates, and what "modify" actually does to the outgoing response.</div>
+    <div class="option-group" data-name="hitl_gate">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="hitl_gate" value="single_edit_regen" checked>
+        <div class="option-body">
+          <div class="option-title">Single gate after drafting; modify = edit text OR regenerate-with-instructions <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">One clear pause: approve finalises; reject discards with a reason; modify lets the operator edit or instruct a regeneration.</div>
+          <div class="option-pro">+ Clean demoable pause ("nothing leaves without approval"); matches the w05 approve/reject/modify pattern; simple batch flow.</div>
+          <div class="option-con">− A single gate won't catch a bad classification early (acceptable for scope).</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="hitl_gate" value="multi_gate">
+        <div class="option-body">
+          <div class="option-title">Multiple gates (after triage, compliance, drafting)</div>
+          <div class="option-desc">Human checkpoint at each stage.</div>
+          <div class="option-pro">+ Catches errors earliest; maximal control.</div>
+          <div class="option-con">− 3× the human friction; clunky demo &amp; batch flow; more state.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="hitl_gate" value="notes_only">
+        <div class="option-body">
+          <div class="option-title">Modify = notes only (no edit/regenerate)</div>
+          <div class="option-desc">Operator can annotate but not change the draft.</div>
+          <div class="option-pro">+ Simplest to implement.</div>
+          <div class="option-con">− "Modify" becomes cosmetic → risks the Governance axis.</div>
+        </div>
+      </label>
+    </div>
+    <div class="text-input-group"><label for="notes_hitl">Notes / modifications</label>
+      <textarea id="notes_hitl" placeholder="e.g. auto-approve low-complexity? escalation rules? who can approve?…"></textarea></div>
+  </div>
+
+  <!-- ============ 10 ============ -->
+  <div class="section">
+    <h2><span class="secnum">10</span> Evidence display &amp; audit trail</h2>
+    <p class="description">What the operator sees, and what gets recorded.</p>
+    <div class="star">⭐ <b>High human-input decision.</b> This is the Governance axis verbatim — rich evidence + timestamped override audit trail with operator identity + evidence refs.</div>
+    <div class="why"><b>Why it matters.</b> Designing this well is most of the "Excellent" on governance. Pick the approach, then tick what evidence the gate should display.</div>
+    <div class="option-group" data-name="evidence_audit">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="evidence_audit" value="rich_panel_audit" checked>
+        <div class="option-body">
+          <div class="option-title">Rich evidence panel + append-only audit log w/ operator identity <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Show full evidence at the gate; write every decision/override/cost to an append-only audit log.</div>
+          <div class="option-pro">+ Captures decision, operator id, timestamp, evidence refs, notes/edits; hits every clause of the Governance band.</div>
+          <div class="option-con">− More fields to thread through (the #2 schemas carry them).</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="evidence_audit" value="plain">
+        <div class="option-body">
+          <div class="option-title">Plain-text dump + decision line in result JSON</div>
+          <div class="option-desc">Print the draft and record the decision only.</div>
+          <div class="option-pro">+ Quick; meets the literal MVS.</div>
+          <div class="option-con">− Minimal evidence, no separate audit trail, no operator identity → only "Good".</div>
+        </div>
+      </label>
+    </div>
+    <p style="font-size:.85rem;font-weight:600;color:#444;margin:.4rem 0 .3rem">Evidence to display at the gate:</p>
+    <div class="checkbox-group">
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="show_classification" checked><span>Triage classification (topic + complexity)</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="show_chunks" checked><span>Retrieved policy chunks (source + section)</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="show_reasoning" checked><span>Exemption reasoning + public-interest test</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="show_recommendation" checked><span>Recommendation (release/partial/withhold)</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="show_draft" checked><span>Draft response text</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="show_cost" checked><span>Per-request cost so far</span></label>
+    </div>
+    <div class="text-input-group"><label for="notes_evidence">Notes / modifications</label>
+      <textarea id="notes_evidence" placeholder="e.g. audit log format (JSONL?), retention, redaction-before-display…"></textarea></div>
+  </div>
+
+  <!-- ============ 11 ============ -->
+  <div class="section">
+    <h2><span class="secnum">11</span> Error handling &amp; fallback strategy</h2>
+    <p class="description">How the system survives failures without crashing.</p>
+    <div class="why"><b>Why it matters.</b> The brief requires: on agent failure (API error, unparseable, empty) log it and continue with a fallback. Lower-priority goal #4 adds model fallback. The Reliability axis rewards covering ALL paths.</div>
+    <div class="option-group" data-name="error_handling">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="error_handling" value="layered" checked>
+        <div class="option-body">
+          <div class="option-title">Layered defence — never crash the batch <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Combine SDK retry, per-agent typed fallbacks, model fallback, and per-stage try/except.</div>
+          <div class="option-pro">+ Covers every failure class the rubric lists; bad request degrades gracefully and routes to human; model fallback = lower-priority goal #4 for nearly free.</div>
+          <div class="option-con">− Must define a sensible fallback per agent (good discipline anyway).</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="error_handling" value="single_try">
+        <div class="option-body">
+          <div class="option-title">Single try/except around the whole pipeline</div>
+          <div class="option-desc">One guard catches anything and logs it.</div>
+          <div class="option-pro">+ Easy to add.</div>
+          <div class="option-con">− One failure can abort a request with no graceful degradation; leaves model-fallback goal on the table.</div>
+        </div>
+      </label>
+    </div>
+    <p style="font-size:.85rem;font-weight:600;color:#444;margin:.4rem 0 .3rem">Defence layers to include:</p>
+    <div class="checkbox-group">
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="layer_sdk_retry" checked><span>SDK auto-retry (429 / 5xx / network)</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="layer_per_agent_fallback" checked><span>Per-agent typed fallback value (e.g. triage fail → complexity=high)</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="layer_model_fallback" checked><span>Model fallback (Opus→Sonnet→Haiku) on persistent error</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="layer_cost_cap" checked><span>Cost-threshold fallback to a cheaper model</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-rule="layer_per_stage_try" checked><span>try/except around each stage (one bad request never kills the batch)</span></label>
+    </div>
+    <div class="text-input-group"><label for="notes_errors">Notes / modifications</label>
+      <textarea id="notes_errors" placeholder="e.g. fallback values per agent, max retries, cost threshold…"></textarea></div>
+  </div>
+
+  <!-- ============ 12 ============ -->
+  <div class="section">
+    <h2><span class="secnum">12</span> Redaction approach</h2>
+    <p class="description">How we mask personal info before review (lower-priority goal).</p>
+    <div class="star">⭐ <b>High human-input decision.</b> This is the s40 personal-data exemption in action — what counts, and how confidently to mask it.</div>
+    <div class="why"><b>Why it matters.</b> A redaction agent masks names, addresses, emails in drafts before human review. Deterministic vs LLM matters for trust on a compliance-critical task.</div>
+    <div class="option-group" data-name="redaction">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="redaction" value="hybrid" checked>
+        <div class="option-body">
+          <div class="option-title">Hybrid: regex for structured PII + LLM (Haiku) for names/context <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Regex catches the deterministic stuff; a cheap LLM pass catches contextual PII.</div>
+          <div class="option-pro">+ Regex nails emails/phones/UK postcodes (high precision); LLM catches names regex can't; cheap &amp; fast; maps to s40.</div>
+          <div class="option-con">− Two passes to reconcile; define overlap handling.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="redaction" value="llm_only">
+        <div class="option-body">
+          <div class="option-title">LLM-only redaction</div>
+          <div class="option-desc">One model pass masks everything.</div>
+          <div class="option-pro">+ Catches contextual PII; one pass.</div>
+          <div class="option-con">− Can miss/garble structured PII; non-deterministic on a compliance-critical task.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="redaction" value="regex_only">
+        <div class="option-body">
+          <div class="option-title">Regex / Presidio only</div>
+          <div class="option-desc">Deterministic pattern matching, no LLM.</div>
+          <div class="option-pro">+ Deterministic, auditable, no LLM cost.</div>
+          <div class="option-con">− Misses names &amp; contextual personal data — the hard part of s40.</div>
+        </div>
+      </label>
+    </div>
+    <div class="text-input-group"><label for="notes_redaction">Notes / modifications</label>
+      <textarea id="notes_redaction" placeholder="e.g. what to mask, redaction marker style, where it runs in the pipeline…"></textarea></div>
+  </div>
+
+  <!-- ============ 13 ============ -->
+  <div class="section">
+    <h2><span class="secnum">13</span> Cost-tracking granularity &amp; price source</h2>
+    <p class="description">How precisely spend is tracked and totalled.</p>
+    <div class="why"><b>Why it matters.</b> The Cost-awareness "Excellent" band wants per-agent AND per-request breakdown — model, prompt tokens, completion tokens, estimated cost per call — plus an end-of-run summary.</div>
+    <div class="option-group" data-name="cost_tracking">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="cost_tracking" value="per_call_rolled_up" checked>
+        <div class="option-body">
+          <div class="option-title">Per-call logging → rolled up per-agent &amp; per-request → end-of-run summary <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Log model + prompt/completion tokens + est. cost on every call; aggregate two ways.</div>
+          <div class="option-pro">+ Per-request cost lands in each result JSON; rich end-of-run table; hits the Excellent band exactly.</div>
+          <div class="option-con">− Need a small CostTracker with a constant price table.</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="cost_tracking" value="total_only">
+        <div class="option-body">
+          <div class="option-title">Per-call total only, single grand total at end</div>
+          <div class="option-desc">Track tokens, print one final number.</div>
+          <div class="option-pro">+ Simplest; meets the MVS line.</div>
+          <div class="option-con">− No per-agent/per-request breakdown → only "Good".</div>
+        </div>
+      </label>
+    </div>
+    <div class="config-edit-group">
+      <label for="cfg_prices">Price table constants (edit if rates change):</label>
+      <textarea id="cfg_prices" class="config-editor"># $ per 1,000,000 tokens (input, output)
+PRICES = {
+  "claude-haiku-4-5":  (1.00,  5.00),
+  "claude-sonnet-4-6": (3.00, 15.00),
+  "claude-opus-4-8":   (5.00, 25.00),
+}
+# est_cost = in_tok/1e6 * in_price + out_tok/1e6 * out_price</textarea>
+    </div>
+    <div class="text-input-group"><label for="notes_cost">Notes / modifications</label>
+      <textarea id="notes_cost" placeholder="e.g. live Models API vs constants, cache-read accounting…"></textarea></div>
+  </div>
+
+  <!-- ============ 14 ============ -->
+  <div class="section">
+    <h2><span class="secnum">14</span> Persistence: result &amp; audit format</h2>
+    <p class="description">What artefacts a run leaves behind.</p>
+    <div class="why"><b>Why it matters.</b> Required: a JSON result per request (classification, exemptions, draft, decision, cost). Lower-priority goal adds an audit log of every decision/override/cost for compliance reporting.</div>
+    <div class="option-group" data-name="persistence">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="persistence" value="result_plus_audit" checked>
+        <div class="option-body">
+          <div class="option-title">Per-request result JSON + append-only run-wide audit JSONL <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">One result file per request, plus a single timestamped audit log for the whole run.</div>
+          <div class="option-pro">+ Satisfies the required output AND the lower-priority audit goal; two clean artefacts a demo can open.</div>
+          <div class="option-con">− Two writers to keep consistent (shared schema helps).</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="persistence" value="result_only">
+        <div class="option-body">
+          <div class="option-title">Per-request result JSON only</div>
+          <div class="option-desc">Just the required structured output.</div>
+          <div class="option-pro">+ Meets the core requirement; less code.</div>
+          <div class="option-con">− No compliance-grade audit trail → leaves a goal + governance points unclaimed.</div>
+        </div>
+      </label>
+    </div>
+    <div class="config-edit-group">
+      <label for="cfg_result_schema">Proposed result JSON shape (edit freely):</label>
+      <textarea id="cfg_result_schema" class="config-editor">{
+  "request_file": "request-001.txt",
+  "classification": { "topic": "spending", "complexity": "medium", "summary": "..." },
+  "compliance": {
+    "exemptions": [
+      { "section": "s43", "applies": true, "reasoning": "...", "policy_ref": "foi-exemptions-guide.txt#s43" }
+    ],
+    "recommendation": "partial_release",
+    "public_interest_test": "..."
+  },
+  "draft_response": "...",
+  "human_decision": { "decision": "approved", "operator": "jdoe", "timestamp": "2026-06-24T10:31:00Z",
+                      "notes": "", "evidence_refs": ["chunk_12","chunk_07"] },
+  "cost": { "by_agent": { "triage": 0.0003, "compliance": 0.0121, "response": 0.0044 }, "total": 0.0168 }
+}</textarea>
+    </div>
+    <div class="text-input-group"><label for="notes_persistence">Notes / modifications</label>
+      <textarea id="notes_persistence" placeholder="e.g. output folder layout, audit fields for compliance reporting…"></textarea></div>
+  </div>
+
+  <!-- ============ 15 ============ -->
+  <div class="section">
+    <h2><span class="secnum">15</span> Batch processing &amp; progress UX</h2>
+    <p class="description">How a folder is processed, given an interactive human gate.</p>
+    <div class="why"><b>Why it matters.</b> Lower-priority goal: batch processing with per-request status, cumulative cost, and ETA. The tension: the HITL gate is interactive, so true parallelism fights the human pause.</div>
+    <div class="option-group" data-name="batch_processing">
+      <label class="option-card selected" onclick="selectRadio(this)">
+        <input type="radio" name="batch_processing" value="sequential_progress" checked>
+        <div class="option-body">
+          <div class="option-title">Sequential processing + Rich live progress (status, cumulative cost, ETA) <span class="badge badge-rec">Recommended</span></div>
+          <div class="option-desc">Process one request at a time; the human gates one at a time; show a live progress display.</div>
+          <div class="option-pro">+ Works naturally with the interactive HITL pause; deterministic order = clean demo &amp; logs; delivers the goal exactly.</div>
+          <div class="option-con">− Slower wall-clock than parallel (irrelevant at demo scale).</div>
+        </div>
+      </label>
+      <label class="option-card" onclick="selectRadio(this)">
+        <input type="radio" name="batch_processing" value="concurrent">
+        <div class="option-body">
+          <div class="option-title">Concurrent agent calls across requests</div>
+          <div class="option-desc">Fan out the non-interactive stages across requests.</div>
+          <div class="option-pro">+ Faster throughput on large folders.</div>
+          <div class="option-con">− Interleaves awkwardly with the human gate; harder cost attribution &amp; ordering; speed isn't scored.</div>
+        </div>
+      </label>
+    </div>
+    <div class="text-input-group"><label for="notes_batch">Notes / modifications</label>
+      <textarea id="notes_batch" placeholder="e.g. pre-compute agent stages then queue all human gates? per-request status fields…"></textarea></div>
+  </div>
+
+  <!-- ============ 16 ============ -->
+  <div class="section">
+    <h2><span class="secnum">16</span> Lower-priority goals — confirm scope</h2>
+    <p class="description">Scope is "everything", but tick to confirm / re-prioritise. Unticking signals "drop if time-pressed".</p>
+    <div class="checkbox-group">
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-feature="goal_redaction_agent" checked><span>Redaction agent (mask PII before review)</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-feature="goal_batch_progress" checked><span>Batch processing + progress display</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-feature="goal_audit_log" checked><span>Structured audit log for compliance reporting</span></label>
+      <label class="checkbox-card checked" onclick="toggleCheck(this)"><input type="checkbox" data-feature="goal_model_fallback" checked><span>Model fallback (error / cost threshold)</span></label>
+    </div>
+    <div class="text-input-group"><label for="notes_scope">Notes / priority order</label>
+      <textarea id="notes_scope" placeholder="e.g. which goal to drop first under time pressure, or an extra idea…"></textarea></div>
+  </div>
+
+  <!-- ============ overall ============ -->
+  <div class="section">
+    <h2><span class="secnum">★</span> Overall notes &amp; open questions</h2>
+    <p class="description">Anything not covered above — constraints, demo ideas, things to decide as a team.</p>
+    <div class="text-input-group"><label for="notes_overall">Free-form notes</label>
+      <textarea id="notes_overall" placeholder="Your overall steer, risks, demo narrative, questions for me…" style="min-height:90px"></textarea></div>
+  </div>
+
+  <!-- ============ generate ============ -->
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="generateSummary()">Generate Summary (JSON)</button>
+    <button class="btn btn-secondary" onclick="copyToClipboard()">Copy to Clipboard</button>
+    <button class="btn btn-save" onclick="saveHtml()">Save</button>
+  </div>
+
+  <div id="output-section">
+    <h2>Generated Summary — paste this back to me</h2>
+    <pre id="output-json"></pre>
+  </div>
+
+  <p class="footnote">
+    Self-contained · choices persist via <b>Save</b> (downloads an updated copy of this file) · model IDs &amp; pricing from the Claude API reference.
+    Before committing anything to the shared repo, set your <code>[AgentName]</code> identifier per the repo CLAUDE.md.
+  </p>
+</div>
+
+<div class="copied-toast" id="toast">Copied to clipboard</div>
+
+<script>
+function selectRadio(card){
+  const group=card.closest('.option-group');
+  group.querySelectorAll('.option-card').forEach(c=>c.classList.remove('selected'));
+  card.classList.add('selected');
+  card.querySelector('input[type=radio]').checked=true;
+}
+function toggleCheck(card){
+  const cb=card.querySelector('input[type=checkbox]');
+  cb.checked=!cb.checked;
+  card.classList.toggle('checked',cb.checked);
+}
+
+function generateSummary(){
+  const result={};
+
+  // radio selections
+  document.querySelectorAll('.option-group').forEach(g=>{
+    const name=g.dataset.name;
+    const checked=g.querySelector('input[type=radio]:checked');
+    if(checked) result[name]=checked.value;
+  });
+
+  // checkboxes (rules + features) → grouped objects
+  const checks={};
+  document.querySelectorAll('.checkbox-card input[type=checkbox]').forEach(cb=>{
+    const key=cb.dataset.rule||cb.dataset.feature;
+    if(key) checks[key]=cb.checked;
+  });
+  if(Object.keys(checks).length) result.toggles=checks;
+
+  // dropdown sub-decisions + their per-row notes
+  document.querySelectorAll('select[data-decision]').forEach(sel=>{
+    result[sel.dataset.decision]=sel.value;
+  });
+  document.querySelectorAll('input[data-note]').forEach(inp=>{
+    if(inp.value.trim()) result[inp.dataset.note+'_note']=inp.value.trim();
+  });
+
+  // editable config blocks
+  document.querySelectorAll('.config-editor').forEach(ed=>{
+    if(ed.value.trim()) result[ed.id]=ed.value.trim();
+  });
+
+  // notes textareas
+  document.querySelectorAll('.text-input-group textarea').forEach(ta=>{
+    if(ta.value.trim()) result[ta.id]=ta.value.trim();
+  });
+
+  const out=document.getElementById('output-json');
+  out.textContent=JSON.stringify(result,null,2);
+  document.getElementById('output-section').classList.add('visible');
+  out.scrollIntoView({behavior:'smooth'});
+}
+
+function copyToClipboard(){
+  const text=document.getElementById('output-json').textContent;
+  if(!text){generateSummary();return;}
+  navigator.clipboard.writeText(text).then(()=>{
+    const t=document.getElementById('toast');
+    t.textContent='Copied to clipboard';t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2000);
+  });
+}
+
+function prepareForSave(){
+  document.querySelectorAll('input[type=text], textarea').forEach(el=>{
+    if(el.tagName==='TEXTAREA') el.textContent=el.value;
+    else el.setAttribute('value',el.value);
+  });
+  document.querySelectorAll('input[type=radio], input[type=checkbox]').forEach(el=>{
+    if(el.checked) el.setAttribute('checked','checked'); else el.removeAttribute('checked');
+  });
+  document.querySelectorAll('select').forEach(sel=>{
+    sel.querySelectorAll('option').forEach(opt=>{
+      if(opt.selected) opt.setAttribute('selected','selected'); else opt.removeAttribute('selected');
+    });
+  });
+  document.querySelectorAll('.option-card').forEach(card=>{
+    const r=card.querySelector('input[type=radio]');
+    card.classList.toggle('selected', !!(r&&r.checked));
+  });
+  document.querySelectorAll('.checkbox-card').forEach(card=>{
+    const c=card.querySelector('input[type=checkbox]');
+    card.classList.toggle('checked', !!(c&&c.checked));
+  });
+}
+
+function saveHtml(){
+  prepareForSave();
+  const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const title=document.title.replace(/[^a-z0-9_\- ]/gi,'').replace(/\s+/g,'_');
+  a.download=(title||'plan')+'.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  const t=document.getElementById('toast');
+  t.textContent='Saved';t.classList.add('show');
+  setTimeout(()=>{t.classList.remove('show');t.textContent='Copied to clipboard';},2000);
+}
+</script>
+</body>
+</html>
