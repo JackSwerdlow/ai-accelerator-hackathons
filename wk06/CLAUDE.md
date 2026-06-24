@@ -5,7 +5,7 @@ working rules, the model-choice rules, and this week's `AI_LOG.md` format. **Rep
 conventions — agent identity, git workflow, and commit format — live in the
 repository-root `CLAUDE.md`; follow that as well, and this file does not repeat them.**
 The detailed design (architecture, file layout, pipeline, feature behaviour) lives in
-`SPEC.md` and `PLAN.md`, added later — keep architecture and coding decisions out of
+`docs/specs/` and `docs/plans/` — keep architecture and coding decisions out of
 this file.
 
 ## Project goal
@@ -28,7 +28,26 @@ Aim for the top ("Excellent") band on every axis of the assessment rubric.
   Their structure, file layout, and stub signatures are **not** a required template —
   design a cleaner architecture. Copy sample request/policy documents from them if
   useful.
-- The detailed design lives in `SPEC.md` and `PLAN.md` (added later) — not here.
+- The detailed design lives in `docs/specs/` and `docs/plans/` — not here.
+
+## Specs and plans (concurrent team workflow)
+
+Multiple agents work in parallel producing separate spec and plan documents before any
+implementation begins. The workflow is:
+
+1. **Draft**: each agent creates their own file(s) in `docs/specs/` or `docs/plans/`.
+   Prefix the filename with your agent name while drafting:
+   `docs/specs/agent-jack-triage-design.md`, `docs/plans/agent-tom-rag-plan.md`.
+2. **Review**: before implementation starts, review all draft files together, resolve
+   conflicts, and produce a consolidated final document per topic. Drop the agent prefix
+   once merged: `docs/specs/triage-design.md`.
+3. **Implement**: no implementation code is written until at least one consolidated spec
+   exists and has been reviewed by the team.
+
+Naming conventions:
+- `docs/specs/<topic>.md` — implementation-agnostic design (what the system does and why)
+- `docs/plans/<topic>.md` — implementation detail (libraries, file layout, patterns, TODOs)
+- One file per topic area; do not put everything in a single monolithic document.
 
 ## Working rules
 
@@ -44,8 +63,8 @@ Aim for the top ("Excellent") band on every axis of the assessment rubric.
 
 ## AI assistance log (`AI_LOG.md`)
 
-This week's log lives at `solution/AI_LOG.md` (the `starter/` copy is a read-only
-template). It records the **AI-assistance trajectory** for the work — see the
+This week's log lives at `AI_LOG.md` in the `wk06/` root (the `starter/` copy is a
+read-only template). It records the **AI-assistance trajectory** for the work — see the
 repository-root `CLAUDE.md` for how this differs from, and complements, commit
 messages.
 

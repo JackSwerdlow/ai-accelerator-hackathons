@@ -44,10 +44,9 @@ Suggest alternatives where there are clear benefits, but ask before incorporatin
 - Implement circuit breakers: disable tools after N consecutive failures
 - Set token budgets per conversation and exit early when exceeded
 - Tier model usage to reduce costs (typically 40–60%): use `claude-haiku-4-5-20251001` for high-volume, well-defined tasks (triage, routing); use `claude-sonnet-4-6` for complex reasoning (compliance analysis, response drafting). Maintain a central reference of input/output token costs for each model used.
-- PydanticAI adds type safety, `ModelRetry`, and built-in usage tracking
+- Use a LangChain `BaseCallbackHandler` subclass to capture model, prompt tokens, completion tokens, and estimated cost at call time; accumulate into a per-request and per-agent breakdown
 - Evaluate agents with defined test cases: track tool selection accuracy and output correctness
-- Log all tool calls as structured JSON for audit compliance
-- Connect to observability tools (Logfire, OpenTelemetry) for production monitoring
+- Log all tool calls as structured JSON for audit compliance; use Python `logging` with a JSON formatter — no licence, no external service required
 
 ## Open Questions
 
@@ -71,5 +70,6 @@ Follow each step in order. **Do not jump ahead.**
 
 ### Spec / Plan file conventions
 
-- Implementation-agnostic specification information → `docs/specs/`
-- Detailed implementation plans (tooling, libraries, patterns) → `docs/plans/`
+See `wk06/CLAUDE.md` § "Specs and plans" for the full concurrent team workflow, naming
+conventions, and the consolidation rule that gates implementation. Short version:
+draft files are agent-prefixed; consolidated files drop the prefix.
