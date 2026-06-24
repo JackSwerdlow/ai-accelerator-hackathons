@@ -118,7 +118,7 @@ stage:
 
 ```
             ┌──────────────────────── supervisor ────────────────────────┐
- request →  │  triage → compliance(RAG) → redaction → response → GATE     │  → outputs
+ request →  │  triage → compliance(RAG) → response → redaction → GATE     │  → outputs
             └─────────────────────────────────────────────────────────────┘
                          (per-stage fallback · cost accumulation · audit)
 ```
@@ -158,16 +158,16 @@ condition · failure mode*. (Exact I/O schemas and prompts are plan-level.)
 - **Grounding requirement** (mitigates the documented 13–21% legal-citation hallucination rate): the agent must quote retrieved text to support each cited section; an exemption it cannot ground in a quote, it may not assert.
 
 ### 6.3 Redaction agent *(stretch goal — committed in scope)*
-- **Trigger:** a draft is available and compliance findings flag personal or otherwise exempt data.
-- **Inputs:** the draft response and compliance findings.
+- **Trigger:** the response draft is available (redaction runs *after* the response agent — see §5) and compliance findings flag personal or otherwise exempt data.
+- **Inputs:** the drafted response and compliance findings.
 - **Output (intent):** the draft with personal data masked (names, contact details, staff numbers, and identifying field-combinations, per the data-handling policy), plus a **redaction schedule** (each redaction: category, exemption section, brief reason).
 - **Scope boundary:** redaction operates on **the drafted response** and produces a schedule. Rewriting/redacting full source documents is **out of scope** (see §12).
 - **s40 link:** where compliance flags s40, the response agent is additionally instructed not to name or describe identifiable individuals drawn from retrieved excerpts.
 - **Failure mode:** on error, flag the draft as "redaction incomplete — manual check required" rather than releasing unredacted content.
 
 ### 6.4 Response agent
-- **Trigger:** compliance (and redaction) findings are available.
-- **Inputs:** request text + classification + compliance findings (+ redaction outcome).
+- **Trigger:** compliance findings are available (the response agent runs *before* redaction).
+- **Inputs:** request text + classification + compliance findings.
 - **Output (intent):** a formal FOI response letter that references the classification and compliance findings, states each exemption applied with its section number and a PIT summary where relevant, and reflects the 20-working-day timeline.
 - **Completion:** a draft grounded **only** in the evidence — no claims beyond the compliance findings.
 - **Failure mode:** on error, produce a minimal templated holding response and flag for manual completion.
