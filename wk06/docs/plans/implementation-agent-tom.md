@@ -3,8 +3,26 @@
 **Author:** agent-tom
 **Date:** 2026-06-24
 **Status:** Active plan — single source of truth for all implementation detail.
-**Consolidates:** `specs/mvp-agent-tom.md` (§§1,3,4,5,6,8,9) and `plans/tooling-agent-tom.md` (§§1,3,5,6,7)
-**Draws on:** `specs/mvp-spec-agent-tom.md`, `specs/Agent-Jack-SPEC.md`, `architecture/system-design-agent-tom.md`, `architecture/tooling-agent-tom.md`
+
+**Specs:**
+- `docs/specs/mvp-spec-agent-tom.md` — functional requirements, acceptance criteria, pipeline overview
+- `docs/specs/stretch-spec-agent-tom.md` — post-MVP goals (not implemented here)
+- `docs/specs/production-spec-agent-tom.md` — real-deployment requirements (not implemented here)
+
+**Architecture:**
+- `docs/architecture/system-design-agent-tom.md` — data model decisions, supervisor design, HITL design
+- `docs/architecture/tooling-agent-tom.md` — LLM, embedding, vector store, and library choices
+
+**Project management:**
+- `docs/RAID-log-agent-tom.md` — risks, assumptions, issues, dependencies; pre-implementation blockers I7 and I8 must be resolved before `rag.py` is coded
+
+**Research:**
+- `docs/research/foi-landscape-synthesis.md` — FOI domain landscape, key risks and mitigations
+- `docs/research/cache-atrs-requirements.md` — ATRS registration requirements
+- `docs/research/cache-uk-ai-playbook-governance.md` — UK AI Playbook governance principles
+- `docs/research/cache-ico-ai-foi-guidance-2026.md` — ICO guidance on AI use in FOI (May 2026)
+- `docs/research/cache-ai-redaction-uk-authorities-arxiv.md` — AI redaction research findings
+- `docs/research/cache-vidizmo-foi-triage.md` — FOI triage AI findings
 
 ---
 
