@@ -44,11 +44,29 @@ Aim for the top ("Excellent") band on every axis of the assessment rubric.
 
 ## AI assistance log (`AI_LOG.md`)
 
-Record every meaningful AI-assisted task (generating, refactoring, or debugging code,
-or producing a plan, design, or decision) in this week's `AI_LOG.md`. Four fields per
-entry — **Date / Task / What AI Generated / What You Changed + Why** — concrete enough
-to follow without reading the code. Format each as
-`## Prompt N: [AgentName] <short description>`, numbered sequentially (Prompt 0 is the
-seeded example). Add the entry as the **last step before committing**, in the same
-commit as the work it documents. (`[AgentName]` is the identifier given at the start
-of the session — see the repository-root `CLAUDE.md`.)
+This week's log lives at `solution/AI_LOG.md` (the `starter/` copy is a read-only
+template). It records the **AI-assistance trajectory** for the work — see the
+repository-root `CLAUDE.md` for how this differs from, and complements, commit
+messages.
+
+**What to log.** Every *meaningful* AI-assisted task, covering **both code and
+doc/process changes** (generating, refactoring, or debugging code; and producing or
+amending a plan, design, spec, or these `CLAUDE.md`/log files themselves).
+"Meaningful" means **anything that was not a one-shot success** — a task that took
+substantive iteration or a change of direction. If the AI got it right first time,
+the commit message already covers it and no entry is needed. A typo fix on the
+second try is not a decision; reworking an agent's output format is.
+
+**Fields.** Four per entry — **Date / Task / What AI Generated / What You Changed +
+Why** — concrete enough to follow without reading the code. "What You Changed + Why"
+is the important one: it captures the corrections the human steered, which is exactly
+what git cannot show.
+
+**Header format.** `## [AgentName] YYYY-MM-DD — <short description>`. Do **not** use
+global sequential numbering: parallel agents on different machines would collide on
+the same number and conflict on merge. Attributed + dated headers need no central
+counter and can be appended in any order. (`[AgentName]` is the identifier given at
+the start of the session — see the repository-root `CLAUDE.md`.)
+
+Add the entry as the **last step before committing**, in the same commit as the work
+it documents.

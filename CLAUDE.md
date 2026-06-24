@@ -53,3 +53,27 @@ This repo is shared — multiple agents commit and push simultaneously. Follow t
 - src/utils/eligibility.test.js: 7 tests covering all ineligible paths,
   eligible path, partial-renter path, and measures logic
 ```
+
+## Two Records, Two Jobs: Commit Messages vs AI_LOG
+
+This repo keeps two written records. They are **complementary, not duplicates** —
+never copy rationale from one into the other.
+
+- **Commit messages are the collaboration audit log.** They capture the
+  *final-state rationale*: why the committed code or docs look the way they do.
+  Git is the right home for this because it is distributed, attributed,
+  timestamped, immutable once pushed, and conflict-free on history — exactly what
+  parallel agents on different machines need to reconstruct who changed what, why,
+  and in what order. Use `git log`, `git blame`, and `git log -- <path>`.
+
+- **AI_LOG.md is the AI-assistance trajectory.** It captures what git cannot: the
+  *path to* the final state — what the AI first generated, what was wrong or
+  incomplete about it, and what the human changed and why. The AI's rejected first
+  draft never becomes a commit, so this provenance lives nowhere else. It covers
+  **both code and doc/process changes**, and is required by the project rubric.
+  The per-entry format lives in the active week's `wkNN/CLAUDE.md`.
+
+Rule of thumb: if a task was a **one-shot success**, the commit message says
+everything and no AI_LOG entry is needed. If it took **meaningful iteration**
+(substantive correction or change of direction — not a typo fix), log the
+trajectory in AI_LOG.md.
