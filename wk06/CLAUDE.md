@@ -42,18 +42,6 @@ Aim for the top ("Excellent") band on every axis of the assessment rubric.
 - When something goes wrong, stop and re-plan — do not keep pushing.
 - Prefer editing existing files over creating new ones.
 
-## Model rules
-
-- **Provider: Claude only**, via the official `anthropic` SDK. Never use another
-  provider.
-- Two-tier model policy:
-  - **Best model — `claude-sonnet-4-6`:** for quality-critical, reasoning-heavy work.
-  - **Cheapest model — `claude-haiku-4-5`:** for simple, well-scoped work.
-- Default to the cheapest model that does the job well; escalate to the best model
-  only where the reasoning warrants it. On error or a cost-threshold breach, model
-  fallback steps **down** to the cheapest model.
-- Reasoning effort / thinking levels are set per use at implementation discretion.
-
 ## AI assistance log (`AI_LOG.md`)
 
 Record every meaningful AI-assisted task (generating, refactoring, or debugging code,
