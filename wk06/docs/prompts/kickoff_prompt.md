@@ -16,14 +16,14 @@ Build a CLI multi-agent system that automates FOI request processing: a triage a
 
 - **LLM API**: Claude models via Anthropic API key (`python-dotenv` for key management)
   - `langchain-anthropic` — LangChain integration for Claude
-- **LLM interaction / tool creation**: LangChain (vendor-agnostic abstractions)
+- **LLM interaction / tool creation / orchestration**: LangChain — agent loops, tool calling, output parsing, retry via `tenacity`
 - **Embeddings**: `langchain-huggingface` with `sentence-transformers/all-MiniLM-L6-v2` (local, no API cost)
   - Fallback: set `EMBEDDING_PROVIDER=openai` in `.env` if HuggingFace Hub is blocked on the network
 - **Vector store**: ChromaDB via `langchain-chroma`
-- **Chunking**: `chonkie`
-- **Structured I/O**: Pydantic
-- **Error handling and tool retries**: PydanticAI
-- **Logging / cost estimates**: Pydantic Logfire
+- **Chunking**: LangChain `RecursiveCharacterTextSplitter` (built-in — no extra dependency)
+- **Structured I/O**: Pydantic + LangChain `with_structured_output()`
+- **Cost tracking**: LangChain callbacks (`BaseCallbackHandler`) — capture model, prompt tokens, completion tokens, and estimated cost per call without extra dependencies
+- **Logging**: Python stdlib `logging` with a JSON formatter — structured, free, zero setup
 
 Suggest alternatives where there are clear benefits, but ask before incorporating new libraries.
 
