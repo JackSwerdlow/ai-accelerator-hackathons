@@ -2,7 +2,7 @@
 
 **Status:** Out of scope for hackathon — reference for real deployment  
 **Date:** 2026-06-24  
-**Prerequisite:** `mvp.md` fully implemented; stretch goals evaluated
+**Prerequisite:** `mvp-agent-tom.md` fully implemented; stretch goals evaluated
 
 This document captures what a production deployment of this system would require beyond
 the hackathon MVP. None of these items are needed to score "Excellent" at the hackathon,
@@ -27,7 +27,7 @@ mandatory for all central government departments since February 2024.
 - **Tier 2 record:** Additionally requires bias testing results, performance metrics,
   training data description, equality impact assessment.
 
-**Hackathon shortcut:** `stretch.md S6` auto-generates a Tier 1 draft. Tier 2 requires
+**Hackathon shortcut:** `stretch-agent-tom.md S6` auto-generates a Tier 1 draft. Tier 2 requires
 human completion and legal review. Do not deploy to production without completing both.
 
 ### 1.2 Data (Use and Access) Act 2025 — Automated Decision Rights

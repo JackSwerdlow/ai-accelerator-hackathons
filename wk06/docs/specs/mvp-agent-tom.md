@@ -3,7 +3,7 @@
 **Status:** Consolidated — gates implementation  
 **Consolidates:** `system-architecture-agent-tom.md`, `supervisor-hitl-agent-tom.md`  
 **Date:** 2026-06-24  
-**Scope:** Everything required for "Excellent" on all four rubric axes. Anything not in this document is either in `stretch.md` or `production.md`.
+**Scope:** Everything required for "Excellent" on all four rubric axes. Anything not in this document is either in `stretch-agent-tom.md` or `production-agent-tom.md`.
 
 ---
 
@@ -18,13 +18,13 @@
 
 ## What Is Explicitly Out of Scope for MVP
 
-- Citation verification after compliance → **`stretch.md` S1**
-- Triage override with pipeline re-run at HITL → **`stretch.md` S2**
-- Policy staleness warning → **`stretch.md` S3**
-- Duplicate/similar request detection → **`stretch.md` S4**
-- Extended vexatious/malformed flagging → **`stretch.md` S5**
-- ATRS record generation → **`stretch.md` S6**
-- Bias monitoring, drift detection, precedent store, multi-department routing → **`production.md`**
+- Citation verification after compliance → **`stretch-agent-tom.md` S1**
+- Triage override with pipeline re-run at HITL → **`stretch-agent-tom.md` S2**
+- Policy staleness warning → **`stretch-agent-tom.md` S3**
+- Duplicate/similar request detection → **`stretch-agent-tom.md` S4**
+- Extended vexatious/malformed flagging → **`stretch-agent-tom.md` S5**
+- ATRS record generation → **`stretch-agent-tom.md` S6**
+- Bias monitoring, drift detection, precedent store, multi-department routing → **`production-agent-tom.md`**
 
 ---
 

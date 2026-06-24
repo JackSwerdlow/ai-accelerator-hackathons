@@ -1,8 +1,8 @@
 # Week 6 Hackathon — FOI Request Automation
 
 > **Status:** SUPERSEDED for implementation purposes. This brief captures the original
-> problem statement and success criteria. For implementation targets, see `docs/specs/mvp.md`
-> (what to build), `docs/specs/stretch.md` (beyond the rubric), and `docs/specs/production.md`
+> problem statement and success criteria. For implementation targets, see `docs/specs/mvp-agent-tom.md`
+> (what to build), `docs/specs/stretch-agent-tom.md` (beyond the rubric), and `docs/specs/production-agent-tom.md`
 > (real deployment requirements). Retained as original brief context.
 
 

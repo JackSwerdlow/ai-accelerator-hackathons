@@ -2,7 +2,7 @@
 
 **Status:** Reference — implement after MVP is complete and working  
 **Date:** 2026-06-24  
-**Prerequisite:** `mvp.md` must be fully implemented before any stretch goal is started  
+**Prerequisite:** `mvp-agent-tom.md` must be fully implemented before any stretch goal is started  
 **Source:** `docs/research/foi-landscape-synthesis.md` (S1–S9) plus review recommendations
 
 These goals add meaningful value beyond the hackathon rubric's minimum. Tier 1 items are
@@ -94,7 +94,7 @@ triage_original_topic: str | None = None
 - The partial re-run adds ~2 Sonnet calls (compliance + response) at ~$0.01 per
   override. Log additional cost against the same `RequestCost`.
 - Set `operator_overrode_triage: bool` in the audit entry — this field has direct value
-  for monitoring classification accuracy over time (see `production.md`).
+  for monitoring classification accuracy over time (see `production-agent-tom.md`).
 
 **Estimated effort:** ~80 lines across `pipeline.py`, `hitl.py`, `models.py`.
 
