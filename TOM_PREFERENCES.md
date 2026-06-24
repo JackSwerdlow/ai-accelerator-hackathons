@@ -48,3 +48,71 @@ areas that warrant future exploration.
 
 Note: `docs/research/` (inside each week folder) is for project-related
 research materials, not personal learning outputs.
+
+## Git Workflow
+
+- Always run `git pull --rebase` before any commit
+- Always run `git pull --rebase` again before pushing
+- Push immediately after committing — do not leave commits unpushed
+- Use `gh auth setup-git` if credential errors occur on push
+- Agent name prefix for all commits: `[agent-tom]`
+
+## Meta-Reviews
+
+At 1–2 natural pause points per project (e.g. end of a sprint, after a major
+deliverable, and at project close), conduct a structured meta-review. The goal
+is not just to reflect, but to produce actionable updates to instruction files,
+workflows, and learning materials so that future projects start better than this
+one did.
+
+### When to trigger
+
+- After completing a major milestone or deliverable (mid-project check-in)
+- At project close, before the next project starts
+
+### What to cover
+
+**AI usage**
+- Which prompt patterns worked well and which needed repeated correction?
+  (Recurring AI_LOG corrections signal a systematic gap worth fixing in CLAUDE.md)
+- Were the right models selected for each task? (Did we reach for Opus when
+  Haiku would have sufficed, or vice versa?)
+- Were agents given enough upfront context, or did sessions lose time to
+  re-establishing background?
+- Were there tasks that should have been delegated to subagents but weren't, or
+  tasks where subagents added overhead without benefit?
+
+**Project workflow**
+- Where did rework or churn appear in the commit history? What caused it?
+- Which conventions (git workflow, naming, file layout) were followed cleanly,
+  and which were missed or inconsistently applied?
+- Was the research/documentation store used effectively, or did agents
+  re-research things already captured?
+- What setup or scaffolding, done earlier, would have saved the most time?
+
+**Learning**
+- Which topics generated back-and-forth clarification (a signal of genuine
+  gaps)? Are those now covered in `learning_materials/`?
+- What analogies or mental models proved useful for bridging background
+  knowledge (physics/data engineering) to new domains?
+- What would a concise "lessons learned" primer for the next project look like?
+
+**Configuration carry-forward**
+- Should any CLAUDE.md rules be added, sharpened, or retired based on what
+  actually happened?
+- Are there new permission allowlist entries worth adding to reduce friction?
+- Should `TOM_PREFERENCES.md` be updated to reflect refined working preferences?
+
+### Output
+
+A meta-review should produce concrete artifacts, not just observations:
+- Updated `CLAUDE.md` or `wkNN/CLAUDE.md` entries where rules were missing
+- New or updated entries in `learning_materials/` for identified gaps
+- A brief written summary (saved to `docs/` or `learning_materials/`) capturing
+  the 3–5 highest-leverage changes for next time — concise enough to read at
+  the start of the next project
+
+## Session Setup
+
+- At session start, confirm which CLAUDE.md files are in scope
+- Agent name is `agent-tom` — use this in all commits and AI_LOG entries
