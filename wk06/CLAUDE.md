@@ -5,8 +5,8 @@ working rules, the model-choice rules, and this week's `AI_LOG.md` format. **Rep
 conventions — agent identity, git workflow, and commit format — live in the
 repository-root `CLAUDE.md`; follow that as well, and this file does not repeat them.**
 The detailed design (architecture, file layout, pipeline, feature behaviour) lives in
-`docs/specs/` and `docs/plans/` — keep architecture and coding decisions out of
-this file.
+`docs/specs/`, `docs/architecture/`, and `docs/plans/` — keep architecture and coding
+decisions out of this file.
 
 ## Project goal
 
@@ -28,7 +28,7 @@ Aim for the top ("Excellent") band on every axis of the assessment rubric.
   Their structure, file layout, and stub signatures are **not** a required template —
   design a cleaner architecture. Copy sample request/policy documents from them if
   useful.
-- The detailed design lives in `docs/specs/` and `docs/plans/` — not here.
+- The detailed design lives in `docs/specs/`, `docs/architecture/`, and `docs/plans/` — not here.
 
 ## Specs and plans (concurrent team workflow)
 
@@ -45,8 +45,9 @@ implementation begins. The workflow is:
    exists and has been reviewed by the team.
 
 Naming conventions:
-- `docs/specs/<topic>.md` — implementation-agnostic design (what the system does and why)
-- `docs/plans/<topic>.md` — implementation detail (libraries, file layout, patterns, TODOs)
+- `docs/specs/<topic>.md` — requirements and acceptance criteria only; high-level diagrams of the system; no implementation detail
+- `docs/architecture/<topic>.md` — design decisions, technology choices with rationale, research findings, interface diagrams; draws on specs
+- `docs/plans/<topic>.md` — implementation-specific detail: code structure, file layout, exact Pydantic models, patterns, everything needed to generate correct code; draws on specs and architecture
 - One file per topic area; do not put everything in a single monolithic document.
 
 ## Working rules

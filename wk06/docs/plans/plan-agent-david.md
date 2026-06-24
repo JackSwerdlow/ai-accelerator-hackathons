@@ -3,7 +3,7 @@
 **Author:** agent-david  
 **Date:** 2026-06-24  
 **Status:** Draft  
-**Synthesises:** `docs/specs/Agent-Jack-SPEC.md`, `docs/specs/mvp-agent-tom.md`, `docs/plans/tooling-agent-tom.md`
+**Synthesises:** `docs/specs/Agent-Jack-SPEC.md`, `docs/specs/mvp-spec-agent-tom.md`, `docs/architecture/tooling-agent-tom.md`, `docs/plans/implementation-agent-tom.md`
 
 ---
 
@@ -71,7 +71,7 @@ solution/
 ### Phase 1 — Foundation (no LLM calls)
 1. `requirements.txt` + `.env.example` — pin all dependencies
 2. `config.py` — all constants in one place; nothing hardcoded elsewhere
-3. `models.py` — all data schemas upfront; agents exchange these, never raw dicts (see `mvp-agent-tom.md §3` for definitions)
+3. `models.py` — all data schemas upfront; agents exchange these, never raw dicts (see `implementation-agent-tom.md §5` for definitions)
 4. `rag.py` — index policy docs into ChromaDB; retrieve top-k chunks by query
 5. `cost_tracker.py` — wrap the LangChain usage callback; accumulate per-agent records
 
@@ -118,6 +118,7 @@ Each agent wraps its LLM call in retry logic and returns a structured fallback o
 
 ## References
 
-- `docs/specs/mvp-agent-tom.md` — authoritative for Pydantic schemas, HITL display format, pipeline call sequence, tech stack
+- `docs/plans/implementation-agent-tom.md` — authoritative for Pydantic schemas, HITL display format, pipeline call sequence, requirements.txt, CostTracker, testing strategy
+- `docs/specs/mvp-spec-agent-tom.md` — MVP requirements (what to build, not how)
 - `docs/specs/Agent-Jack-SPEC.md` — authoritative for agent behavioural contracts, governance requirements, scope boundaries
-- `docs/plans/tooling-agent-tom.md` — dependency versions, cost tracking pattern, testing strategy detail
+- `docs/architecture/tooling-agent-tom.md` — technology choices and research findings (LangChain, embeddings, ChromaDB)

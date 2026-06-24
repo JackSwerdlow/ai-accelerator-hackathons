@@ -49,6 +49,17 @@ The first entry is a worked example of the format; copy its block for new entrie
 
 ---
 
+## [Agent-Tom] 2026-06-24 — Restructure docs into specs/architecture/plans
+
+| Field | Detail |
+|-------|--------|
+| **Date** | 2026-06-24 |
+| **Task** | Restructure the `wk06/docs/` directory from two categories (specs/, plans/) into three — specs/ (requirements only), architecture/ (design decisions and technology choices), and plans/ (all implementation detail) — by creating new files, redistributing content, and deleting the now-consolidated originals. |
+| **What AI Generated** | The agent read all seven source documents and produced: `specs/mvp-spec-agent-tom.md` (requirements only, no code), `specs/stretch-spec-agent-tom.md` (S1–S9 requirements only), `architecture/system-design-agent-tom.md` (pipeline topology, supervisor design, HITL principles, error handling, RAG choices, audit trail design, data flow diagram), `architecture/tooling-agent-tom.md` (technology choices table, LLM tiering rationale, LangChain decision, `with_structured_output()` finding, `get_usage_metadata_callback` finding, embedding model and ChromaDB rationale, OpenAI fallback, dependency versions, token cost table), and `plans/implementation-agent-tom.md` (full directory layout, requirements.txt, config.py, .env.example, all Pydantic models with Python code, supervisor call sequence, error handling table, retry/circuit breaker config, HITL display format, interaction flow, audit JSONL example, cost summary format, s.40 prompt text, CostTracker class, JsonFormatter class, testing approach, build order, initialisation checklist). |
+| **What You Changed + Why** | The task was structured by the human via a detailed written brief specifying every target file, content mapping, and file operation — so this was largely execution against a clear spec rather than freeform generation. No substantive content corrections were needed. The main agent decisions were: (1) keeping the "Consolidates" and "supersedes" provenance lines in the new architecture/plans files (historical traceability, not stale broken references); (2) leaving `Agent-Jack-SPEC.md` §15 references to `system-architecture-agent-tom.md` and `supervisor-hitl-agent-tom.md` untouched per the task instruction not to modify that file; (3) treating the AI_LOG.md historical entries as immutable records even though they reference old filenames. |
+
+---
+
 ## [Agent-Jack] 2026-06-24 — Author the FOI system specification (`Agent-Jack-SPEC.md`)
 
 | Field | Detail |
