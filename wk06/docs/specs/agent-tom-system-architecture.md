@@ -14,7 +14,7 @@ solution/
 ├── pipeline.py          # Supervisor: orchestrates triage → compliance → draft → HITL
 ├── models.py            # All Pydantic schemas (single source of truth for data contracts)
 ├── rag.py               # Document indexing and retrieval (ChromaDB + embeddings)
-├── cost_tracker.py      # LangChain BaseCallbackHandler subclass for per-call token tracking
+├── cost_tracker.py      # Per-agent cost tracking via get_usage_metadata_callback
 ├── config.py            # Constants: model IDs, token costs, paths, env var names
 ├── agents/
 │   ├── __init__.py
@@ -88,9 +88,9 @@ FOI Request File (.txt)
   output/<request_id>-result.json
 ```
 
-The `CostTracker` callback handler is attached to every LLM call and accumulates
-costs silently; `pipeline.py` reads it at the end of each request to include in
-`RequestResult`.
+Each agent call wraps its LLM invocation in a `get_usage_metadata_callback` context
+manager. The `CostTracker` accumulates per-agent records; `pipeline.py` calls
+`tracker.summary()` at the end of each request to populate `RequestResult.cost`.
 
 ---
 
@@ -186,7 +186,7 @@ class RequestResult(BaseModel):
 | Embeddings | `sentence-transformers/all-MiniLM-L6-v2` via `langchain-huggingface` | Local; no API cost; adequate for policy doc similarity |
 | Vector store | `langchain-chroma` (`Chroma`) | Lightweight; embedded (no separate server); persistent |
 | Text splitting | `RecursiveCharacterTextSplitter` (built-in LangChain) | Handles paragraph/sentence boundaries in policy docs |
-| Cost tracking | `langchain.callbacks.BaseCallbackHandler` subclass | Hooks into `on_llm_end`; zero extra dependencies |
+| Cost tracking | `langchain_core.callbacks.get_usage_metadata_callback` | Built-in context manager; no custom handler needed |
 | Structured I/O | Pydantic v2 + `llm.with_structured_output(Model)` | Runtime validation of LLM responses |
 | Retry / backoff | `tenacity` | `@retry(wait=wait_exponential(multiplier=2))` for rate limits |
 | Logging | Python `logging` + JSON formatter | Structured; zero cost; audit-compliant |
@@ -253,5 +253,5 @@ CHUNK_OVERLAP = 100
 4. Confirm `langchain-chroma` API: is it `Chroma.from_documents()` or
    `Chroma.add_documents()` for adding to an existing collection?
 
-These are resolved in `docs/research/` and the answers fed back into
+These are resolved in `learning_materials/` and the answers fed back into
 `docs/plans/agent-tom-tooling.md`.

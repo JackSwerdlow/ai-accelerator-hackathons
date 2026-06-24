@@ -3,7 +3,7 @@
 **Author:** Agent-Tom  
 **Date:** 2026-06-24  
 **Status:** Draft (agent-prefixed — not yet consolidated)  
-**Based on:** `docs/prompts/kickoff_prompt.md` + research in `docs/research/`
+**Based on:** `docs/prompts/kickoff_prompt.md` + research in `learning_materials/`
 
 ---
 
@@ -69,15 +69,53 @@ TOKEN_COSTS = {
 
 ## 3. Cost Tracking — Updated Approach
 
-Research (`docs/research/langchain-callbacks.md`) confirmed that LangChain provides
-`get_usage_metadata_callback` in `langchain_core.callbacks` — a built-in context manager
-that returns per-model token counts after any LLM call.
+LangChain provides `get_usage_metadata_callback` in `langchain_core.callbacks` — a
+built-in context manager that returns per-model token counts after any LLM call.
 
 **Decision:** Use `get_usage_metadata_callback` per agent call instead of a custom
 `BaseCallbackHandler` subclass. The `cost_tracker.py` module wraps this into a
-`CostTracker` class that accumulates per-agent records.
+`CostTracker` class that accumulates per-agent records:
 
-See the pattern in `docs/research/langchain-callbacks.md § 4`.
+```python
+from langchain_core.callbacks import get_usage_metadata_callback
+from config import TOKEN_COSTS
+
+class CostTracker:
+    def __init__(self):
+        self.records: list[dict] = []
+
+    def track(self, agent_name: str, model: str, llm_call_fn, *args, **kwargs):
+        with get_usage_metadata_callback() as cb:
+            result = llm_call_fn(*args, **kwargs)
+        usage = cb.usage_metadata.get(model, {})
+        rates = TOKEN_COSTS.get(model, {"input": 0.0, "output": 0.0})
+        cost = (
+            usage.get("input_tokens", 0) / 1000 * rates["input"] +
+            usage.get("output_tokens", 0) / 1000 * rates["output"]
+        )
+        self.records.append({
+            "agent": agent_name,
+            "model": model,
+            "input_tokens": usage.get("input_tokens", 0),
+            "output_tokens": usage.get("output_tokens", 0),
+            "cost_usd": cost,
+        })
+        return result
+
+    def summary(self) -> dict:
+        by_agent = {}
+        for r in self.records:
+            ag = r["agent"]
+            if ag not in by_agent:
+                by_agent[ag] = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0}
+            by_agent[ag]["calls"] += 1
+            by_agent[ag]["input_tokens"] += r["input_tokens"]
+            by_agent[ag]["output_tokens"] += r["output_tokens"]
+            by_agent[ag]["cost_usd"] += r["cost_usd"]
+        return {"by_agent": by_agent, "total_usd": sum(r["cost_usd"] for r in self.records)}
+```
+
+Full primer with token-detail notes in `learning_materials/langchain-callbacks.md`.
 
 **Update to `agent-tom-system-architecture.md`:** The `cost_tracker.py` description
 should reflect this on consolidation.
@@ -174,7 +212,7 @@ logging.getLogger().setLevel(logging.INFO)
 
 All agent LLM calls emit a structured `INFO` log with `event`, `agent`, `model`,
 `input_tokens`, `output_tokens`, `cost_usd` fields (see
-`docs/research/langchain-callbacks.md § 6`).
+`learning_materials/langchain-callbacks.md`).
 
 ---
 
