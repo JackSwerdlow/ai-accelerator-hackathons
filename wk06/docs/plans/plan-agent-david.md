@@ -59,62 +59,51 @@ solution/
 
 ### Key parameters (`config.py`)
 
-```python
-TRIAGE_MODEL     = "claude-haiku-4-5-20251001"
-COMPLIANCE_MODEL = "claude-sonnet-4-6"
-RESPONSE_MODEL   = "claude-sonnet-4-6"
-
-TOKEN_COSTS = {
-    "claude-haiku-4-5-20251001": {"input": 0.00025, "output": 0.00125},
-    "claude-sonnet-4-6":         {"input": 0.003,   "output": 0.015},
-}
-
-CHUNK_SIZE       = 500
-CHUNK_OVERLAP    = 100
-RAG_TOP_K        = 5
-CHROMA_COLLECTION = "foi_policies"
-```
+- Triage uses Haiku, compliance and response use Sonnet
+- Token costs per model stored as input/output rates per 1K tokens (verify against Anthropic pricing before committing)
+- Chunk size 500 chars, overlap 100, retrieve top 5 chunks per query
+- ChromaDB collection name and paths defined here so nothing is hardcoded elsewhere
 
 ---
 
 ## Build order
 
 ### Phase 1 — Foundation (no LLM calls)
-1. `requirements.txt` + `.env.example`
-2. `config.py` — constants only
-3. `models.py` — all Pydantic schemas (see `mvp-agent-tom.md §3` for full definitions)
-4. `rag.py` — `index_policies()` and `retrieve()` over the policy corpus
-5. `cost_tracker.py` — wraps `get_usage_metadata_callback`, accumulates per-agent records
+1. `requirements.txt` + `.env.example` — pin all dependencies
+2. `config.py` — all constants in one place; nothing hardcoded elsewhere
+3. `models.py` — all data schemas upfront; agents exchange these, never raw dicts (see `mvp-agent-tom.md §3` for definitions)
+4. `rag.py` — index policy docs into ChromaDB; retrieve top-k chunks by query
+5. `cost_tracker.py` — wrap the LangChain usage callback; accumulate per-agent records
 
-Verify: `python main.py index` indexes the two policy docs without error.
+Gate: index runs cleanly against the two policy docs before moving on.
 
 ### Phase 2 — Agents
-6. `agents/triage.py` — `with_structured_output(TriageResult)`, fallback on parse error
-7. `agents/compliance.py` — takes triage + chunks, returns `ComplianceResult`; s40 prompt injection when flagged
-8. `agents/response.py` — takes triage + compliance, returns `DraftResult`
+6. `agents/triage.py` — classify topic, complexity, summary; conservative fallback on failure (topic=unknown, complexity=high)
+7. `agents/compliance.py` — takes triage output + retrieved chunks; identifies exemptions with citations; s40 flag triggers additional privacy instruction to downstream agents
+8. `agents/response.py` — takes triage + compliance; drafts formal FOI letter grounded only in compliance findings
 
-Each agent: wrapped in `tenacity` retry, structured fallback on failure.
+Each agent wraps its LLM call in retry logic and returns a structured fallback on error rather than raising.
 
 ### Phase 3 — Supervisor + HITL
-9. `pipeline.py` — sequences agents over a shared case record; circuit breaker after 3 consecutive failures per agent; batch mode with per-request status and cost display
-10. `hitl.py` — structured review display (see `mvp-agent-tom.md §5.1`); approve/reject/modify flow; operator identity from `OPERATOR_ID` env var or runtime prompt; appends to `output/audit_trail.jsonl`
-11. `main.py` — `index` and `process` CLI commands
+9. `pipeline.py` — sequences the four steps (triage → retrieve → compliance → response → gate) over a shared case record; circuit breaker disables a failing agent after 3 consecutive errors; batch mode logs per-request status and running cost
+10. `hitl.py` — displays evidence (retrieved chunks, classification, exemption reasoning, draft) before prompting; accept/reject/modify with operator identity captured; appends decision to append-only audit trail
+11. `main.py` — `index` and `process` CLI entry points
 
 ### Phase 4 — Tests + polish
-12. Unit tests using `FakeListChatModel` — cover parse logic and fallback paths for each agent
-13. Integration test — full pipeline on `request-001.txt` against real Haiku (`< $0.01`)
-14. `AI_LOG.md` — minimum 3 entries (at least one doc/process task, at least two code tasks)
+12. Unit tests — inject fake LLM responses to test each agent's parse logic and fallback paths without API calls
+13. Integration test — run full pipeline on one sample request against real Haiku; assert topic and exemption sections present
+14. `AI_LOG.md` — minimum 3 entries covering at least one doc/process task and two code tasks
 
 ---
 
 ## Key design decisions (from specs)
 
 - **Supervisor is a plain function, not an LLM agent.** No dynamic routing.
-- **HITL gate is never skipped.** `KeyboardInterrupt` re-raises rather than auto-approving.
-- **Compliance fallback recommendation is `withhold`**, not `release` — fails safe.
-- **s40 triggers an additional instruction** injected into the response agent prompt — do not name or describe identifiable individuals.
-- **`with_structured_output()` uses tool-calling** for Anthropic models — write Pydantic field `description` strings carefully, they guide the model.
-- **Audit trail is append-only** across runs — never overwrite `audit_trail.jsonl`.
+- **HITL gate is never skipped.** If the terminal is interrupted the process exits rather than auto-approving.
+- **Compliance fallback recommendation is withhold**, not release — fails safe.
+- **s40 triggers an additional instruction** passed to the response agent — do not name or describe identifiable individuals.
+- **Structured output uses tool-calling** under the hood for Anthropic models — field descriptions in schemas guide model output quality, so write them carefully.
+- **Audit trail is append-only** across runs — never overwrite or reset it.
 - **Rejected requests still write a result JSON** — rejection is a decision on record.
 
 ---
