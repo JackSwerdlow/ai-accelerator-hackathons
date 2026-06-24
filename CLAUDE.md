@@ -1,5 +1,17 @@
 # Repository Instructions
 
+## Current Project
+
+wk03 is complete; **wk06 is in progress — do all work inside `wk06/`.**
+
+## Repository Layout
+
+This root file holds the **repo-wide conventions** that apply to every week: agent
+identity, git workflow, and commit format. Each week additionally has its own
+`wkNN/CLAUDE.md` holding that week's goal, working rules, model rules, and `AI_LOG.md`
+format. Read both the root file and the active week's file — they are complementary
+and deliberately do not repeat each other.
+
 ## Agent Identity
 
 Before doing anything else in this repo, ask the user for an identifying name (e.g. Agent1, Agent-Jack). Use this identifier in:
@@ -19,14 +31,13 @@ This repo is shared — multiple agents commit and push simultaneously. Follow t
 ### 2. Do the work
 
 ### 3. Before committing
-- Add an AI_LOG.md entry if the task requires one (see project-level CLAUDE.md for rules)
+- Add an AI_LOG.md entry if the task requires one (see the active week's CLAUDE.md for the AI_LOG format)
 
 ### 4. Commit
 - Stage only the relevant files — never `git add .` without checking `git status` first
 - Every commit message must:
   - Start with `[AgentName]` followed by a short summary (first line under 72 chars)
   - Include a body explaining what changed and why (one bullet per file or concern is fine)
-  - End with: `Co-Authored-By: Claude Sonnet 4.6 (1M context) <noreply@anthropic.com>`
 
 ### 5. Push
 - Run `git pull --rebase` once more before pushing, in case another agent pushed while you were working
@@ -35,12 +46,10 @@ This repo is shared — multiple agents commit and push simultaneously. Follow t
 ## Commit Message Example
 
 ```
-[Agent-Jack] Add eligibility logic and unit tests
+[AgentName] Add eligibility logic and unit tests
 
 - src/utils/eligibility.js: pure function implementing 5 priority-ordered
   rules from the content plan; returns { result, measures }
 - src/utils/eligibility.test.js: 7 tests covering all ineligible paths,
   eligible path, partial-renter path, and measures logic
-
-Co-Authored-By: Claude Sonnet 4.6 (1M context) <noreply@anthropic.com>
 ```
