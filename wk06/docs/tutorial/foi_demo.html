@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FOI Multi-Agent CLI — Hackathon Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0a0e1a;
+    --bg-1: #11172a;
+    --bg-2: #1a2240;
+    --ink: #e7ecf6;
+    --dim: #98a4c4;
+    --line: #2a3556;
+    --accent: #6aa7ff;
+    --accent-2: #b78bff;
+    --good: #5ce6a3;
+    --bad: #ff6b8a;
+    --warn: #ffc857;
+    --code-bg: #0d1226;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-0);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ---------- background ambience ---------- */
+  .bg-gradient {
+    position: fixed; inset: 0; z-index: -2;
+    background:
+      radial-gradient(ellipse at 15% 0%, rgba(106,167,255,0.15), transparent 50%),
+      radial-gradient(ellipse at 85% 30%, rgba(183,139,255,0.13), transparent 50%),
+      radial-gradient(ellipse at 50% 100%, rgba(92,230,163,0.08), transparent 50%),
+      var(--bg-0);
+  }
+  .bg-grid {
+    position: fixed; inset: 0; z-index: -1; opacity: 0.4;
+    background-image:
+      linear-gradient(rgba(106,167,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(106,167,255,0.05) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 96px 0; position: relative; }
+  section.tight { padding: 56px 0; }
+  h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(2.2rem, 5vw, 4.2rem); line-height: 1.05; }
+  h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); margin-bottom: 16px; }
+  h3 { font-size: 1.15rem; margin-bottom: 8px; }
+  p.lead { font-size: 1.15rem; color: var(--dim); max-width: 720px; }
+  p { color: var(--dim); }
+  p + p { margin-top: 10px; }
+  .eyebrow {
+    display: inline-block; font-size: 0.78rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent);
+    padding: 4px 10px; border: 1px solid var(--line); border-radius: 99px;
+    background: rgba(106,167,255,0.06); margin-bottom: 16px;
+  }
+  .accent { color: var(--accent); }
+  .accent-2 { color: var(--accent-2); }
+  .good { color: var(--good); }
+  .bad { color: var(--bad); }
+  .warn { color: var(--warn); }
+
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px;
+    backdrop-filter: blur(8px);
+  }
+
+  /* ---------- hero ---------- */
+  .hero { padding-top: 120px; padding-bottom: 80px; }
+  .hero h1 .grad {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2) 50%, var(--good));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p.lead { margin-top: 22px; font-size: 1.3rem; }
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-top: 56px;
+  }
+  .stat { padding: 18px; text-align: left; }
+  .stat .n {
+    font-family: 'JetBrains Mono', monospace; font-size: 2.4rem; font-weight: 600;
+    color: var(--ink); line-height: 1;
+  }
+  .stat .l { color: var(--dim); font-size: 0.88rem; margin-top: 6px; }
+  @media (max-width: 720px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ---------- pipeline diagram ---------- */
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin: 32px 0;
+  }
+  @media (max-width: 900px) { .pipeline { grid-template-columns: repeat(4, 1fr); } }
+  .stage {
+    position: relative;
+    cursor: pointer;
+    text-align: center;
+    padding: 16px 6px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-1);
+    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.3s ease;
+    user-select: none;
+  }
+  .stage:hover { transform: translateY(-3px); border-color: var(--accent); }
+  .stage.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 8px 30px -8px rgba(106,167,255,0.5);
+    background: linear-gradient(180deg, var(--bg-1), rgba(106,167,255,0.08));
+  }
+  .stage.running {
+    border-color: var(--warn);
+    box-shadow: 0 0 0 1px var(--warn), 0 0 40px -10px var(--warn);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .stage.done {
+    border-color: var(--good);
+    background: linear-gradient(180deg, var(--bg-1), rgba(92,230,163,0.06));
+  }
+  .stage .icon { font-size: 1.6rem; display: block; line-height: 1; margin-bottom: 6px; }
+  .stage .name { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .stage .sub { font-size: 0.7rem; color: var(--dim); margin-top: 2px; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 1px var(--warn), 0 0 30px -10px var(--warn); }
+    50% { box-shadow: 0 0 0 1px var(--warn), 0 0 60px -5px var(--warn); }
+  }
+
+  .stage-detail {
+    margin-top: 16px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-1);
+    min-height: 140px;
+  }
+  .stage-detail h3 { color: var(--accent); }
+  .stage-detail .file { font-size: 0.78rem; color: var(--dim); margin-bottom: 10px; }
+  .stage-detail .file code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; color: var(--accent-2); }
+  .stage-detail ul { margin: 8px 0 0 18px; color: var(--dim); }
+  .stage-detail ul li { margin-bottom: 4px; }
+
+  /* ---------- run-pipeline demo ---------- */
+  .runner { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  @media (max-width: 860px) { .runner { grid-template-columns: 1fr; } }
+  .runner .pane h3 { margin-bottom: 8px; color: var(--accent-2); }
+  .runner .pane .meta { font-size: 0.85rem; color: var(--dim); margin-bottom: 12px; }
+  .runner button {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: white; border: none; border-radius: 10px;
+    padding: 14px 22px; font-size: 1rem; font-weight: 600;
+    cursor: pointer; transition: transform 0.1s ease, opacity 0.15s ease;
+    font-family: inherit;
+  }
+  .runner button:hover { transform: translateY(-1px); }
+  .runner button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .runner button + button { margin-left: 8px; background: var(--bg-2); }
+
+  .console {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    height: 360px;
+    overflow: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    margin-top: 12px;
+  }
+  .console .ln { display: block; opacity: 0; transform: translateY(4px); transition: opacity 0.3s, transform 0.3s; }
+  .console .ln.show { opacity: 1; transform: none; }
+  .console .stage-label { color: var(--accent); }
+  .console .ok { color: var(--good); }
+  .console .info { color: var(--dim); }
+  .console .err { color: var(--bad); }
+  .console .num { color: var(--warn); }
+
+  .request-text {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    height: 360px;
+    overflow: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+
+  .cost-ticker {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg-1);
+  }
+  .cost-ticker .n { font-size: 1.3rem; font-weight: 600; color: var(--warn); }
+  .cost-ticker .l { font-size: 0.75rem; color: var(--dim); }
+
+  /* ---------- wow: tamper detector ---------- */
+  .tamper {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 22px;
+    align-items: stretch;
+  }
+  @media (max-width: 860px) { .tamper { grid-template-columns: 1fr; } }
+  .chunk-card {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    color: var(--dim);
+  }
+  .chunk-card .matched { background: rgba(92,230,163,0.18); color: var(--ink); border-radius: 3px; padding: 1px 2px; }
+  .chunk-card .header {
+    font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 12px;
+  }
+  .quote-editor {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86rem;
+    line-height: 1.7;
+    width: 100%;
+    min-height: 120px;
+    resize: vertical;
+    outline: none;
+  }
+  .quote-editor:focus { border-color: var(--accent); }
+  .quote-controls { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .quote-controls button {
+    background: var(--bg-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 14px; font-size: 0.85rem; cursor: pointer;
+    font-family: inherit; transition: border-color 0.15s;
+  }
+  .quote-controls button:hover { border-color: var(--accent); }
+  .verdict {
+    margin-top: 14px; padding: 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg-1);
+  }
+  .verdict .row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+  .verdict .row + .row { border-top: 1px dashed var(--line); margin-top: 4px; padding-top: 8px; }
+  .verdict .label { color: var(--dim); font-size: 0.85rem; }
+  .verdict .val { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .verdict .gate {
+    margin-top: 10px; padding: 10px 14px; border-radius: 8px;
+    font-weight: 600; text-align: center;
+    transition: background 0.3s, color 0.3s;
+  }
+  .verdict .gate.pass { background: rgba(92,230,163,0.12); color: var(--good); border: 1px solid var(--good); }
+  .verdict .gate.fail { background: rgba(255,107,138,0.12); color: var(--bad); border: 1px solid var(--bad); }
+
+  /* ---------- reliability stack ---------- */
+  .stack { display: flex; flex-direction: column; gap: 8px; max-width: 760px; margin: 0 auto; }
+  .layer {
+    display: grid; grid-template-columns: 56px 1fr auto; gap: 16px;
+    padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--bg-1); align-items: center;
+    transition: transform 0.2s, border-color 0.3s;
+  }
+  .layer .num {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: var(--bg-2); color: var(--accent); font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .layer .name { font-weight: 600; }
+  .layer .where { font-size: 0.85rem; color: var(--dim); }
+  .layer .state { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--dim); }
+  .layer.attempted { border-color: var(--warn); animation: shake 0.4s ease-in-out; }
+  .layer.attempted .state { color: var(--warn); }
+  .layer.caught { border-color: var(--good); background: linear-gradient(90deg, var(--bg-1), rgba(92,230,163,0.04)); }
+  .layer.caught .state { color: var(--good); }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+  .sim-controls { text-align: center; margin-top: 24px; }
+  .sim-controls button {
+    background: var(--bg-2); color: var(--ink); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 10px 18px; font-size: 0.95rem; cursor: pointer;
+    font-family: inherit; margin: 0 6px;
+  }
+  .sim-controls button:hover { background: rgba(106,167,255,0.1); }
+
+  /* ---------- numbers panel ---------- */
+  .numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  @media (max-width: 720px) { .numbers { grid-template-columns: 1fr; } }
+  .numbers .card .v {
+    font-family: 'JetBrains Mono', monospace; font-size: 1.9rem; font-weight: 600;
+    color: var(--accent); margin-bottom: 4px;
+  }
+  .numbers .card .k { font-size: 0.95rem; color: var(--ink); margin-bottom: 4px; font-weight: 600; }
+  .numbers .card .d { font-size: 0.82rem; color: var(--dim); }
+
+  /* ---------- takeaways ---------- */
+  .takeaways {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+  }
+  @media (max-width: 720px) { .takeaways { grid-template-columns: 1fr; } }
+  .takeaway {
+    padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--bg-1);
+  }
+  .takeaway .n {
+    font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 0.85rem;
+  }
+  .takeaway .t { font-weight: 600; margin: 4px 0 4px; }
+  .takeaway .d { font-size: 0.88rem; color: var(--dim); }
+
+  footer { padding: 60px 24px; text-align: center; color: var(--dim); font-size: 0.85rem; border-top: 1px solid var(--line); }
+  footer code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; }
+
+  /* ---------- helpers ---------- */
+  .fade { opacity: 0; transform: translateY(20px); transition: opacity 0.7s, transform 0.7s; }
+  .fade.in { opacity: 1; transform: none; }
+  .secret-trigger { cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="bg-gradient"></div>
+<div class="bg-grid"></div>
+
+<!-- ============== HERO ============== -->
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">wk06 · hackathon submission</span>
+    <h1>
+      Seven agents.<br>
+      One human.<br>
+      <span class="grad">Zero hallucinated FOI responses.</span>
+    </h1>
+    <p class="lead">
+      A CLI that automates UK Freedom of Information Act 2000 request handling end-to-end:
+      classify → retrieve policy evidence → analyse exemptions with <em>verbatim citations</em> →
+      draft a formal letter → redact PII → human approval gate → audit. Every decision typed,
+      verified, and logged.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><div class="n" id="stat-tests">0</div><div class="l">tests passing · executable spec</div></div>
+      <div class="stat"><div class="n" id="stat-stages">0</div><div class="l">pipeline stages, one state object</div></div>
+      <div class="stat"><div class="n" id="stat-cost">$0.0000</div><div class="l">per request, live API</div></div>
+      <div class="stat"><div class="n" id="stat-layers">0</div><div class="l">reliability layers, deep</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== PIPELINE ============== -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">the architecture</span>
+    <h2>Pick a stage. The state object flows through all of them.</h2>
+    <p class="lead">
+      One Pydantic <code>CaseRecord</code> carries the whole request: text, triage, retrieved chunks,
+      compliance findings, draft, redaction, human decision, cost ledger. Each stage <em>reads</em> the
+      fields it needs and <em>writes</em> its own. Click a stage to inspect it.
+    </p>
+
+    <div class="pipeline" id="pipeline">
+      <div class="stage" data-stage="triage"><span class="icon">📥</span><span class="name">Triage</span><span class="sub">Haiku</span></div>
+      <div class="stage" data-stage="retrieve"><span class="icon">🔍</span><span class="name">Retrieve</span><span class="sub">nomic + Chroma</span></div>
+      <div class="stage" data-stage="compliance"><span class="icon">⚖️</span><span class="name">Compliance</span><span class="sub">Sonnet</span></div>
+      <div class="stage" data-stage="response"><span class="icon">✍️</span><span class="name">Response</span><span class="sub">Sonnet</span></div>
+      <div class="stage" data-stage="redact"><span class="icon">🛡️</span><span class="name">Redact</span><span class="sub">regex + Haiku</span></div>
+      <div class="stage" data-stage="hitl"><span class="icon">👤</span><span class="name">HITL Gate</span><span class="sub">human</span></div>
+      <div class="stage" data-stage="audit"><span class="icon">📜</span><span class="name">Audit</span><span class="sub">JSONL + .txt</span></div>
+    </div>
+
+    <div class="stage-detail" id="stage-detail">
+      <h3 id="sd-name">Click a stage above</h3>
+      <p id="sd-blurb">Each stage is a small, testable function with one job, one Pydantic output schema, and a typed fallback for when the model misbehaves.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============== LIVE PIPELINE RUN ============== -->
+<section class="tight">
+  <div class="wrap">
+    <span class="eyebrow">end to end</span>
+    <h2>Watch one request flow through all seven stages.</h2>
+    <p class="lead">
+      A real FOI request asking for procurement details under contract DS-2023-0445 — names of
+      evaluators (s40 territory) and bid pricing (s43 territory). Press play and watch the system
+      think it through. <span class="accent">No animation tricks — every line below mirrors what the
+      CLI logs when you run <code>foi process …</code> for real.</span>
+    </p>
+
+    <div style="margin: 20px 0;">
+      <button id="run-btn">▶  Run pipeline</button>
+      <button id="reset-btn">Reset</button>
+      <span style="margin-left:14px;" class="cost-ticker"><span class="l">running cost</span><span class="n" id="run-cost">$0.0000</span></span>
+    </div>
+
+    <div class="runner">
+      <div class="pane">
+        <h3>The request</h3>
+        <div class="meta">corpus/requests/r03-s40-s43-mixed.txt</div>
+        <pre class="request-text">Dear FOI Officer,
+
+I am writing to request the following information relating to your department's contract with TechServ Solutions Ltd (contract reference: DS-2023-0445):
+
+1. The names and job titles of all departmental officials who evaluated the tender bids.
+2. The evaluation scores awarded to each bidder, including TechServ Solutions and all unsuccessful tenderers.
+3. The unit pricing schedule submitted by TechServ Solutions in their winning bid.
+4. Any correspondence between departmental officials discussing the relative merits of the bidders.
+
+I am a journalist investigating value for money in government IT procurement.
+
+Yours faithfully,
+C. Requester</pre>
+      </div>
+      <div class="pane">
+        <h3>The trace</h3>
+        <div class="meta">cost ledger + audit lines, in real time</div>
+        <div class="console" id="trace"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== THE WOW: TAMPER DETECTOR ============== -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow accent-2" style="color:var(--accent-2);border-color:var(--accent-2)">the surprise</span>
+    <h2>Type a quote. The system tells you if the model made it up.</h2>
+    <p class="lead">
+      The compliance agent must back every exemption claim with a <strong>verbatim quote</strong> from
+      a retrieved policy chunk. A <em>deterministic Python verifier</em> — not the LLM grading itself —
+      checks two things: <span class="accent">L1</span> the cited chunk was actually retrieved, and
+      <span class="accent">L2</span> the quote really appears in it (≥ 85% character coverage).
+      <strong>Edit the quote below.</strong> Watch the gate flip the moment you drift from the source.
+    </p>
+
+    <div class="tamper">
+      <div>
+        <h3 style="margin-bottom:12px;color:var(--dim);font-size:0.95rem;">Retrieved chunk <span style="color:var(--dim)">·</span> <code style="background:var(--code-bg);padding:2px 6px;border-radius:4px;color:var(--accent-2)">foi-exemptions-guide.txt#4</code></h3>
+        <div class="chunk-card">
+          <div class="header">📄 source of truth</div>
+          <div id="chunk-display">SECTION 40 -- PERSONAL INFORMATION
+Personal data about third parties is exempt if disclosure would breach any of the data protection principles under the Data Protection Act 2018 / UK GDPR. This is the most frequently applied exemption. The department must consider whether disclosure would be fair and lawful, and whether the individual would reasonably expect their information to be disclosed.</div>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:12px;color:var(--dim);font-size:0.95rem;">The model's <em>claimed</em> quote</h3>
+        <textarea id="quote-input" class="quote-editor" spellcheck="false">Personal data about third parties is exempt if disclosure would breach any of the data protection principles</textarea>
+        <div class="quote-controls">
+          <button data-q="verbatim">↻ Verbatim</button>
+          <button data-q="paraphrase">≈ Paraphrase</button>
+          <button data-q="hallucination">✗ Hallucinated</button>
+          <button data-q="wrongchunk">⚠ Wrong chunk id</button>
+        </div>
+        <div class="verdict" id="verdict">
+          <div class="row"><span class="label">L1 · chunk in retrieved set?</span><span class="val" id="v-l1">—</span></div>
+          <div class="row"><span class="label">L2 · quote coverage</span><span class="val" id="v-l2">—</span></div>
+          <div class="row"><span class="label">threshold</span><span class="val">≥ 0.85</span></div>
+          <div class="gate" id="v-gate">edit the quote to see the gate</div>
+          <div class="row" style="margin-top:8px;font-size:0.78rem;"><span class="label" style="font-style:italic">on failure: recommendation flips to <code>withhold</code>, <code>grounded=False</code>, human review.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== RELIABILITY STACK ============== -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">five layers deep</span>
+    <h2>Click "simulate failure". Watch each layer catch the next.</h2>
+    <p class="lead">
+      Reliability is a <em>stack</em>, not a feature. Each layer catches a different class of failure.
+      Hit the button below — we'll fire a synthetic LLM failure and you'll see where it stops.
+    </p>
+
+    <div class="stack" id="stack">
+      <div class="layer" data-layer="1">
+        <div class="num">1</div>
+        <div><div class="name">Retry with jittered backoff</div><div class="where">llm.py · <code>.with_retry(stop_after_attempt=4)</code></div></div>
+        <div class="state">idle</div>
+      </div>
+      <div class="layer" data-layer="2">
+        <div class="num">2</div>
+        <div><div class="name">Typed agent-internal fallback</div><div class="where">agents/triage.py · returns a manual-review <code>TriageResult</code></div></div>
+        <div class="state">idle</div>
+      </div>
+      <div class="layer" data-layer="3">
+        <div class="num">3</div>
+        <div><div class="name">Per-stage try/except in supervisor</div><div class="where">supervisor.py · logs error, populates <code>case.errors</code></div></div>
+        <div class="state">idle</div>
+      </div>
+      <div class="layer" data-layer="4">
+        <div class="num">4</div>
+        <div><div class="name">Circuit breaker</div><div class="where">supervisor.py · 3 post-retry failures → degrade the stage entirely</div></div>
+        <div class="state">idle</div>
+      </div>
+      <div class="layer" data-layer="5">
+        <div class="num">5</div>
+        <div><div class="name">Batch isolation</div><div class="where">supervisor.py · one bad file never aborts the rest</div></div>
+        <div class="state">idle</div>
+      </div>
+    </div>
+
+    <div class="sim-controls">
+      <button id="sim-once">⚡ Simulate one failure</button>
+      <button id="sim-trip">🔥 Trip the breaker (3 failures)</button>
+      <button id="sim-reset">↺ Reset</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============== NUMBERS ============== -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">the numbers</span>
+    <h2>What the build actually delivers.</h2>
+    <div class="numbers">
+      <div class="card"><div class="v">69 / 69</div><div class="k">Tests passing</div><div class="d">All offline. <code>RunnableLambda</code> DI seam means tests cost $0.</div></div>
+      <div class="card"><div class="v">~$0.01</div><div class="k">Live API cost per request</div><div class="d">Haiku for triage + redaction, Sonnet for compliance + response.</div></div>
+      <div class="card"><div class="v">17 chunks</div><div class="k">Section-aware index</div><div class="d">One chunk per statutory section; cosine cited by <code>source#chunk_index</code>.</div></div>
+      <div class="card"><div class="v">0.85</div><div class="k">Citation coverage threshold</div><div class="d">Below this, recommendation flips to <code>withhold</code>. No exceptions.</div></div>
+      <div class="card"><div class="v">2-pass</div><div class="k">Hybrid redaction</div><div class="d">Deterministic regex always runs, even if the model fails. PII <em>never</em> reaches the gate silently.</div></div>
+      <div class="card"><div class="v">2-file</div><div class="k">Audit trail</div><div class="d">Append-only JSONL (compliance) + .txt (human). Secrets scrubbed at write time.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== TAKEAWAYS ============== -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">patterns to steal</span>
+    <h2>Nine ideas you can lift into your next agentic system.</h2>
+    <div class="takeaways">
+      <div class="takeaway"><div class="n">01</div><div class="t">One state object, one schema per stage.</div><div class="d">Pause, persist, audit, or resume at any boundary.</div></div>
+      <div class="takeaway"><div class="n">02</div><div class="t">One LLM seam for every agent.</div><div class="d"><code>structured(build_llm) → with_retry</code>. Order matters.</div></div>
+      <div class="takeaway"><div class="n">03</div><div class="t">DI by keyword-only Runnable.</div><div class="d">Production calls the model. Tests inject a lambda. Same code path.</div></div>
+      <div class="takeaway"><div class="n">04</div><div class="t">Pure-Python verifier for every structured claim.</div><div class="d">The model never grades itself. Trust comes from what can't lie.</div></div>
+      <div class="takeaway"><div class="n">05</div><div class="t">Defence in depth on safety transforms.</div><div class="d">Regex + LLM. Both pass, or it ships to a human.</div></div>
+      <div class="takeaway"><div class="n">06</div><div class="t">Five reliability layers, each catching a distinct class.</div><div class="d">Retry / typed fallback / try-except / breaker / batch isolation.</div></div>
+      <div class="takeaway"><div class="n">07</div><div class="t">Hard-fail on missing operator identity.</div><div class="d">Governance > convenience. No default, no fallback, no override.</div></div>
+      <div class="takeaway"><div class="n">08</div><div class="t">Append-only audit, secrets scrubbed at write time.</div><div class="d">Never trust callers to scrub.</div></div>
+      <div class="takeaway"><div class="n">09</div><div class="t">Eval is a strict subset of the pipeline.</div><div class="d">Skip the human, skip the letter. Measure what you can ground-truth.</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Built in <code>wk06/solution/</code> · 69 tests, ruff + mypy clean<br>
+  Try it: <code>foi process corpus/requests/r03-s40-s43-mixed.txt --operator you@example.com</code><br>
+  Read deeper: <code>wk06/docs/tutorial/solution-walkthrough/</code> · 9 notebooks, live API calls
+</footer>
+
+<script>
+/* ===================== animated counters ===================== */
+function countUp(el, to, opts = {}) {
+  const dur = opts.duration ?? 1200;
+  const fmt = opts.fmt ?? (n => Math.round(n).toString());
+  const start = performance.now();
+  function step(t) {
+    const p = Math.min(1, (t - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(to * eased);
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = fmt(to);
+  }
+  requestAnimationFrame(step);
+}
+
+window.addEventListener('load', () => {
+  countUp(document.getElementById('stat-tests'), 69);
+  countUp(document.getElementById('stat-stages'), 7);
+  countUp(document.getElementById('stat-cost'), 0.0119, {
+    fmt: n => '$' + n.toFixed(4)
+  });
+  countUp(document.getElementById('stat-layers'), 5);
+});
+
+/* ===================== stage detail click-to-expand ===================== */
+const STAGE_INFO = {
+  triage: {
+    name: 'Triage — classify the request',
+    file: 'foi_system/agents/triage.py',
+    bullets: [
+      'Returns a typed <code>TriageResult</code>: topic, complexity, summary, confidence ∈ [0,1].',
+      'Deterministic guard for empty/whitespace input → clarification, no LLM call.',
+      'Untrusted text wrapped in <code>&lt;foi_request&gt;</code> tags + system-prompt hygiene against injection.',
+      'Typed fallback on any exception — downstream never sees <code>None</code>.'
+    ]
+  },
+  retrieve: {
+    name: 'Retrieve — RAG over policy chunks',
+    file: 'foi_system/retrieval.py + indexing.py',
+    bullets: [
+      'nomic-embed-text-v1.5, cosine space, asymmetric query/document embeddings.',
+      'Section-aware chunking: one chunk per statutory section ID.',
+      '<code>distance</code>, not similarity (lower = closer). Surfaced honestly in the HITL gate.',
+      '<code>search_policies</code> never raises — returns <code>[]</code> on any error.'
+    ]
+  },
+  compliance: {
+    name: 'Compliance — exemption analysis with cited evidence',
+    file: 'foi_system/agents/compliance.py + verification.py',
+    bullets: [
+      'IRAC-light prompt: each finding requires a verbatim quote from a retrieved chunk.',
+      'Empty retrieval → withhold, ungrounded, <strong>no LLM call</strong>.',
+      'Deterministic post-processing fills statutory invariants (s36 → opinion required, etc.).',
+      '<strong>Citation verifier</strong> (pure Python) gates every result — see the live demo below.'
+    ]
+  },
+  response: {
+    name: 'Response — draft the formal letter',
+    file: 'foi_system/agents/response.py',
+    bullets: [
+      'Drafts <em>from</em> compliance findings only — never re-derives exemptions from the raw request.',
+      'When s40 applies: an extra instruction injects ("no names, no job titles, aggregate only").',
+      'Holding-letter sentinel when compliance is absent. Distinct sentinel for draft-generation failure.',
+      'Operator-modify path can re-invoke the agent with revision guidance.'
+    ]
+  },
+  redact: {
+    name: 'Redact — hybrid PII masking',
+    file: 'foi_system/agents/redaction.py',
+    bullets: [
+      'Pass 1: deterministic regex for email / UK phone / postcode / staff number. Always runs.',
+      'Pass 2: Haiku catches contextual identifiers (names, titles, signatures) the regex misses.',
+      'On model failure: regex output preserved, <code>needs_mandatory_review=True</code>, banner prepended.',
+      '<strong>PII never reaches the gate silently.</strong>'
+    ]
+  },
+  hitl: {
+    name: 'HITL Gate — human approval',
+    file: 'foi_system/hitl.py',
+    bullets: [
+      'Hard-fail on missing operator identity, <em>before</em> any rendering.',
+      'RECOMMENDATION headline first; layout is a spec, not styling (tests assert it).',
+      '<strong>Cost is never shown at the gate.</strong> Audited and end-of-run only — operators must not be biased.',
+      'One audit "decision" entry per call, with evidence_refs of every chunk on screen.'
+    ]
+  },
+  audit: {
+    name: 'Audit — dual-format append-only',
+    file: 'foi_system/audit.py',
+    bullets: [
+      'JSONL (compliance-queryable) + <code>.txt</code> (human-readable). Both opened <code>"a"</code>.',
+      'ISO 8601 UTC with <code>Z</code> suffix. No timezone ambiguity.',
+      'Recursive secret scrubber for keys matching <code>api_key / token / password / secret / auth / credential</code>.',
+      'Original payload never mutated — scrubber returns a new dict.'
+    ]
+  }
+};
+const sdName = document.getElementById('sd-name');
+const sdBlurb = document.getElementById('sd-blurb');
+document.querySelectorAll('.stage').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    const info = STAGE_INFO[el.dataset.stage];
+    sdName.textContent = info.name;
+    sdBlurb.innerHTML = `
+      <div class="file">📂 <code>${info.file}</code></div>
+      <ul>${info.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+    `;
+  });
+});
+
+/* ===================== pipeline run animation ===================== */
+const TRACE_STEPS = [
+  { stage: 'triage',     label: 'TRIAGE',     log: ['→ Haiku', "  topic=procurement_commercial  complexity=medium  confidence=0.92"], cost: 0.0011, ms: 720 },
+  { stage: 'retrieve',   label: 'RETRIEVE',   log: ['→ ChromaDB · cosine · k=5', '  hit foi-exemptions-guide.txt#4  s40  distance=0.31', '  hit foi-exemptions-guide.txt#5  s43  distance=0.34', '  hit data-handling-policy.txt#2  —    distance=0.42'], cost: 0, ms: 380 },
+  { stage: 'compliance', label: 'COMPLIANCE', log: ['→ Sonnet · IRAC-light · structured output', '  finding s40  applies=true  kind=absolute', '  finding s43  applies=true  kind=qualified', '  citation verify L1=ok  L2=0.97  ✓ grounded'], cost: 0.0073, ms: 1820 },
+  { stage: 'response',   label: 'RESPONSE',   log: ['→ Sonnet · grounded in compliance findings only', '  s40 instruction injected (aggregate only, no names)', '  letter drafted: 287 words, cites [s40, s43]'], cost: 0.0034, ms: 1450 },
+  { stage: 'redact',     label: 'REDACT',     log: ['→ regex pass: 0 hits  ⟶  Haiku semantic pass', '  redaction_complete=true  needs_mandatory_review=false'], cost: 0.0009, ms: 510 },
+  { stage: 'hitl',       label: 'HITL',       log: ['→ Rich console · RECOMMENDATION: WITHHOLD', '  operator types [a]pprove · notes empty', '  decision=approve  evidence_refs=3'], cost: 0, ms: 900 },
+  { stage: 'audit',      label: 'AUDIT',      log: ['→ append jsonl + txt', '  events=7  status=processed', '  result written → output/results/r03-...json'], cost: 0, ms: 220 }
+];
+const stageEls = Object.fromEntries(
+  [...document.querySelectorAll('.stage')].map(el => [el.dataset.stage, el])
+);
+const traceEl = document.getElementById('trace');
+const costEl = document.getElementById('run-cost');
+const runBtn = document.getElementById('run-btn');
+const resetBtn = document.getElementById('reset-btn');
+
+let runCost = 0;
+let running = false;
+function pushLine(html, cls='') {
+  const ln = document.createElement('span');
+  ln.className = 'ln' + (cls ? ' ' + cls : '');
+  ln.innerHTML = html;
+  traceEl.appendChild(ln);
+  requestAnimationFrame(() => ln.classList.add('show'));
+  traceEl.scrollTop = traceEl.scrollHeight;
+  return ln;
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runPipeline() {
+  if (running) return;
+  running = true;
+  runBtn.disabled = true;
+  resetBtn.disabled = true;
+  traceEl.innerHTML = '';
+  runCost = 0;
+  costEl.textContent = '$0.0000';
+  Object.values(stageEls).forEach(el => el.classList.remove('running', 'done'));
+
+  pushLine('<span class="info">case  request_id=r03-s40-s43-mixed  operator=demo@hackathon</span>');
+  await sleep(300);
+
+  for (const step of TRACE_STEPS) {
+    stageEls[step.stage].classList.add('running');
+    pushLine(`<span class="stage-label">[${step.label}]</span>`);
+    for (const line of step.log) {
+      await sleep(step.ms / (step.log.length + 1));
+      pushLine(`<span class="info">${line}</span>`);
+    }
+    await sleep(step.ms / 4);
+
+    if (step.cost > 0) {
+      const target = runCost + step.cost;
+      const startCost = runCost;
+      const tStart = performance.now();
+      await new Promise(resolve => {
+        function tick(t) {
+          const p = Math.min(1, (t - tStart) / 400);
+          runCost = startCost + (target - startCost) * p;
+          costEl.textContent = '$' + runCost.toFixed(4);
+          if (p < 1) requestAnimationFrame(tick);
+          else { runCost = target; costEl.textContent = '$' + runCost.toFixed(4); resolve(); }
+        }
+        requestAnimationFrame(tick);
+      });
+      pushLine(`<span class="num">  +$${step.cost.toFixed(4)}</span>  <span class="info">running $${runCost.toFixed(4)}</span>`);
+    }
+    stageEls[step.stage].classList.remove('running');
+    stageEls[step.stage].classList.add('done');
+  }
+  pushLine('');
+  pushLine('<span class="ok">✓ processed  ·  total cost $' + runCost.toFixed(4) + '  ·  7 audit events written</span>');
+  runBtn.disabled = false;
+  resetBtn.disabled = false;
+  running = false;
+}
+runBtn.addEventListener('click', runPipeline);
+resetBtn.addEventListener('click', () => {
+  if (running) return;
+  traceEl.innerHTML = '';
+  runCost = 0;
+  costEl.textContent = '$0.0000';
+  Object.values(stageEls).forEach(el => el.classList.remove('running', 'done'));
+});
+
+/* ===================== TAMPER DETECTOR — citation verifier ===================== */
+const CHUNK_TEXT = `SECTION 40 -- PERSONAL INFORMATION
+Personal data about third parties is exempt if disclosure would breach any of the data protection principles under the Data Protection Act 2018 / UK GDPR. This is the most frequently applied exemption. The department must consider whether disclosure would be fair and lawful, and whether the individual would reasonably expect their information to be disclosed.`;
+const CITED_CHUNK_ID = 'foi-exemptions-guide.txt#4';
+const RETRIEVED_IDS = new Set([CITED_CHUNK_ID, 'foi-exemptions-guide.txt#5', 'data-handling-policy.txt#2']);
+let CURRENT_CHUNK_ID = CITED_CHUNK_ID;
+
+const QUOTE_PRESETS = {
+  verbatim: 'Personal data about third parties is exempt if disclosure would breach any of the data protection principles',
+  paraphrase: 'Third-party personal data may be exempted when its release would contravene data protection principles set out in legislation',
+  hallucination: 'All personal data must be released under FOI unless the data subject has objected in writing within 28 days',
+  wrongchunk: 'Personal data about third parties is exempt if disclosure would breach any of the data protection principles'
+};
+
+const norm = s => s.toLowerCase().split(/\s+/).filter(Boolean).join(' ');
+
+/* SequenceMatcher-style greedy coverage: sum of longest matching block sizes
+   in the (normalized) quote, found inside the (normalized) chunk. */
+function coverage(quote, chunk) {
+  const q = norm(quote), c = norm(chunk);
+  if (!q) return 0;
+  if (c.includes(q)) return 1;
+  // Recursive greedy LCS: find longest common substring, then recurse on both sides.
+  function matchedLen(a, b) {
+    if (!a || !b) return 0;
+    let best = { i: 0, j: 0, n: 0 };
+    const lenA = a.length, lenB = b.length;
+    // O(n*m) longest-common-substring via rolling row
+    let prev = new Array(lenB + 1).fill(0);
+    let curr = new Array(lenB + 1).fill(0);
+    for (let i = 1; i <= lenA; i++) {
+      for (let j = 1; j <= lenB; j++) {
+        if (a[i-1] === b[j-1]) {
+          curr[j] = prev[j-1] + 1;
+          if (curr[j] > best.n) best = { i: i - curr[j], j: j - curr[j], n: curr[j] };
+        } else {
+          curr[j] = 0;
+        }
+      }
+      [prev, curr] = [curr, prev];
+      curr.fill(0);
+    }
+    if (best.n === 0) return 0;
+    return best.n
+      + matchedLen(a.slice(0, best.i), b.slice(0, best.j))
+      + matchedLen(a.slice(best.i + best.n), b.slice(best.j + best.n));
+  }
+  return matchedLen(q, c) / q.length;
+}
+
+/* Highlight the longest matched run inside chunk for the visual. */
+function highlightMatch(quote, chunk) {
+  const q = norm(quote);
+  const c = norm(chunk);
+  if (!q) return chunk;
+  // find longest matching substring of q within c
+  let best = { ci: -1, qi: -1, n: 0 };
+  for (let qLen = q.length; qLen > 4 && best.n === 0; qLen--) {
+    for (let qi = 0; qi <= q.length - qLen; qi++) {
+      const sub = q.slice(qi, qi + qLen);
+      const ci = c.indexOf(sub);
+      if (ci !== -1) { best = { ci, qi, n: qLen }; break; }
+    }
+  }
+  if (best.n < 8) return escape(chunk);
+  // Map back from normalized-space hit to the original chunk's character positions
+  // by walking the original chunk and matching tokens.
+  const tokens = chunk.split(/(\s+)/);
+  let normPos = 0;
+  let origStart = -1, origEnd = -1;
+  let acc = '';
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
+    const tokNorm = norm(tok);
+    if (!tokNorm) { acc += tok; continue; }
+    const tokNormFull = (acc ? '' : '') + tokNorm; // unused; kept for future
+    const before = normPos === 0 ? 0 : normPos + 1;
+    if (origStart === -1 && before <= best.ci && before + tokNorm.length > best.ci) {
+      origStart = acc.length;
+    }
+    if (origEnd === -1 && before <= best.ci + best.n && before + tokNorm.length >= best.ci + best.n) {
+      origEnd = acc.length + tok.length;
+    }
+    acc += tok;
+    normPos = before + tokNorm.length;
+  }
+  if (origStart === -1 || origEnd === -1 || origEnd <= origStart) return escape(chunk);
+  return escape(chunk.slice(0, origStart))
+    + '<span class="matched">' + escape(chunk.slice(origStart, origEnd)) + '</span>'
+    + escape(chunk.slice(origEnd));
+}
+function escape(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+const qInput = document.getElementById('quote-input');
+const chunkDisplay = document.getElementById('chunk-display');
+const vL1 = document.getElementById('v-l1');
+const vL2 = document.getElementById('v-l2');
+const vGate = document.getElementById('v-gate');
+function verify() {
+  const quote = qInput.value;
+  const l1 = RETRIEVED_IDS.has(CURRENT_CHUNK_ID);
+  const cov = coverage(quote, CHUNK_TEXT);
+  vL1.textContent = l1 ? '✓ ' + CURRENT_CHUNK_ID : '✗ not in retrieved set';
+  vL1.style.color = l1 ? 'var(--good)' : 'var(--bad)';
+  vL2.textContent = (cov * 100).toFixed(1) + '%';
+  vL2.style.color = cov >= 0.85 ? 'var(--good)' : 'var(--bad)';
+  const passed = l1 && cov >= 0.85;
+  vGate.className = 'gate ' + (passed ? 'pass' : 'fail');
+  vGate.innerHTML = passed
+    ? '✓ <strong>verified</strong> — recommendation stands'
+    : '✗ <strong>verification failed</strong> — flip to <code>withhold</code>, route to human';
+  chunkDisplay.innerHTML = highlightMatch(quote, CHUNK_TEXT);
+}
+qInput.addEventListener('input', () => { CURRENT_CHUNK_ID = CITED_CHUNK_ID; verify(); });
+document.querySelectorAll('.quote-controls button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.q === 'wrongchunk') {
+      CURRENT_CHUNK_ID = 'foi-exemptions-guide.txt#999';
+    } else {
+      CURRENT_CHUNK_ID = CITED_CHUNK_ID;
+      qInput.value = QUOTE_PRESETS[btn.dataset.q];
+    }
+    verify();
+  });
+});
+verify();
+
+/* ===================== RELIABILITY STACK SIMULATION ===================== */
+const layers = [...document.querySelectorAll('.layer')];
+function setLayerState(idx, state, text) {
+  const l = layers[idx];
+  l.classList.remove('attempted', 'caught');
+  if (state) l.classList.add(state);
+  l.querySelector('.state').textContent = text;
+}
+function resetStack() {
+  layers.forEach((_, i) => setLayerState(i, null, 'idle'));
+}
+async function simOnce() {
+  resetStack();
+  await sleep(250);
+  setLayerState(0, 'attempted', 'retrying ×1'); await sleep(380);
+  setLayerState(0, 'attempted', 'retrying ×2'); await sleep(380);
+  setLayerState(0, 'attempted', 'retrying ×3'); await sleep(380);
+  setLayerState(0, 'attempted', '✗ all 4 attempts failed'); await sleep(420);
+  setLayerState(1, 'caught', '✓ typed fallback returned'); await sleep(280);
+  setLayerState(2, 'caught', '✓ error logged · case.errors += 1'); await sleep(280);
+  setLayerState(3, 'caught', '◷ failure count = 1 / 3'); await sleep(280);
+  setLayerState(4, 'caught', '✓ request finished — batch continues');
+}
+let tripBusy = false;
+async function simTrip() {
+  if (tripBusy) return;
+  tripBusy = true;
+  resetStack();
+  for (let i = 1; i <= 3; i++) {
+    setLayerState(0, 'attempted', `req ${i} · all retries failed`); await sleep(400);
+    setLayerState(1, 'caught', `req ${i} · typed fallback`); await sleep(280);
+    setLayerState(2, 'caught', `req ${i} · error logged`); await sleep(280);
+    setLayerState(3, 'attempted', `failure count = ${i} / 3`); await sleep(420);
+  }
+  setLayerState(3, 'caught', '🔥 BREAKER OPEN — stage degraded'); await sleep(450);
+  setLayerState(0, null, '⤳ skipped (degraded)');
+  setLayerState(1, 'caught', '⤳ fallback used directly'); await sleep(280);
+  setLayerState(4, 'caught', '✓ batch continues with degraded stage');
+  tripBusy = false;
+}
+document.getElementById('sim-once').addEventListener('click', simOnce);
+document.getElementById('sim-trip').addEventListener('click', simTrip);
+document.getElementById('sim-reset').addEventListener('click', resetStack);
+
+/* ===================== fade-in on scroll ===================== */
+const fadeObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('section').forEach(s => {
+  s.classList.add('fade');
+  fadeObserver.observe(s);
+});
+
+/* ===================== easter egg ===================== */
+let konami = [];
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+window.addEventListener('keydown', e => {
+  konami.push(e.key);
+  if (konami.length > KONAMI.length) konami.shift();
+  if (konami.join(',') === KONAMI.join(',')) {
+    document.body.style.transition = 'filter 1s';
+    document.body.style.filter = 'hue-rotate(180deg) saturate(1.4)';
+    setTimeout(() => { document.body.style.filter = ''; }, 4000);
+  }
+});
+
+/* default-open first stage */
+document.querySelector('.stage[data-stage="compliance"]').click();
+</script>
+</body>
+</html>
