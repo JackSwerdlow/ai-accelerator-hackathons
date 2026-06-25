@@ -84,8 +84,13 @@ def _response_fallback() -> ResponseDraft:
 
 
 def _redaction_fallback(case: CaseRecord) -> RedactionResult:
+    from foi_system.agents.redaction import redact_with_regex
+
+    draft = case.response.letter if case.response is not None else ""
+    redacted, items = redact_with_regex(draft)
     return RedactionResult(
-        redacted_draft=case.response.letter if case.response is not None else "",
+        redacted_draft="[MANUAL REDACTION REQUIRED — automated redaction failed]\n" + redacted,
+        schedule=items,
         redaction_complete=False,
         needs_mandatory_review=True,
     )
@@ -497,6 +502,8 @@ def process_request(
         request_text=request_text,
     )
 
+    _cost_start_idx = len(cost.entries)
+
     _log_kwargs = dict(audit_jsonl_path=audit_jsonl_path, audit_txt_path=audit_txt_path)
 
     # ── Stage 1: Triage ───────────────────────────────────────────────────
@@ -524,10 +531,12 @@ def process_request(
         decision: HumanDecision = _gate(case, operator)
         case.decision = decision
 
-        # Apply modification if requested
+        # Apply modification — update both response and the displayed redacted draft
         if decision.decision == "modify" and decision.modification is not None:
             if case.response is not None:
                 case.response.letter = decision.modification.after
+            if case.redaction is not None:
+                case.redaction.redacted_draft = decision.modification.after
 
     except KeyboardInterrupt:
         # Must propagate
@@ -554,13 +563,20 @@ def process_request(
         case.status = "processed"
 
     # ── Cost summary audit entry ──────────────────────────────────────────
+    # Compute cost for THIS request only (not cumulative batch total)
+    _request_entries = cost.entries[_cost_start_idx:]
+    _request_total = sum(e.cost_usd for e in _request_entries)
+    _request_per_agent: dict[str, float] = {}
+    for e in _request_entries:
+        _request_per_agent[e.agent] = _request_per_agent.get(e.agent, 0.0) + e.cost_usd
+
     _log(
         audit.make_entry(
             "cost_summary",
             request_id,
             payload={
-                "total_usd": cost.per_request_total(),
-                "per_agent": cost.per_agent(),
+                "total_usd": _request_total,
+                "per_agent": _request_per_agent,
             },
         ),
         audit_jsonl_path,

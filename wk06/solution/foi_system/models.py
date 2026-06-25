@@ -1,6 +1,6 @@
 """All Pydantic v2 schemas for the FOI multi-agent system."""
 
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -99,7 +99,7 @@ class HumanDecision(BaseModel):
     def operator_must_be_nonempty(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("operator must be a non-empty, non-whitespace string")
-        return v
+        return v.strip()  # store stripped
 
 
 class CostEntry(BaseModel):
@@ -131,4 +131,4 @@ class AuditEntry(BaseModel):
     event_type: str  # "triage" | "compliance" | "redaction" | "decision" | "cost" | "error" | ...
     agent: Optional[str] = None
     operator: Optional[str] = None
-    payload: dict = Field(default_factory=dict)
+    payload: dict[str, Any] = Field(default_factory=dict)

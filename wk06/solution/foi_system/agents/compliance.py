@@ -91,6 +91,8 @@ def compliance_agent(
     result.policy_sources = sorted({c.source for c in chunks})
 
     # --- citation grounding gate (the backstop) ---
+    # Note: this is a citation-integrity gate, not an exemption-presence gate — an empty-exemptions
+    # "release" passes (no citations to verify); the human gate remains the final backstop.
     grounded, problems = verify_citations(result, chunks)
     if not grounded:
         result.grounded = False
