@@ -6,3 +6,4 @@ __pycache__/
 .pytest_cache/
 output/
 *.pyc
+corpus/gold/held_out.jsonl
