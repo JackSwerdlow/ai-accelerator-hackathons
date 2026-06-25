@@ -565,6 +565,9 @@ def process_request(
     # ── Cost summary audit entry ──────────────────────────────────────────
     # Compute cost for THIS request only (not cumulative batch total)
     _request_entries = cost.entries[_cost_start_idx:]
+    # Embed the per-request cost in the result artefact (PLAN §3.3: cost lives in
+    # both the result JSON and the audit). The slice excludes earlier batch items.
+    case.costs = list(_request_entries)
     _request_total = sum(e.cost_usd for e in _request_entries)
     _request_per_agent: dict[str, float] = {}
     for e in _request_entries:

@@ -299,6 +299,62 @@ def test_costs_accumulated_per_request(tmp_path: Path, monkeypatch: pytest.Monke
     assert "costs" in json.loads(result_file.read_text())
 
 
+def test_per_request_costs_embedded_in_result_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per-request cost entries must be embedded in case.costs and the result JSON
+    (PLAN §3.3), sliced to THIS request only — not left empty, not the whole batch.
+
+    Real LLM calls emit usage; fakes don't, so this test simulates a captured usage
+    entry via a triage fake with a side effect, plus a pre-seeded prior-batch entry
+    that must be excluded from this request's costs.
+    """
+    _patch_search(monkeypatch)
+    req_file = tmp_path / "request.txt"
+    req_file.write_text("Please release all staff records.")
+    results_dir = tmp_path / "results"
+
+    cost = CostTracker()
+    # Prior batch item's cost — must NOT appear in this request's case.costs.
+    cost.add_from_usage(
+        "triage", "claude-haiku-4-5-20251001", {"input_tokens": 1, "output_tokens": 1}
+    )
+
+    def _triage_with_usage(_msgs: object) -> TriageResult:
+        # Simulate the usage the real structured+retry call would have captured.
+        cost.add_from_usage(
+            "triage", "claude-haiku-4-5-20251001", {"input_tokens": 100, "output_tokens": 20}
+        )
+        return TriageResult(
+            topic="staffing_hr", complexity="medium", summary="Staff records.", confidence=0.8
+        )
+
+    case = process_request(
+        str(req_file),
+        "op1",
+        cost,
+        CircuitBreaker(),
+        triage_llm=RunnableLambda(_triage_with_usage),
+        compliance_llm=_compliance_llm(),
+        response_llm=_response_llm(),
+        redaction_llm=_redaction_llm(),
+        gate_fn=_approve_gate,
+        results_dir=results_dir,
+        audit_jsonl_path=str(tmp_path / "audit.jsonl"),
+        audit_txt_path=str(tmp_path / "audit.txt"),
+    )
+
+    # Exactly this request's one entry is embedded (prior-batch entry excluded).
+    assert len(case.costs) == 1
+    assert case.costs[0].input_tokens == 100
+    assert case.costs[0].output_tokens == 20
+    assert case.costs[0].cost_usd > 0.0
+    # And it round-trips into the written result artefact.
+    written = json.loads((results_dir / "request.json").read_text())
+    assert len(written["costs"]) == 1
+    assert written["costs"][0]["input_tokens"] == 100
+
+
 def test_modify_uses_override_as_final_response(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
