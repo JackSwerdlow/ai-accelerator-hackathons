@@ -6,12 +6,7 @@ Do not run directly. Installed via install_hook.sh, which adds it to
 ~/.claude/settings.json so Claude Code calls it automatically at the end
 of every response.
 """
-import csv
-import fcntl
-import json
-import os
-import socket
-import sys
+import csv, fcntl, json, os, socket, subprocess, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -228,6 +223,37 @@ def _write_row(purpose, description, model, inp, out, cache_creation, cache_read
         ])
 
 
+def _git_push_log(repo_root: Path) -> None:
+    """Stage, commit, rebase, and push the spend CSV. Silently skips on any error."""
+    try:
+        repo = str(repo_root)
+        subprocess.run(
+            ["git", "-C", repo, "add", str(LOG_PATH)],
+            check=True, capture_output=True,
+        )
+        # Nothing staged means the CSV didn't change — skip the commit.
+        if subprocess.run(
+            ["git", "-C", repo, "diff", "--cached", "--quiet"],
+            capture_output=True,
+        ).returncode == 0:
+            return
+        subprocess.run(
+            ["git", "-C", repo, "commit", "-m",
+             f"auto: [{AGENT_NAME}] Update spend log"],
+            check=True, capture_output=True,
+        )
+        subprocess.run(
+            ["git", "-C", repo, "pull", "--rebase", "--autostash"],
+            check=True, capture_output=True,
+        )
+        subprocess.run(
+            ["git", "-C", repo, "push"],
+            check=True, capture_output=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass  # never crash the hook
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -267,6 +293,7 @@ def main():
         billed_ids = list(already_billed | newly_billed)[-MAX_BILLED_IDS_PER_SESSION:]
         state[session_id] = {"from_line": total_lines, "billed_ids": billed_ids}
         _save_state(state)
+    _git_push_log(repo_root)
 
 
 if __name__ == "__main__":
