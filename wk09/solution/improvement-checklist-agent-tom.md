@@ -1,7 +1,7 @@
 # Improvement Checklist — Consultation Insights (Agent-Tom)
 
 Tracks every issue/improvement identified against the brief's 5 pillars
-(see `plans/agent-tom-eval-test-plan.md` for the full test/eval architecture
+(see `plans/eval-test-plan-agent-tom.md` for the full test/eval architecture
 these items are checked against), plus wider production-readiness areas
 (PII/data protection, dependency and network resilience, CI/CD,
 infrastructure, monitoring/alarms, security hardening, maintainability,
@@ -433,7 +433,7 @@ direction**, and separately warns that "infrastructure cosplay" (e.g. a
 Kubernetes manifest for a service with no tests) scores negatively. Scope
 here deliberately stays to "tests run automatically," not a deploy pipeline.
 
-- [ ] **CI1** — The pytest suite from `plans/agent-tom-eval-test-plan.md`
+- [ ] **CI1** — The pytest suite from `plans/eval-test-plan-agent-tom.md`
       runs automatically on every push/PR (a minimal GitHub Actions
       workflow), so a regression is caught before it's merged, not
       discovered later.
@@ -530,7 +530,7 @@ core pillars unless a specific operability risk demands them.
       checkable outcome.
       Risk: Low.
       Impact: Medium — this is also the prerequisite noted in
-      `plans/agent-tom-eval-test-plan.md` for the unit-test tier to exist.
+      `plans/eval-test-plan-agent-tom.md` for the unit-test tier to exist.
       Priority: P2
       Evidence:
 - [ ] **MAINT2** — Formal lint/type-check gate run before any task is
