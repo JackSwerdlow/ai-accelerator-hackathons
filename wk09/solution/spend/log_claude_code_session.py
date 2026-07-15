@@ -150,10 +150,14 @@ def main():
     if not transcript_path or not Path(transcript_path).exists():
         return
 
-    # Guard: only log when Claude Code is running inside this project.
+    # Guard: only log when Claude Code is running inside this repo.
     # Prevents accidental logging if the hook ever ends up in global settings.
+    # (Checks the repo root, not _SPEND_DIR, so it fires whether Claude
+    # Code was launched from the repo root, wk09/, wk09/solution/, or
+    # wk09/solution/spend/.)
     cwd_path = Path(cwd).resolve() if cwd else Path.cwd()
-    if _SPEND_DIR not in [cwd_path, *cwd_path.parents]:
+    repo_root = _SPEND_DIR.parent.parent.parent
+    if cwd_path != repo_root and repo_root not in cwd_path.parents:
         return
 
     state = _load_state()
