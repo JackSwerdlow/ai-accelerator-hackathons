@@ -132,3 +132,19 @@ def test_log_api_error_records_row_id_and_error(caplog):
     error_record = next(r for r in caplog.records if r.message == "row.api_error")
     assert error_record.row_id == "row-9"
     assert "rate limited" in error_record.error
+
+
+def test_init_telemetry_never_raises_even_if_instrumentor_fails(monkeypatch):
+    from openinference.instrumentation.anthropic import AnthropicInstrumentor
+
+    def _boom(self, **kwargs):
+        raise RuntimeError("simulated instrumentor failure")
+
+    monkeypatch.setattr(AnthropicInstrumentor, "instrument", _boom)
+
+    telemetry.init_telemetry()  # must not raise
+
+
+def test_init_telemetry_configures_metrics_so_recording_works_after():
+    telemetry.init_telemetry()
+    telemetry.record_row_outcome("success")  # must not raise (instruments exist)

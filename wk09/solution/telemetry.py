@@ -112,3 +112,50 @@ def log_parse_error(row_id, raw_response, error):
 
 def log_api_error(row_id, error):
     logger.error("row.api_error", extra={"row_id": row_id, "error": str(error)})
+
+
+from opentelemetry import metrics, trace
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+
+def init_telemetry():
+    """Wire up real OTLP-exporting providers and AnthropicInstrumentor. Call
+    once, before constructing the Anthropic client. Never raises: a telemetry
+    setup failure must not take down the actual batch run, so every step is
+    inside one try/except that logs and swallows."""
+    try:
+        resource = Resource.create({"service.name": SERVICE_NAME})
+
+        tracer_provider = TracerProvider(resource=resource)
+        tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+        trace.set_tracer_provider(tracer_provider)
+
+        meter_provider = MeterProvider(
+            resource=resource,
+            metric_readers=[PeriodicExportingMetricReader(OTLPMetricExporter())],
+        )
+        metrics.set_meter_provider(meter_provider)
+        configure_metrics(meter_provider)
+
+        logger_provider = LoggerProvider(resource=resource)
+        logger_provider.add_log_record_processor(
+            BatchLogRecordProcessor(OTLPLogExporter())
+        )
+        set_logger_provider(logger_provider)
+        logging.getLogger().addHandler(LoggingHandler(logger_provider=logger_provider))
+
+        from openinference.instrumentation.anthropic import AnthropicInstrumentor
+
+        AnthropicInstrumentor().instrument(tracer_provider=tracer_provider)
+    except Exception:
+        logger.exception("telemetry.init_failed")
