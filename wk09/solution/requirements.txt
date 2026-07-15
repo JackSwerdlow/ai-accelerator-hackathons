@@ -9,3 +9,4 @@ pandas
 matplotlib
 streamlit
 plotly
+pytest

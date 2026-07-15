@@ -51,8 +51,8 @@ one of them directly. Rules for using this file:
 | MON2 | Monitoring | No cost kill-switch/guardrail | Medium | High | P0 |
 | GOV3 | Governance | Model alias not pinned/versioned for auditability | Medium | High | P0 |
 | S9 | Security hardening | Prompt injection via response text unguarded | Medium | High | P0 |
+| S5 | Security | Concurrent runs can crash on a shared state-file race (confirmed bug) | High | Medium | P0 |
 | R4 | Resilience | No fallback provider/circuit breaker for sustained outage | Medium | Medium | P1 |
-| S5 | Security | Concurrent-run safety unverified | Medium | Medium | P1 |
 | O1 | Operability | README may drift from real run steps | Low | Medium | P1 |
 | O2 | Operability | Not verified a fresh person can run it | Medium | High | P1 |
 | O3 | Operability | Secrets/config hygiene (.env etc.) | Medium | Medium | P1 |
@@ -229,10 +229,17 @@ one of them directly. Rules for using this file:
 - [ ] **S5** — Concurrent-run safety: two people running `analyse.py`
       against the same output at once does not corrupt `results.json`
       (README: "haven't checked").
-      Risk: Medium — explicitly flagged as an open question by the policy
-      team; more likely as more people get access to the tool.
+      **Confirmed real bug (2026-07-15), not just an open question**:
+      `_save_state`'s temp file path is identical for both processes when
+      they share a state file, so one process's write-then-rename can race
+      the other's and crash outright with
+      `FileNotFoundError: ...'.batch_state.tmp' -> '.batch_state.json'`
+      (reproduced ~1-in-5-6 concurrent-pair attempts; see EVAL_REPORT.md).
+      Risk: **High** (upgraded from Medium — this crashes a run, not just
+      redundant work) — explicitly flagged as an open question by the
+      policy team; more likely as more people get access to the tool.
       Impact: Medium.
-      Priority: P1
+      Priority: **P0** (upgraded from P1)
       Evidence: `tests/system/test_operability.py`
 - [ ] **S6** — Dependency vulnerability scanning (e.g. `pip-audit` /
       `safety` against `requirements.txt`) as part of the CI gate (**CI1**).

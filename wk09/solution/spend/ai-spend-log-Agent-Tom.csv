@@ -1,5 +1,12 @@
-Timestamp,AgentName,CallType,Purpose,Model,UploadTokens,DownloadTokens,CostGBP
-2026-07-15T11:07:43.524653+00:00,Agent-Tom,ClaudeCode,Planning,claude-sonnet-4-6,3,770,0.0091
-2026-07-15T11:07:43.536611+00:00,Agent-Tom,ClaudeCode,Planning,claude-sonnet-4-6,112,43414,0.5147
-2026-07-15T11:08:23.240140+00:00,Agent-Tom,ClaudeCode,Implementation,claude-sonnet-4-6,115,46538,0.5517
-2026-07-15T11:13:16.069560+00:00,Agent-Tom,ClaudeCode,Debugging,claude-sonnet-4-6,9,5203,0.0617
+Timestamp,AgentName,CallType,Purpose,Description,Model,UploadTokens,DownloadTokens,CostGBP
+2026-07-15T11:07:43.524653+00:00,Agent-Tom,ClaudeCode,Planning,Brainstorming subagent: explored spend tracking options for 4-person team,claude-sonnet-4-6,3,770,0.0091
+2026-07-15T11:07:43.536611+00:00,Agent-Tom,ClaudeCode,Planning,Designed per-agent CSV spend tracking system with Stop hook auto-logging,claude-sonnet-4-6,112,43414,0.5147
+2026-07-15T11:08:23.240140+00:00,Agent-Tom,ClaudeCode,Implementation,Built spend/ package: pricing lookup, Stop hook, logger, aggregator and Streamlit dashboard,claude-sonnet-4-6,115,46538,0.5517
+2026-07-15T11:13:16.069560+00:00,Agent-Tom,ClaudeCode,Debugging,Fixed NameError: cwd variable missing in Stop hook main() after refactor,claude-sonnet-4-6,9,5203,0.0617
+2026-07-15T14:42:56.656712+00:00,Agent-Tom,Claude API,Research,Probe call to test Anthropic SDK integration for spend instrumentation,claude-sonnet-5,18,4,0.0001
+2026-07-15T14:44:34.688212+00:00,Agent-Tom,Claude API,Testing,Test run of analyse.py spend instrumentation via SDK,claude-sonnet-5,778,182,0.004
+2026-07-15T15:23:24.603569+00:00,Agent-Tom,ClaudeCode,Testing,Auto-logged ClaudeCode session (description not captured — edit if known),claude-sonnet-5,73574226,241582,16.3706
+2026-07-15T15:25:55.535124+00:00,Agent-Tom,ClaudeCode,Testing,Auto-logged ClaudeCode session (description not captured — edit if known),claude-sonnet-5,118180028,311733,23.4117
+2026-07-15T15:37:45.278588+00:00,Agent-Tom,ClaudeCode,Testing,Auto-logged ClaudeCode session (description not captured — edit if known),claude-sonnet-5,3535987,8439,1.6583
+2026-07-15T15:45:22.060726+00:00,Agent-Tom,ClaudeCode,Other,Auto-logged ClaudeCode session (description not captured — edit if known),claude-sonnet-5,8046045,11801,2.3258
+2026-07-15T15:48:40.406922+00:00,Agent-Tom,ClaudeCode,Debugging,Auto-logged ClaudeCode session (description not captured — edit if known),claude-sonnet-5,6038286,11428,1.0813

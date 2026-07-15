@@ -1,0 +1,19 @@
+id,expected_themes,expected_sentiment,reference_summary
+1,digital exclusion;accessibility,mixed,Supports the idea in principle but worried older non-smartphone-users will be excluded.
+2,business efficiency;cost,supportive,A lettings agency welcomes the cost savings from cutting right-to-rent check admin time.
+3,privacy;governance,opposed,Firmly opposed to a government identity database, comparing it to the rejected 2010 ID cards scheme.
+4,digital exclusion;accessibility,mixed,A charity says the scheme must include a non-digital route or it will deepen exclusion for vulnerable service users.
+5,governance;trust,mixed,An academic argues governance matters more than technology and wants the trust framework published before procurement.
+7,cost;implementation,mixed,A local authority supports a common standard but needs clarity on funding for local integration.
+8,security;trust,mixed,Worried about what happens if the system goes down given past IT outages, and wants to know the fallback plan.
+9,privacy;business efficiency,supportive,A business wants a simple, privacy-preserving government-backed age attribute service.
+10,accessibility;governance,mixed,Wants accessibility for assistive technology users to be a hard requirement, not optional.
+11,digital exclusion;accessibility,mixed,A charity representing older people says assisted digital provision is barely mentioned in the consultation.
+13,privacy;governance,mixed,Worried about scope creep beyond the original purpose and wants explicit purpose limitations in law.
+17,privacy;security,mixed,A trans respondent wants selective disclosure so past names/gender markers are not exposed by the system.
+18,fraud reduction;cost,supportive,Broadly supportive and argues the consultation underestimates the fraud-reduction economic benefits.
+20,digital exclusion;governance,mixed,A refugee charity wants clear enrolment routes for people without passports or driving licences.
+23,governance;trust,mixed,Asks who is liable and how redress works if the identity system is compromised or misused.
+26,security;governance,mixed,An academic flags unaddressed algorithmic bias in biometric verification accuracy across demographic groups.
+32,security;implementation,mixed,A cybersecurity professional wants phishing-resistant authentication and enrolment fraud addressed first.
+40,governance;trust,mixed,Recommends an independent equality impact assessment, a published DPIA, and primary legislation over informal frameworks.
