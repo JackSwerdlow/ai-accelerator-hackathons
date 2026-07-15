@@ -22,10 +22,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/log_claude_code_session.py"
 HOOK_CMD="AGENT_NAME=${AGENT_NAME} python3 ${SCRIPT_PATH}"
 
-# Project-local settings: wk09/.claude/settings.json
-# This is already covered by .gitignore (.claude/*) so it stays machine-local.
+# Project-local settings: wk09/.claude/settings.local.json
+# settings.local.json is the per-machine override file; it is gitignored and
+# never committed, so each teammate's install stays private.
 WK09_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-SETTINGS_FILE="${WK09_DIR}/.claude/settings.json"
+SETTINGS_FILE="${WK09_DIR}/.claude/settings.local.json"
 
 mkdir -p "$(dirname "$SETTINGS_FILE")"
 if [[ ! -f "$SETTINGS_FILE" ]]; then

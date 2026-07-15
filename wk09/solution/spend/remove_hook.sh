@@ -52,6 +52,6 @@ PYEOF
 }
 
 echo "Removing spend-tracking hook..."
-remove_from "${WK09_DIR}/.claude/settings.json"
+remove_from "${WK09_DIR}/.claude/settings.local.json"
 remove_from "${HOME}/.claude/settings.json"
 echo "Done."
