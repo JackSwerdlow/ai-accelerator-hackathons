@@ -10,7 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 
 # CSVs live at solution/ level
-_ROOT = Path(__file__).parent.parent
+_ROOT = Path(__file__).resolve().parent
 
 
 def load_rows():

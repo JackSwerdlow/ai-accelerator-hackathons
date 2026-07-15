@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Batch APIs: Cheaper — Not Faster</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #f3f2ef;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #86847d;
+    --blue:           #2a78d6;   /* categorical slot 1 — Time */
+    --green:          #008300;   /* categorical slot 2 — Cost */
+    --border:         rgba(11,11,11,0.10);
+    --good:           #0ca30c;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--surface-1);
+    color: var(--text-primary);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  .slide {
+    width: 100vw;
+    height: 100vh;
+    max-width: 1280px;
+    max-height: 720px;
+    margin: 0 auto;
+    padding: 44px 64px 36px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .eyebrow {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    font-size: 44px;
+    line-height: 1.08;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  h1 .fade { color: var(--text-secondary); font-weight: 500; }
+
+  .subtitle {
+    font-size: 19px;
+    color: var(--text-secondary);
+    margin: 0 0 28px;
+    max-width: 900px;
+    line-height: 1.45;
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    flex: 1;
+  }
+
+  .tile {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .tile-name {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 2px;
+  }
+  .tile-desc {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin: 0 0 18px;
+    min-height: 34px;
+  }
+
+  .badge {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--good);
+    background: rgba(12,163,12,0.10);
+    border: 1px solid rgba(12,163,12,0.28);
+    border-radius: 999px;
+    padding: 3px 10px;
+  }
+
+  .metric-row { display: flex; align-items: baseline; gap: 10px; margin: 7px 0; }
+  .metric-label {
+    width: 46px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .metric-value { font-size: 30px; font-weight: 700; line-height: 1; }
+  .metric-value.time { color: var(--blue); }
+  .metric-value.cost { color: var(--green); }
+  .metric-unit { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+
+  .legend-row {
+    display: flex; gap: 22px; margin-top: 10px;
+    font-size: 12.5px; color: var(--text-muted);
+  }
+  .legend-row span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .dot.time { background: var(--blue); }
+  .dot.cost { background: var(--green); }
+
+  .footer {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+  }
+  .takeaway {
+    font-size: 16.5px;
+    font-weight: 600;
+    max-width: 640px;
+    line-height: 1.4;
+  }
+  .industry-note {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    max-width: 380px;
+    text-align: right;
+    line-height: 1.5;
+  }
+  .industry-note b { color: var(--text-secondary); }
+</style>
+</head>
+<body data-palette="2a78d6,008300">
+  <div class="slide">
+    <p class="eyebrow">Operationalising an LLM prototype</p>
+    <h1>Batch APIs are <span class="fade">50% cheaper.</span><br>They are not faster.</h1>
+    <p class="subtitle">
+      Same model, same output — but no minimum speed, only a target SLA
+      (up to 24h). We tested all three ways of driving the same API on the
+      same real workload today:
+    </p>
+
+    <div class="tiles">
+      <div class="tile">
+        <p class="tile-name">Sequential</p>
+        <p class="tile-desc">One request at a time, standard price</p>
+        <div class="metric-row">
+          <span class="metric-label">Time</span>
+          <span class="metric-value time">103<span class="metric-unit">s</span></span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Cost</span>
+          <span class="metric-value cost">£0.083</span>
+        </div>
+      </div>
+
+      <div class="tile">
+        <span class="badge">Fastest</span>
+        <p class="tile-name">Concurrent</p>
+        <p class="tile-desc">All requests fired in parallel, standard price</p>
+        <div class="metric-row">
+          <span class="metric-label">Time</span>
+          <span class="metric-value time">11<span class="metric-unit">s</span></span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Cost</span>
+          <span class="metric-value cost">£0.082</span>
+        </div>
+      </div>
+
+      <div class="tile">
+        <span class="badge">Cheapest</span>
+        <p class="tile-name">Batch API</p>
+        <p class="tile-desc">Queued, processed whenever capacity allows</p>
+        <div class="metric-row">
+          <span class="metric-label">Time</span>
+          <span class="metric-value time">~26<span class="metric-unit">min</span></span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Cost</span>
+          <span class="metric-value cost">£0.042</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend-row">
+      <span><span class="dot time"></span>Time to complete</span>
+      <span><span class="dot cost"></span>Token cost</span>
+    </div>
+
+    <div class="footer">
+      <p class="takeaway">
+        "Batch" and "concurrent" are different tools — batch trades speed for
+        cost; concurrency doesn't trade anything. Use batch for the job
+        nobody's waiting on; use concurrent/sync for anything someone is.
+      </p>
+      <p class="industry-note">
+        <b>Not an Anthropic quirk</b> — OpenAI's Batch API and Google's
+        Gemini Batch Mode use the identical shape: 50% off, ~24h target,
+        usually much faster in practice.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

@@ -5,7 +5,6 @@
 import csv
 import json
 import os
-from pathlib import Path
 
 from langchain_anthropic import ChatAnthropic
 
@@ -39,42 +38,20 @@ Respond with ONLY the JSON object, no other text.
 RESPONSE TO ANALYSE:
 """
 
-# Paths are relative to this script so it works from any working directory.
-_HERE = Path(__file__).parent
-_RESULTS = _HERE / "results.json"
-
 
 def analyse_response(text):
     response = llm.invoke(INSTRUCTIONS + text)
-    try:
-        return json.loads(response.content)  # the model always returns valid JSON (right?)
-    except json.JSONDecodeError:
-        # Return a neutral fallback so one bad response doesn't crash the run.
-        return {"summary": "Could not parse model response", "themes": [], "sentiment": "neutral"}
+    return json.loads(response.content)  # the model always returns valid JSON (right?)
 
 
 def main():
     with open("../data/responses_sample.csv", newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 
-    # Load any previously saved results so we can resume after a crash
-    # without losing the work already done.
-    if _RESULTS.exists():
-        with open(_RESULTS, encoding="utf-8") as f:
-            results = json.load(f)
-        print(f"Resuming — {len(results)} results already saved, skipping those rows")
-    else:
-        results = []
-
-    processed_ids = {r["id"] for r in results}
-
     print(f"Analysing {len(rows)} responses...")
+    results = []
 
     for i, row in enumerate(rows, start=1):
-        if row["id"] in processed_ids:
-            print(f"  [{i}/{len(rows)}] skipped (already done)")
-            continue
-
         analysis = analyse_response(row["response_text"])
         results.append({
             "id": row["id"],
@@ -84,11 +61,11 @@ def main():
         })
         print(f"  [{i}/{len(rows)}] done")
 
-        # Write after every result so a crash loses nothing.
-        with open(_RESULTS, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=2)
+    # Write everything out at the end in one go.
+    with open("results.json", "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
 
-    print(f"Saved {_RESULTS}")
+    print("Saved results.json")
 
 
 if __name__ == "__main__":

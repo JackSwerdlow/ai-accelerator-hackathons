@@ -1,0 +1,5 @@
+Timestamp,AgentName,CallType,Purpose,Model,RunMode,UploadTokens,DownloadTokens,CostGBP
+2026-07-15T12:34:31.885924+00:00,Agent-Jack,Claude API,Data analysis,claude-sonnet-5,batch,15436,4083,0.0283
+2026-07-15T12:53:35.003390+00:00,Agent-Jack,Claude API,Data analysis,claude-sonnet-5,concurrent,15436,3853,0.0548
+2026-07-15T12:55:32.160735+00:00,Agent-Jack,Claude API,Data analysis,claude-sonnet-5,sequential,15436,3913,0.0553
+2026-07-15T13:59:07.342441+00:00,Agent-Jack,Claude API,Data analysis,claude-sonnet-5,sequential,1101,257,0.0038
