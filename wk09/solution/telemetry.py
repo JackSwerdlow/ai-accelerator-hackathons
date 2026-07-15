@@ -8,10 +8,31 @@ know: GBP spend, row outcome, response size, batch progress.
 import logging
 import time
 
+from opentelemetry import metrics, trace
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+from spend.pricing import cost_gbp
+
 SERVICE_NAME = "consultation-insights"
 REDACT_SNIPPET_LEN = 80
 
 logger = logging.getLogger("consultation_insights")
+
+_spend_counter = None
+_rows_counter = None
+_response_size_histogram = None
+_batch_rows_gauge = None
+_initialized = False
 
 
 def _redact_snippet(text, max_len=REDACT_SNIPPET_LEN):
@@ -22,14 +43,6 @@ def _redact_snippet(text, max_len=REDACT_SNIPPET_LEN):
     if len(text) <= max_len:
         return text
     return text[:max_len] + f"...[{len(text)} chars total]"
-
-
-from spend.pricing import cost_gbp
-
-_spend_counter = None
-_rows_counter = None
-_response_size_histogram = None
-_batch_rows_gauge = None
 
 
 def configure_metrics(meter_provider):
@@ -114,25 +127,20 @@ def log_api_error(row_id, error):
     logger.error("row.api_error", extra={"row_id": row_id, "error": str(error)})
 
 
-from opentelemetry import metrics, trace
-from opentelemetry._logs import set_logger_provider
-from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-
 def init_telemetry():
     """Wire up real OTLP-exporting providers and AnthropicInstrumentor. Call
     once, before constructing the Anthropic client. Never raises: a telemetry
     setup failure must not take down the actual batch run, so every step is
-    inside one try/except that logs and swallows."""
+    inside one try/except that logs and swallows.
+
+    Idempotent: only the first call in a process actually wires anything up.
+    Without this guard, calling init_telemetry() more than once (as can happen
+    across tests or re-entrant setup) would keep stacking duplicate root-logger
+    handlers and re-set the global tracer/meter/logger providers.
+    """
+    global _initialized
+    if _initialized:
+        return
     try:
         resource = Resource.create({"service.name": SERVICE_NAME})
 
@@ -154,8 +162,18 @@ def init_telemetry():
         set_logger_provider(logger_provider)
         logging.getLogger().addHandler(LoggingHandler(logger_provider=logger_provider))
 
+        from openinference.instrumentation import TraceConfig
         from openinference.instrumentation.anthropic import AnthropicInstrumentor
 
-        AnthropicInstrumentor().instrument(tracer_provider=tracer_provider)
+        AnthropicInstrumentor().instrument(
+            tracer_provider=tracer_provider,
+            # Consultation responses (the LLM input) and model completions (the
+            # LLM output) may contain PII — never let full prompt/completion
+            # text reach the shared telemetry backend, matching the redaction
+            # already applied to logs above.
+            config=TraceConfig(hide_inputs=True, hide_outputs=True),
+        )
     except Exception:
         logger.exception("telemetry.init_failed")
+    finally:
+        _initialized = True

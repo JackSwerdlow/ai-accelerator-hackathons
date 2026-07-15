@@ -97,6 +97,7 @@ def test_log_batch_started_logs_and_sets_gauge(caplog):
 
 
 def test_log_batch_finished_reports_duration_and_spend(caplog):
+    _configured_reader()  # log_batch_started() -> record_batch_rows_total() needs metrics configured
     with caplog.at_level(logging.INFO, logger="consultation_insights"):
         start_time = telemetry.log_batch_started("claude-sonnet-4-6", row_count=3)
         telemetry.log_batch_finished(
@@ -148,3 +149,29 @@ def test_init_telemetry_never_raises_even_if_instrumentor_fails(monkeypatch):
 def test_init_telemetry_configures_metrics_so_recording_works_after():
     telemetry.init_telemetry()
     telemetry.record_row_outcome("success")  # must not raise (instruments exist)
+
+
+def test_init_telemetry_hides_llm_input_and_output_in_traces(monkeypatch):
+    """Consultation responses (the LLM input) and model completions (the LLM
+    output) may contain PII and must never reach trace spans in full — verify
+    init_telemetry() passes a TraceConfig with both hidden to the instrumentor."""
+    from openinference.instrumentation import TraceConfig
+    from openinference.instrumentation.anthropic import AnthropicInstrumentor
+
+    captured_kwargs = {}
+
+    def _capture_instrument(self, **kwargs):
+        captured_kwargs.update(kwargs)
+
+    monkeypatch.setattr(AnthropicInstrumentor, "instrument", _capture_instrument)
+    # Force init_telemetry()'s body to actually run even though an earlier
+    # test in this file already flipped the module's idempotency guard.
+    monkeypatch.setattr(telemetry, "_initialized", False)
+
+    telemetry.init_telemetry()
+
+    assert "config" in captured_kwargs
+    config = captured_kwargs["config"]
+    assert isinstance(config, TraceConfig)
+    assert config.hide_inputs is True
+    assert config.hide_outputs is True
