@@ -27,6 +27,7 @@ New outputs should be named based on the agent that produces them to minimise me
 - Before calling any task done, run the type checker, tests, and linter.
 - When something goes wrong, stop and re-plan — do not keep pushing.
 - Prefer editing existing files over creating new ones.
+- Perform all work on the main branch unless instructed otherwise.
 
 ## AI assistance log (`AI_LOG.md`)
 
