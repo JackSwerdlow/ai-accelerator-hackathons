@@ -12,8 +12,8 @@ from pathlib import Path
 
 # Resolve the solution/ directory from this file's location so imports and
 # the CSV path work regardless of the working directory the hook runs from.
-_SOLUTION_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_SOLUTION_DIR))
+_SPEND_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(_SPEND_DIR.parent))
 
 try:
     from spend.pricing import cost_gbp
@@ -29,7 +29,7 @@ except ImportError:
         return round((inp * r[0] + out * r[1]) / 1_000_000 * 0.79, 4)
 
 AGENT_NAME = os.environ.get("AGENT_NAME", socket.gethostname())
-LOG_PATH = _SOLUTION_DIR / f"ai-spend-log-{AGENT_NAME}.csv"
+LOG_PATH = _SPEND_DIR / f"ai-spend-log-{AGENT_NAME}.csv"
 STATE_FILE = Path.home() / ".claude" / "spend_tracking_state.json"
 
 _HEADERS = [
@@ -153,7 +153,7 @@ def main():
     # Guard: only log when Claude Code is running inside this project.
     # Prevents accidental logging if the hook ever ends up in global settings.
     cwd_path = Path(cwd).resolve() if cwd else Path.cwd()
-    if _SOLUTION_DIR not in [cwd_path, *cwd_path.parents]:
+    if _SPEND_DIR not in [cwd_path, *cwd_path.parents]:
         return
 
     state = _load_state()

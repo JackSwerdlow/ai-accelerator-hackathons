@@ -14,7 +14,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 
-_ROOT = Path(__file__).parent.parent
+_ROOT = Path(__file__).resolve().parent
 
 
 def _load():

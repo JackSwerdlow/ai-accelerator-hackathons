@@ -7,7 +7,7 @@ from pathlib import Path
 AGENT_NAME = os.environ.get("AGENT_NAME", socket.gethostname())
 
 # CSV written at solution/ level alongside analyse.py, not inside spend/
-_LOG_DIR = Path(__file__).parent.parent
+_LOG_DIR = Path(__file__).resolve().parent
 _LOG_PATH = _LOG_DIR / f"ai-spend-log-{AGENT_NAME}.csv"
 
 _HEADERS = [

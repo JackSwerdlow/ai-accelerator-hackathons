@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent
+ROOT = Path(__file__).resolve().parent
 
 st.set_page_config(page_title="AI Spend", layout="wide")
 st.title("AI Spend Dashboard")
