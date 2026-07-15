@@ -87,6 +87,42 @@ def _parse_usage(entries):
     return inp, out, model
 
 
+# Keyword map used to auto-detect purpose category from last assistant message.
+# Ordered: first match wins. Keep higher-specificity patterns earlier.
+# Categories mirror the table in wk09/CLAUDE.md — keep in sync if you add one.
+_CATEGORY_KEYWORDS = [
+    ("Debugging",     ["error", "exception", "traceback", "bug", "fix", "broken", "fail", "crash",
+                       "not working", "incorrect", "wrong output"]),
+    ("Testing",       ["test", "pytest", "unittest", "assertion", "coverage", "eval", "evaluate",
+                       "quality check", "regression"]),
+    ("Refactoring",   ["refactor", "clean up", "reorganis", "reorganiz", "restructur", "simplif",
+                       "rename", "extract", "move", "deduplic"]),
+    ("Planning",      ["plan", "design", "architecture", "spec", "approach", "brainstorm",
+                       "strategy", "breakdown", "roadmap", "decide"]),
+    ("Research",      ["research", "investigat", "look up", "documentation", "how to", "what is",
+                       "compare", "option", "alternative", "library", "framework"]),
+    ("Documentation", ["readme", "docstring", "comment", "document", "ai_log", "claude.md",
+                       "write up", "notes"]),
+    ("Configuration", ["config", "setup", "install", "dependency", "requirement", "environment",
+                       "settings", "docker", "ci", "workflow", "git"]),
+    ("Code review",   ["review", "explain", "understand", "walk me through", "what does",
+                       "how does", "read through", "audit"]),
+    ("Data analysis", ["analys", "result", "batch", "csv", "dataset", "summarise", "summarize",
+                       "insight", "theme", "sentiment"]),
+    ("Implementation",["implement", "add", "create", "write", "build", "generat", "new function",
+                       "new class", "new file", "feature"]),
+]
+
+
+def _infer_purpose(last_message: str) -> str:
+    """Return the best-matching category from last_message, or 'Other'."""
+    text = last_message.lower()
+    for category, keywords in _CATEGORY_KEYWORDS:
+        if any(kw in text for kw in keywords):
+            return category
+    return "Other"
+
+
 def _write_row(purpose, model, inp, out):
     write_header = not LOG_PATH.exists()
     with LOG_PATH.open("a", newline="") as f:
@@ -108,7 +144,7 @@ def main():
 
     session_id = data.get("session_id", "unknown")
     transcript_path = data.get("transcript_path", "")
-    cwd = data.get("cwd", "")
+    last_message = data.get("last_assistant_message", "")
 
     if not transcript_path or not Path(transcript_path).exists():
         return
@@ -120,8 +156,7 @@ def main():
     inp, out, model = _parse_usage(new_entries)
 
     if inp > 0 or out > 0:
-        folder = Path(cwd).name if cwd else "unknown"
-        purpose = f"Claude Code — {folder}"
+        purpose = _infer_purpose(last_message)
         _write_row(purpose, model, inp, out)
 
     state[session_id] = total_lines
