@@ -461,3 +461,25 @@ script, present since it was first written (before this session touched it).
 
 **Files:** `solution/spend/log_claude_code_session.py`,
 `solution/ai-spend-log-Agent-Jack.csv`.
+
+---
+
+## [Agent-Tom] 2026-07-15 — Implemented the eval/test plan; several assumptions in the plan itself turned out to be wrong
+
+**Task:** Implement `plans/eval-test-plan-agent-tom.md` in full: `tests/` (baseline, system, unit), `evals/` (PII scan, golden-set quality eval, cost/scale projection), and a CI workflow. This entry's corrections were caught by actually running the code, not by a separate human review pass - logged here because the AI's first assumption differed from reality in ways worth recording, per the same rationale as the entries above.
+
+**What AI Generated (and initially assumed, incorrectly):**
+
+1. The plan asserted `solution/analyse.py`'s import-time `ChatAnthropic` client construction would block in-process unit testing, and named "defer client construction" as a required first refinement step before `tests/unit/` could exist.
+   - **Corrected by testing, not assumption:** wrote a throwaway script that imported `analyse` with a dummy key and monkeypatched `analyse.llm` afterward - it worked immediately. SDK client construction doesn't make a network call, so nothing needed to change in `analyse.py` to unlock unit testing. Removed the refactor step from the plan (Purpose, Architecture §2, and Sequencing sections) and proceeded straight to writing `tests/unit/` against today's code.
+
+2. The plan's "frozen baseline" design assumed `starter/` was still a read-only, unmodified reference of the original prototype's bugs.
+   - **Corrected by running the baseline test and getting a confusing pass:** a collaborator (`nhsbsa-sakiu`, commit `44291c8`) had patched `starter/analyse.py` directly with checkpointing and safe JSON parsing, in violation of `wk09/CLAUDE.md`'s read-only rule for `starter/`. Running the "prove the crash" test against the *live* `starter/` directory would no longer reproduce the crash. Fix: extracted the original `starter/analyse.py` from git history (commit `f7a35f5`, before the patch) into `tests/fixtures/starter_analyse_original_snapshot.py`, verified its checksum against the git object, and pointed the baseline suite at that frozen snapshot instead of the live directory.
+
+3. `evals/pii_scan.py`'s first NI-number regex was written as a strict validator excluding the letter combinations real NI numbers can't start with (per HMRC rules) - which meant it did **not** flag `tests/fixtures/responses_pii.csv`'s deliberate example, `QQ123456C`.
+   - **Corrected by running the test fixture through it:** `QQ123456C` is HMRC's own documentation example, deliberately using an invalid prefix so it can never collide with a real person's number - exactly why a strict validator missed it. Since this is a screening scan (false positives are cheap, false negatives are the real risk), loosened the pattern to match the general two-letters/six-digits/one-letter shape rather than validating real NI-number rules.
+
+4. Assumed (without checking) that the model string `"claude-sonnet-5"` used throughout `analyse.py` might need updating, after finding a comment in `spend/pricing.py` (unrelated tooling, written in an earlier session) claiming it "is not a valid model ID."
+   - **Corrected with a real, minimal API call:** called the real Anthropic API with `model="claude-sonnet-5"` directly rather than trusting either claim - it returned a normal response. The `spend/pricing.py` comment is incorrect (likely written before this model existed) and is flagged in `EVAL_REPORT.md` so nobody "fixes" `analyse.py` to a worse model based on it. The verification call's tiny real cost (18 input / 4 output tokens) is logged to `spend/ai-spend-log-Agent-Tom.csv`.
+
+**What was otherwise test-harness bugs, not product findings (fixed without ceremony):** `MockAnthropicServer.queue_json()` initially didn't accept token-count kwargs (`TypeError` on first run of `tests/system/test_visibility.py`); the README/viewer reachability test initially only caught `URLError`/`ConnectionError`, not the bare `TimeoutError` a slow-starting Flask server actually raised. Both were caught by watching tests fail for the wrong reason (per TDD's "verify RED" step) and fixed in the test harness, not the assertions.

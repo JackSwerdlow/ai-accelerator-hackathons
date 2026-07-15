@@ -32,11 +32,13 @@ These are the concrete, file-and-line-referenced "sins" the suite targets:
 
 - `starter/analyse.py:11-15` — `ChatAnthropic` client and API key are constructed
   at **import time**, with a hardcoded `"PASTE-YOUR-KEY-HERE"` fallback baked into
-  source if the env var is unset. This also means the module can't be imported in
-  a test without a real (or monkeypatched) key already in the environment.
-  `solution/analyse.py` has this same issue today (it's an unrefined copy) —
-  deferring client construction out of import time is the first refinement
-  step, and is what unlocks the unit-test tier below.
+  source if the env var is unset (closes checklist **S1** once removed).
+  **Correction (verified empirically, 2026-07-15):** this does *not* block
+  in-process unit testing as originally assumed here - constructing
+  `ChatAnthropic` doesn't make a network call, so the module imports fine
+  with a dummy key, and `analyse.llm` can be monkeypatched after import.
+  No client-construction refactor was needed to unlock the unit-test tier
+  below; it works against today's unrefined `solution/analyse.py` as-is.
 - `starter/analyse.py:44` — `json.loads(response.content)` with no error handling;
   comment literally says "the model always returns valid JSON (right?)". Any
   non-JSON completion crashes the whole run.
@@ -136,11 +138,11 @@ iterated on, which matters because it currently has the same internals as
 
 ### 2. Unit tests (Correctness + Security)
 
-Requires `solution/analyse.py` to expose testable functions (client
-construction deferred out of import time — see Known baseline behaviour
-above; this is not yet true today, since `solution/analyse.py` is currently
-an unrefined copy of `starter/analyse.py`, so this test tier is blocked
-until that first refinement lands). Mocked `ChatAnthropic`, no network, no cost.
+Works against today's unrefined `solution/analyse.py` directly - see the
+correction in Known baseline behaviour above. `tests/conftest.py`'s
+`solution_module` fixture imports `analyse` with a dummy key and each test
+monkeypatches `analyse.llm` before calling the function under test. Mocked
+`ChatAnthropic`, no network, no cost.
 
 - **Correctness:** JSON extraction/repair (fenced code blocks, leading/trailing
   prose, truncated output), checkpoint file format round-trips, idempotent
@@ -269,23 +271,21 @@ narrowly rather than dropping it:
 
 ## Sequencing
 
-1. **Now:** write `tests/baseline/`, `tests/system/`, and fixtures; run the
-   suite against both `starter/` and today's `solution/analyse.py` (an
-   unrefined copy). Freeze the `starter/` evidence. Expect `solution/` to
-   fail identically to `starter/` at this point — record that as the
-   starting red baseline, not a surprise. This alone is a deliverable: it
-   demonstrates the sin with reproducible proof, usable in a Day 1
-   presentation even before any fix lands.
-2. **First refinement step — defer client construction out of import time
-   in `solution/analyse.py`:** this alone doesn't fix any brief-stated sin,
-   but it's the prerequisite that unlocks `tests/unit/` (mocked, no real
-   API calls) — do this before or alongside the first behavioural fix.
-3. **As `solution/analyse.py` is iteratively refined:** `tests/unit/` and
-   the operability/resilience assertions in `tests/system/` are the TDD
-   spec each change is written against. Track which assertions flip from
-   red to green and when — that per-fix trajectory is itself evidence for
-   the Day 2 presentation, not just the final green state.
-4. **Once core correctness/resilience is green:** run the quality eval and
+1. **Done (2026-07-15):** `tests/baseline/`, `tests/system/`, `tests/unit/`,
+   fixtures, `evals/pii_scan.py`, `evals/run_quality_eval.py`,
+   `evals/scale/`, and `.github/workflows/tests.yml` are all implemented
+   and have been run. Full results are in `EVAL_REPORT.md`: 14 failed / 14
+   passed / 1 skipped against today's unrefined `solution/analyse.py`, plus
+   the 2 frozen baseline tests passing against the original `starter/`
+   snapshot. No client-construction refactor was needed (see the
+   correction above) - `tests/unit/` already runs against today's code.
+2. **Next - iteratively refine `solution/analyse.py`:** `tests/unit/` and
+   the resilience/operability/visibility assertions in `tests/system/` are
+   the TDD spec each change is written against. Track which assertions
+   flip from red to green and when, in `EVAL_REPORT.md` - that per-fix
+   trajectory is itself evidence for the Day 2 presentation, not just the
+   final green state.
+3. **Once core correctness/resilience is green:** run the quality eval and
    scale/cost projection to quantify the improvement for the Day 2
    presentation, and regenerate `EVAL_REPORT.md`.
 

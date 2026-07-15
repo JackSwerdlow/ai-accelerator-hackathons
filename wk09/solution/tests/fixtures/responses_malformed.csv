@@ -1,0 +1,4 @@
+id,respondent_type,response_text
+1,individual,This response will get a normal, well-formed reply from the mocked model.
+2,individual,This response is engineered so the mocked model returns text that is not valid JSON.
+3,individual,This response should be analysed normally after the bad row above.

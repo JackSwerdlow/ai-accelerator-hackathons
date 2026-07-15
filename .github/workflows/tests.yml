@@ -1,0 +1,63 @@
+name: wk09 Consultation Insights tests
+
+# Closes checklist CI1 (tests run automatically on push) and CI3 (a
+# secrets-scanning gate). Deliberately minimal per
+# wk09/plans/eval-test-plan-agent-tom.md component 6: this is the entire CI
+# surface for this project - no deploy pipeline, no container build, no
+# approval gates. That remains the brief's self-led "W7 pipeline, for real"
+# stretch direction, not this gate.
+
+on:
+  push:
+    paths:
+      - "wk09/**"
+      - ".github/workflows/tests.yml"
+  pull_request:
+    paths:
+      - "wk09/**"
+      - ".github/workflows/tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wk09/solution
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        # Real-API scripts (evals/run_quality_eval.py) are not pytest tests
+        # and are never invoked here - no ANTHROPIC_API_KEY is available or
+        # needed in CI, and no real spend happens on every push.
+        run: python -m pytest tests/ -v
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for hardcoded API keys
+        run: |
+          set -e
+          # A real Anthropic key (sk-ant-...) or the original placeholder
+          # fallback string ("PASTE-YOUR-KEY-HERE") must never be committed.
+          if grep -rEn "sk-ant-(api03-)?[A-Za-z0-9_-]{20,}" --include="*.py" wk09/ ; then
+            echo "::error::Found what looks like a real Anthropic API key committed to source."
+            exit 1
+          fi
+          # Excludes tests/: the frozen baseline fixture intentionally
+          # preserves this exact historical bug, and the security test
+          # asserts its *absence* from live code - neither is a real leak.
+          if grep -rn "PASTE-YOUR-KEY-HERE" --include="*.py" wk09/solution/ --exclude-dir=tests ; then
+            echo "::error::Found a hardcoded placeholder API key fallback in live source (checklist S1)."
+            exit 1
+          fi
+          echo "No hardcoded API keys found."
