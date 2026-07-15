@@ -1,0 +1,433 @@
+[
+  {
+    "id": "1",
+    "respondent_type": "individual",
+    "response_text": "I support digital identity in principle but I am deeply worried about my elderly mother who has never used a smartphone. If proving who you are goes digital-only, people like her will be locked out of services they have used all their lives.",
+    "summary": "The respondent supports digital identity in principle but expresses concern that a digital-only approach would exclude elderly people unfamiliar with smartphones from accessing services.",
+    "themes": [
+      "digital exclusion",
+      "accessibility"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "2",
+    "respondent_type": "business",
+    "response_text": "As a small lettings agency we spend roughly six hours a week on right-to-rent checks. A single reusable digital identity would cut our admin costs significantly. We would welcome this if the verification standard is accepted across government.",
+    "summary": "A small lettings agency supports the introduction of a reusable digital identity, noting it could significantly reduce time and costs spent on right-to-rent checks if universally accepted across government.",
+    "themes": [
+      "business efficiency",
+      "cost"
+    ],
+    "sentiment": "supportive"
+  },
+  {
+    "id": "3",
+    "respondent_type": "individual",
+    "response_text": "Absolutely not. The government has no business building a database of everyone's identity. We rejected ID cards in 2010 and this is the same thing with an app icon.",
+    "summary": "The respondent opposes the introduction of a digital identity system, comparing it to the previously rejected national ID card scheme.",
+    "themes": [
+      "privacy",
+      "trust",
+      "governance"
+    ],
+    "sentiment": "opposed"
+  },
+  {
+    "id": "4",
+    "respondent_type": "charity",
+    "response_text": "Our service users include rough sleepers and people fleeing domestic abuse. Many have no fixed address, no passport, and no bank account. Any digital identity scheme must include a robust non-digital route or it will deepen exclusion for the people we support.",
+    "summary": "The response highlights the need for a non-digital alternative to digital identity schemes to avoid excluding vulnerable groups such as rough sleepers and domestic abuse survivors who lack fixed addresses, passports, or bank accounts.",
+    "themes": [
+      "digital exclusion",
+      "accessibility"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "5",
+    "respondent_type": "academic",
+    "response_text": "The proposal conflates identification and authentication in several places. International evidence (Estonia, Aadhaar) shows the governance model matters more than the technology. I would urge the department to publish the trust framework before any procurement begins.",
+    "summary": "Could not parse model response",
+    "themes": [],
+    "sentiment": "neutral"
+  },
+  {
+    "id": "6",
+    "respondent_type": "individual",
+    "response_text": "Sounds convenient honestly. I already use my banking app to prove my age. As long as it is optional I do not see the problem.",
+    "summary": "The respondent finds digital identity convenient, citing existing use of a banking app for age verification, and supports it as long as it remains optional.",
+    "themes": [
+      "trust",
+      "implementation"
+    ],
+    "sentiment": "supportive"
+  },
+  {
+    "id": "7",
+    "respondent_type": "local authority",
+    "response_text": "We process around 40,000 identity verifications a year across housing, blue badge, and electoral services. Fragmented paper-based checks are costly and error-prone. We support a common standard but need clarity on funding for local integration.",
+    "summary": "A local authority processing 40,000 identity verifications annually supports a common digital identity standard to replace costly paper-based checks but seeks clarity on funding for local integration.",
+    "themes": [
+      "business efficiency",
+      "cost",
+      "implementation"
+    ],
+    "sentiment": "supportive"
+  },
+  {
+    "id": "8",
+    "respondent_type": "individual",
+    "response_text": "What happens when the system goes down? I was at the airport during the last big IT outage. If my entire legal identity lives on a server in some data centre I want to know what the fallback is.",
+    "summary": "The response raises concerns about system reliability and asks what fallback measures exist if a digital identity system fails, drawing on experience of a major IT outage at an airport.",
+    "themes": [
+      "implementation",
+      "security"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "9",
+    "respondent_type": "business",
+    "response_text": "We operate age-restricted online sales. Current age verification providers charge per check and accuracy varies wildly. A government-backed attribute service (over-18 yes/no, nothing more) would be genuinely useful and privacy-preserving.",
+    "summary": "A business operating age-restricted online sales expressed support for a government-backed attribute verification service that confirms only over-18 status without revealing additional personal data.",
+    "themes": [
+      "privacy",
+      "business efficiency"
+    ],
+    "sentiment": "supportive"
+  },
+  {
+    "id": "10",
+    "respondent_type": "individual",
+    "response_text": "I have a visual impairment and most government apps I have tried are poorly tested with screen readers. Accessibility must be a hard requirement, not a nice-to-have, and tested with real assistive technology users before launch.",
+    "summary": "A visually impaired respondent argues that accessibility must be a mandatory requirement, tested with real assistive technology users before launch, citing poor screen reader compatibility in existing government apps.",
+    "themes": [
+      "accessibility",
+      "digital exclusion"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "11",
+    "respondent_type": "charity",
+    "response_text": "Age Concern branch responding. Around 30% of our members do not use the internet at all. We are not against digital identity but the consultation barely mentions assisted digital provision. Who helps a 90-year-old enrol?",
+    "summary": "Could not parse model response",
+    "themes": [],
+    "sentiment": "neutral"
+  },
+  {
+    "id": "12",
+    "respondent_type": "academic",
+    "response_text": "The security section is thin. Centralised identity systems create high-value attack targets. The document should commit to decentralised or at least federated architecture, with selective disclosure so users reveal only the attribute needed.",
+    "summary": "Could not parse model response",
+    "themes": [],
+    "sentiment": "neutral"
+  },
+  {
+    "id": "13",
+    "respondent_type": "individual",
+    "response_text": "My concern is scope creep. It starts with proving your age to buy a drill and ends with needing the app to see a GP. The legislation must contain explicit purpose limitations.",
+    "summary": "The respondent expresses concern about scope creep, arguing that digital identity legislation must include explicit purpose limitations to prevent expansion from limited uses to essential services.",
+    "themes": [
+      "governance",
+      "privacy"
+    ],
+    "sentiment": "opposed"
+  },
+  {
+    "id": "14",
+    "respondent_type": "business",
+    "response_text": "Recruitment agency here. Right-to-work checks are our single biggest compliance burden. Digital identity verification during the pandemic worked well and we were disappointed when it was scaled back. Bring it back and make it permanent.",
+    "summary": "A recruitment agency supports making digital identity verification for right-to-work checks permanent, citing positive experience during the pandemic and ongoing compliance burdens.",
+    "themes": [
+      "business efficiency",
+      "implementation"
+    ],
+    "sentiment": "supportive"
+  },
+  {
+    "id": "15",
+    "respondent_type": "individual",
+    "response_text": "No strong view on the technology but please do not make another app. My phone already has three government apps that all need separate logins. One front door please.",
+    "summary": "The respondent has no strong view on the digital identity technology itself but urges consolidation into a single access point rather than yet another separate government app.",
+    "themes": [
+      "implementation",
+      "accessibility"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "16",
+    "respondent_type": "local authority",
+    "response_text": "Rural county perspective: 12% of our residents have no reliable broadband and mobile coverage is patchy. Digital identity that assumes constant connectivity will not work here. Offline verification methods are essential.",
+    "summary": "A respondent from a rural county highlights that unreliable broadband and mobile coverage mean any digital identity system must include offline verification methods.",
+    "themes": [
+      "digital exclusion",
+      "implementation"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "17",
+    "respondent_type": "individual",
+    "response_text": "As someone who transitioned five years ago, identity systems that expose previous names or gender markers cause real harm. Selective disclosure and the ability to update records cleanly must be designed in from day one.",
+    "summary": "The respondent, drawing on personal experience as a transgender person, calls for digital identity systems to support selective disclosure and clean record updates to avoid exposing previous names or gender markers.",
+    "themes": [
+      "privacy",
+      "inclusion",
+      "governance"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "18",
+    "respondent_type": "academic",
+    "response_text": "Broadly supportive. The economic modelling underestimates fraud reduction benefits \u2014 our research suggests identity fraud costs UK businesses over \u00a34bn annually and a certified reusable identity could reduce onboarding fraud by 30-40%.",
+    "summary": "Could not parse model response",
+    "themes": [],
+    "sentiment": "neutral"
+  },
+  {
+    "id": "19",
+    "respondent_type": "individual",
+    "response_text": "I run a village shop. Half my customers pay cash and would not know a digital wallet from a hole in the ground. Whatever you build, keep the analogue option or you will cut off half the countryside.",
+    "summary": "A village shop owner warns that many rural, cash-paying customers are unfamiliar with digital wallets and urges that a non-digital option be retained to avoid excluding them.",
+    "themes": [
+      "digital exclusion",
+      "accessibility"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "20",
+    "respondent_type": "charity",
+    "response_text": "Refugee support organisation. Newly arrived people often have no UK footprint and thin documentation. The scheme needs clear enrolment routes for people without passports or driving licences, otherwise it entrenches a two-tier system.",
+    "summary": "A refugee support organisation warns that the digital identity scheme must provide enrolment routes for people lacking passports or driving licences, or it risks creating a two-tier system.",
+    "themes": [
+      "digital exclusion",
+      "accessibility"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "21",
+    "respondent_type": "individual",
+    "response_text": "Strongly support. I have lived in Denmark and MitID makes everything easier \u2014 taxes, healthcare, banking. The UK is years behind and this hesitancy costs everyone time and money.",
+    "summary": "The respondent strongly supports introducing a digital identity system, citing personal experience with Denmark's MitID as evidence that it simplifies access to services and that the UK is lagging behind.",
+    "themes": [
+      "business efficiency",
+      "implementation"
+    ],
+    "sentiment": "supportive"
+  },
+  {
+    "id": "22",
+    "respondent_type": "business",
+    "response_text": "Fintech perspective: we already consume identity via open banking and commercial providers. The government scheme should be interoperable with existing certified providers rather than replacing them. Do not nationalise a functioning market.",
+    "summary": "A fintech respondent argues that the government's digital identity scheme should be interoperable with existing certified identity providers rather than replacing or nationalising the current market.",
+    "themes": [
+      "governance",
+      "implementation",
+      "business efficiency"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "23",
+    "respondent_type": "individual",
+    "response_text": "Who is liable when it goes wrong? If someone impersonates me through this system and empties my account, does the government compensate me? The consultation is silent on redress and that worries me more than the technology.",
+    "summary": "The respondent expresses concern that the consultation fails to address liability and compensation for victims of identity fraud within the proposed digital identity system.",
+    "themes": [
+      "governance",
+      "fraud reduction"
+    ],
+    "sentiment": "opposed"
+  },
+  {
+    "id": "24",
+    "respondent_type": "local authority",
+    "response_text": "Electoral services team. Voter ID rollout showed how quickly identity requirements can disenfranchise people who lack documents. Any digital identity must be free of charge to the citizen, including the non-digital alternative.",
+    "summary": "An electoral services team warns that digital identity requirements could disenfranchise people lacking documents, as seen with voter ID, and stresses that both digital identity and non-digital alternatives must be free of charge.",
+    "themes": [
+      "digital exclusion",
+      "cost"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "25",
+    "respondent_type": "individual",
+    "response_text": "This is a solution looking for a problem. I prove my identity maybe twice a year. The money would be better spent on fixing GP appointment systems.",
+    "summary": "Could not parse model response",
+    "themes": [],
+    "sentiment": "neutral"
+  },
+  {
+    "id": "26",
+    "respondent_type": "academic",
+    "response_text": "The consultation does not address algorithmic bias in biometric verification. Facial recognition error rates are demonstrably higher for darker-skinned users. Certification should require published accuracy figures disaggregated by demographic group.",
+    "summary": "The response criticises the consultation for failing to address demographic disparities in biometric verification accuracy and calls for certification to require disaggregated accuracy data.",
+    "themes": [
+      "accessibility",
+      "governance"
+    ],
+    "sentiment": "opposed"
+  },
+  {
+    "id": "27",
+    "respondent_type": "business",
+    "response_text": "Construction sector. CSCS card fraud is rampant on sites. A verifiable digital credential for qualifications and right-to-work would improve site safety and cut agency fraud. Support, with the caveat that site connectivity is often poor.",
+    "summary": "A construction sector respondent supports a verifiable digital credential to reduce CSCS card fraud and improve site safety, but cautions that poor site connectivity could hinder implementation.",
+    "themes": [
+      "fraud reduction",
+      "implementation"
+    ],
+    "sentiment": "supportive"
+  },
+  {
+    "id": "28",
+    "respondent_type": "individual",
+    "response_text": "Privacy conditions: no central register, no unique persistent identifier shared across services, and criminal penalties for misuse by officials. If those three are met I would use it.",
+    "summary": "The respondent would use a digital identity system only if it includes no central register, no shared unique persistent identifier, and criminal penalties for official misuse.",
+    "themes": [
+      "privacy",
+      "governance"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "29",
+    "respondent_type": "charity",
+    "response_text": "Disability rights organisation. We cautiously welcome the proposals but the phrase 'digital by default' appears eight times and 'assisted digital' once. That ratio tells you where the thinking is.",
+    "summary": "A disability rights organisation cautiously welcomes the digital identity proposals but criticises the imbalance between emphasis on 'digital by default' and minimal attention to 'assisted digital' support.",
+    "themes": [
+      "accessibility",
+      "digital exclusion"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "30",
+    "respondent_type": "individual",
+    "response_text": "Just make sure it works at the Post Office. That is where everyone in my town goes when the council website defeats them.",
+    "summary": "The respondent suggests ensuring the digital identity system is accessible via the Post Office, as many in their town rely on it when unable to use council websites.",
+    "themes": [
+      "accessibility",
+      "digital exclusion"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "31",
+    "respondent_type": "business",
+    "response_text": "Hospitality group operating 200 venues. Manual age checks create friction and staff face abuse when refusing sales. Digital age verification with a simple yes/no attribute would protect staff and customers. We support certification of private wallet providers.",
+    "summary": "A hospitality business supports digital identity with certified private wallet providers, arguing that yes/no age verification would reduce staff abuse and friction from manual age checks.",
+    "themes": [
+      "business efficiency",
+      "privacy"
+    ],
+    "sentiment": "supportive"
+  },
+  {
+    "id": "32",
+    "respondent_type": "individual",
+    "response_text": "I work in cybersecurity. The trust framework must mandate phishing-resistant authentication (passkeys, not SMS codes) and the enrolment process is the weakest link \u2014 document how you stop fraudulent enrolment before anything else.",
+    "summary": "A cybersecurity professional urges that the trust framework require phishing-resistant authentication like passkeys instead of SMS codes and prioritise securing the enrolment process against fraud.",
+    "themes": [
+      "security",
+      "fraud reduction"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "33",
+    "respondent_type": "academic",
+    "response_text": "Comparative governance point: Estonia succeeded because of legal clarity and citizen control over data access logs. Citizens can see every official who viewed their record. Include a mandatory access transparency log or trust will not follow.",
+    "summary": "The response cites Estonia's digital identity system as a model, arguing that mandatory access transparency logs allowing citizens to see who viewed their data are essential for building trust.",
+    "themes": [
+      "governance",
+      "privacy",
+      "trust"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "34",
+    "respondent_type": "individual",
+    "response_text": "My identity was stolen in 2023 and it took two years to untangle. Anything that reduces the number of times I have to email scans of my passport to strangers is welcome. But the recovery process when things go wrong must be a first-class feature.",
+    "summary": "The respondent, who experienced identity theft, supports digital identity if it reduces sharing of physical documents but stresses that a robust recovery process for errors is essential.",
+    "themes": [
+      "fraud reduction",
+      "security"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "35",
+    "respondent_type": "local authority",
+    "response_text": "Trading standards view: we need enforcement powers and resourcing to police fake identity apps and non-certified providers. The consultation proposes certification but says nothing about enforcement against the uncertified.",
+    "summary": "A trading standards perspective notes that while the consultation proposes a certification scheme, it fails to address enforcement powers and resourcing needed to police fake identity apps and non-certified providers.",
+    "themes": [
+      "governance",
+      "fraud reduction"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "36",
+    "respondent_type": "individual",
+    "response_text": "Neutral overall. The benefits case reads as written for businesses, not citizens. What is in it for me, concretely, on an ordinary Tuesday?",
+    "summary": "The respondent expresses neutrality, arguing that the stated benefits of digital identity appear geared toward businesses rather than everyday citizens.",
+    "themes": [
+      "business efficiency",
+      "trust"
+    ],
+    "sentiment": "neutral"
+  },
+  {
+    "id": "37",
+    "respondent_type": "charity",
+    "response_text": "Citizens advice bureau. A third of the people we help with government services struggle with online forms due to language barriers. Multi-language support and interpreter-friendly enrolment need budget lines, not warm words.",
+    "summary": "A citizens advice bureau highlighted that many service users face language barriers with online forms and called for dedicated funding for multi-language support and interpreter-friendly enrolment rather than mere rhetorical commitments.",
+    "themes": [
+      "digital exclusion",
+      "accessibility"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "38",
+    "respondent_type": "business",
+    "response_text": "Legal services firm. Client due diligence under AML regulations is duplicated across every firm a client instructs. A reusable verified identity would eliminate enormous duplication. The Law Society's digital ID pilot showed strong results \u2014 build on it.",
+    "summary": "A legal services firm supports a reusable digital identity to reduce duplicated client due diligence under AML regulations, citing positive results from the Law Society's digital ID pilot.",
+    "themes": [
+      "business efficiency",
+      "implementation"
+    ],
+    "sentiment": "supportive"
+  },
+  {
+    "id": "39",
+    "respondent_type": "individual",
+    "response_text": "I foster teenagers. Proving parental responsibility and their identities for school, GP, and travel is a paperwork nightmare with no consistent process. If digital identity handles delegated authority and complex family situations well, it will be genuinely useful. Most systems do not.",
+    "summary": "A foster carer describes current identity verification for children in their care as a disorganized paperwork burden and expresses cautious hope that digital identity could help if it properly supports delegated authority and complex family situations.",
+    "themes": [
+      "implementation",
+      "accessibility"
+    ],
+    "sentiment": "mixed"
+  },
+  {
+    "id": "40",
+    "respondent_type": "academic",
+    "response_text": "Recommend the department commission an independent equality impact assessment before final design, publish the DPIA, and commit to primary legislation rather than regulating via framework documents. Trust is built through scrutiny, not assurances.",
+    "summary": "The respondent recommends an independent equality impact assessment, publication of the DPIA, and implementation via primary legislation rather than framework documents, arguing trust requires scrutiny.",
+    "themes": [
+      "governance",
+      "trust",
+      "accessibility"
+    ],
+    "sentiment": "mixed"
+  }
+]
