@@ -15,6 +15,17 @@ _HEADERS = [
     "Model", "UploadTokens", "DownloadTokens", "CostGBP",
 ]
 
+# Separate from the general per-agent log above: this one is only for actual
+# runs of analyse.py (the production tool), so "what did the tool cost" and
+# "what did the AI assistance cost" can be read independently. Filename still
+# matches the ai-spend-log-*.csv glob show_spend.py/plot_spend.py use, so team
+# totals still include it - it's a separate file, not a separate ledger.
+_ANALYSIS_LOG_PATH = _LOG_DIR / f"ai-spend-log-{AGENT_NAME}-analysis-runs.csv"
+_ANALYSIS_HEADERS = [
+    "Timestamp", "AgentName", "CallType", "Purpose",
+    "Model", "RunMode", "UploadTokens", "DownloadTokens", "CostGBP",
+]
+
 
 def log_row(
     call_type: str,
@@ -35,6 +46,33 @@ def log_row(
             call_type,
             purpose,
             model,
+            input_tokens,
+            output_tokens,
+            cost_gbp,
+        ])
+
+
+def log_analysis_run(
+    mode: str,
+    purpose: str,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cost_gbp: float,
+) -> None:
+    """Log one completed analyse.py run (sequential/concurrent/batch)."""
+    write_header = not _ANALYSIS_LOG_PATH.exists()
+    with _ANALYSIS_LOG_PATH.open("a", newline="") as f:
+        w = csv.writer(f)
+        if write_header:
+            w.writerow(_ANALYSIS_HEADERS)
+        w.writerow([
+            datetime.now(timezone.utc).isoformat(),
+            AGENT_NAME,
+            "Claude API",
+            purpose,
+            model,
+            mode,
             input_tokens,
             output_tokens,
             cost_gbp,
