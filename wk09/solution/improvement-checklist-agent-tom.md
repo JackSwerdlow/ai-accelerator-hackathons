@@ -50,7 +50,7 @@ one of them directly. Rules for using this file:
 | PII1 | PII/Data protection | Free text may hold personal/special-category data | High | High | P0 |
 | MON2 | Monitoring | No cost kill-switch/guardrail | Medium | High | P0 |
 | GOV3 | Governance | Model alias not pinned/versioned for auditability | Medium | High | P0 |
-| SECH3 (S8) | Security hardening | Prompt injection via response text unguarded | Medium | High | P0 |
+| S9 | Security hardening | Prompt injection via response text unguarded | Medium | High | P0 |
 | R4 | Resilience | No fallback provider/circuit breaker for sustained outage | Medium | Medium | P1 |
 | S5 | Security | Concurrent-run safety unverified | Medium | Medium | P1 |
 | O1 | Operability | README may drift from real run steps | Low | Medium | P1 |
@@ -77,6 +77,7 @@ one of them directly. Rules for using this file:
 | MON3 | Monitoring | No end-of-run schema-violation summary stat | Low | Low | P2 |
 | SECH1 (S6) | Security hardening | No dependency vulnerability scanning | Low | Low | P2 |
 | SECH2 (S7) | Security hardening | No least-privilege review of output access | Low | Medium | P2 |
+| S8 | Security hardening | No bounded input size on response text | Low | Medium | P2 |
 | MAINT1 | Maintainability | Single flat script, not decomposed into modules | Low | Medium | P2 |
 | MAINT2 | Maintainability | No formal lint/type-check gate | Low | Low | P2 |
 | MAINT3 | Maintainability | AI_LOG/README discipline not enforced | Low | Low | P2 |
