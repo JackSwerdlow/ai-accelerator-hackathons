@@ -545,6 +545,25 @@ def run_batch(client, rows, rows_by_id, args, signature, state, state_file):
     return fetch_and_merge_results(client, batch_id, rows_by_id, model=args.model)
 
 
+def classify_outcomes(results):
+    """Tally final results.json rows into success/parse_error/api_error
+    counts for the batch.finished summary log. Every sentinel analyse.py
+    can produce is one of: "PARSE_ERROR" (call_single_sync,
+    fetch_and_merge_results), "API_ERROR" (call_single_sync), or a
+    "BATCH_<TYPE>" batch-item failure (fetch_and_merge_results) - anything
+    else is a real analysis and counts as success."""
+    outcomes = {"success": 0, "parse_error": 0, "api_error": 0}
+    for r in results:
+        summary = r["summary"]
+        if summary == "PARSE_ERROR":
+            outcomes["parse_error"] += 1
+        elif summary == "API_ERROR" or summary.startswith("BATCH_"):
+            outcomes["api_error"] += 1
+        else:
+            outcomes["success"] += 1
+    return outcomes
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=["sequential", "concurrent", "batch"], default="sequential")
@@ -628,16 +647,7 @@ def main():
         cost_gbp=cost,
     )
 
-    outcomes = {"success": 0, "parse_error": 0, "api_error": 0}
-    for r in results:
-        summary = r["summary"]
-        if summary == "PARSE_ERROR":
-            outcomes["parse_error"] += 1
-        elif summary == "API_ERROR" or summary.startswith("BATCH_"):
-            outcomes["api_error"] += 1
-        else:
-            outcomes["success"] += 1
-    telemetry.log_batch_finished(started, outcomes, cost)
+    telemetry.log_batch_finished(started, classify_outcomes(results), cost)
 
     _clear_state(args.state_file)
 

@@ -37,6 +37,21 @@ def _data_points(reader, metric_name):
     return []
 
 
+def test_classify_outcomes_tallies_every_sentinel_analyse_py_can_produce():
+    results = [
+        {"summary": "a normal one-sentence summary"},
+        {"summary": "another successful summary"},
+        {"summary": "PARSE_ERROR"},
+        {"summary": "API_ERROR"},
+        {"summary": "BATCH_ERRORED"},
+        {"summary": "BATCH_EXPIRED"},
+    ]
+
+    outcomes = analyse.classify_outcomes(results)
+
+    assert outcomes == {"success": 2, "parse_error": 1, "api_error": 3}
+
+
 def test_call_single_sync_success_records_outcome_spend_and_cache_status():
     reader = _configured_reader()
 

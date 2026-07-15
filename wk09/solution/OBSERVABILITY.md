@@ -64,8 +64,11 @@ python analyse.py --mode batch
       (by `outcome` label: `success`/`parse_error`/`api_error`),
       `consultation.response.bytes`, `consultation.batch.rows_total`.
 - [ ] **Logs:** SigNoz UI → Logs. Search for `batch.started` / `batch.finished` to
-      confirm one pair per run (across all three modes). If you want to see the
-      parse-error path, temporarily lower `--max-tokens` to force a truncated
+      confirm one pair per completed run. Note "completed": `--mode batch --no-wait`
+      exits as soon as it reports the batch's status (before results exist), and any
+      mode interrupted mid-run before results are written, so `batch.started` without
+      a matching `batch.finished` is expected in those cases, not a bug. If you want
+      to see the parse-error path, temporarily lower `--max-tokens` to force a truncated
       (non-JSON) response, run once, then search for `row.parse_error` — confirm the
       log shows a `response_length` and a truncated `response_snippet`, and that
       `error` is also truncated (the parser's own exception messages embed the raw
