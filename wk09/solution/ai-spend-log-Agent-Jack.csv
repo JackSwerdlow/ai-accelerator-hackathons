@@ -1,10 +1,11 @@
 Timestamp,AgentName,CallType,Purpose,Model,UploadTokens,DownloadTokens,CostGBP
 2026-07-15T12:07:40.649476+00:00,Agent-Jack,Claude API,Research,claude-sonnet-5,14,4,0.0001
-2026-07-15T12:09:43.783774+00:00,Agent-Jack,ClaudeCode,Implementation,claude-sonnet-5,84,37505,0.4446
-2026-07-15T12:20:27.830731+00:00,Agent-Jack,ClaudeCode,Research,claude-sonnet-5,10,3328,0.0395
-2026-07-15T12:31:16.041809+00:00,Agent-Jack,ClaudeCode,Research,claude-sonnet-5,8,2861,0.0339
-2026-07-15T12:33:58.183301+00:00,Agent-Jack,ClaudeCode,Research,claude-sonnet-5,4,2914,0.0345
-2026-07-15T12:35:27.233134+00:00,Agent-Jack,ClaudeCode,Data analysis,claude-sonnet-5,12,3365,0.0399
-2026-07-15T12:57:34.308616+00:00,Agent-Jack,ClaudeCode,Implementation,claude-sonnet-5,64,43167,0.5117
-2026-07-15T13:07:49.039648+00:00,Agent-Jack,ClaudeCode,Debugging,claude-sonnet-5,48,25301,0.2999
-2026-07-15T13:40:56.588260+00:00,Agent-Jack,ClaudeCode,Debugging,claude-sonnet-5,22,22857,0.2709
+2026-07-15T12:09:43.783774+00:00,Agent-Jack,ClaudeCode,Implementation,claude-sonnet-5,84,37505,0.2964
+2026-07-15T12:20:27.830731+00:00,Agent-Jack,ClaudeCode,Research,claude-sonnet-5,10,3328,0.0263
+2026-07-15T12:31:16.041809+00:00,Agent-Jack,ClaudeCode,Research,claude-sonnet-5,8,2861,0.0226
+2026-07-15T12:33:58.183301+00:00,Agent-Jack,ClaudeCode,Research,claude-sonnet-5,4,2914,0.023
+2026-07-15T12:35:27.233134+00:00,Agent-Jack,ClaudeCode,Data analysis,claude-sonnet-5,12,3365,0.0266
+2026-07-15T12:57:34.308616+00:00,Agent-Jack,ClaudeCode,Implementation,claude-sonnet-5,64,43167,0.3411
+2026-07-15T13:07:49.039648+00:00,Agent-Jack,ClaudeCode,Implementation,claude-sonnet-5,48,25301,0.2
+2026-07-15T13:40:56.588260+00:00,Agent-Jack,ClaudeCode,Implementation,claude-sonnet-5,22,22857,0.1806
+2026-07-15T14:02:24.317630+00:00,Agent-Jack,ClaudeCode,Testing,claude-sonnet-5,142,86953,0.6872

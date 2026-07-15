@@ -7,9 +7,12 @@ MODELS = {
     "claude-opus-4-6":   {"input":  5.00, "output": 25.00},
     "claude-sonnet-4-6": {"input":  3.00, "output": 15.00},
     "claude-haiku-4-5":  {"input":  1.00, "output":  5.00},
-    # starter/analyse.py uses "claude-sonnet-5" which is not a valid model ID —
-    # mapped here as a safe fallback; update analyse.py to claude-sonnet-4-6
-    "claude-sonnet-5":   {"input":  3.00, "output": 15.00},
+    # claude-sonnet-5 IS a valid, current model ID (the previous comment here
+    # claiming otherwise was wrong). Its standard rate is $3.00/$15.00, but an
+    # introductory rate of $2.00/$10.00 applies through 2026-08-31 (today is
+    # 2026-07-15 - the introductory rate is in effect right now). Revert to
+    # {"input": 3.00, "output": 15.00} after that date.
+    "claude-sonnet-5":   {"input":  2.00, "output": 10.00},
 }
 
 GBP_PER_USD = 0.79  # approximate; update as needed

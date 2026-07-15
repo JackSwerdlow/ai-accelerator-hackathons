@@ -173,11 +173,20 @@ uncached — necessary once cache usage was being tracked explicitly, since
 a flat per-token rate would misstate the very savings this feature exists
 to prove. `batch` mode also passes `batch=True` to `cost_gbp()`, applying
 Anthropic's 50% batch discount on top — `sequential`/`concurrent` are costed
-at standard (cache-adjusted) rate. Getting the batch discount right in
-particular matters: an early version of this log recorded the batch run's
-£0.085 at standard rate before that branch was added; `AI_LOG.md` has the
-correction. Together these logs are meant to answer "what did this project
-actually cost, and on what" per the department's FinOps ask.
+at standard (cache-adjusted) rate. Together these logs are meant to answer
+"what did this project actually cost, and on what" per the department's
+FinOps ask.
+
+**`claude-sonnet-5` is on an introductory rate right now.** Its rate in
+`pricing.py` is `$2.00`/`$10.00` per million tokens, not the standard
+`$3.00`/`$15.00` — Anthropic is running an introductory discount on this
+model through **2026-08-31**, and every run in this project uses it as the
+default model. Every logged cost in both CSVs was originally computed at
+the standard rate and was therefore 50% too high; `AI_LOG.md` has the
+correction, recomputed from raw token counts rather than a blanket
+multiply. **Revert `pricing.py` to `{"input": 3.00, "output": 15.00}` once
+the introductory window ends**, or costs will silently understate from
+that date onward.
 
 ## Known limitations / honest ledger
 

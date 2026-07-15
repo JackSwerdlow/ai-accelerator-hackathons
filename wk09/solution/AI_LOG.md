@@ -333,3 +333,46 @@ the instructions text itself is simply too short to benefit yet. Documented
 prominently in `README.md`'s honest ledger rather than left to be discovered
 the hard way in a live presentation - this is exactly the kind of thing
 "visibility" (the brief's first success criterion) is supposed to catch.
+
+## [Agent-Jack] 2026-07-15 — Fix a real 50%-too-high cost figure: claude-sonnet-5's introductory price
+
+**Task:** User asked to review the spend log because the numbers didn't
+seem to match what they were actually being charged for these prompts.
+
+**What was wrong:** `pricing.py`'s `MODELS["claude-sonnet-5"]` was
+`{"input": 3.00, "output": 15.00}` - the model's *standard* rate. But
+`claude-sonnet-5` currently has an **introductory rate of $2.00/$10.00 per
+million tokens, in effect through 2026-08-31** - and today is 2026-07-15,
+inside that window. Every cost figure logged this session used
+`claude-sonnet-5` and was therefore overstated by exactly 50% (the intro
+rate is 2/3 of standard, so charging at standard states the true cost as
+1.5x). Verified against the current Claude API pricing reference (not
+assumed) before touching anything. The pre-existing code comment on this
+same line claiming `"claude-sonnet-5" is not a valid model ID` was also
+simply wrong - both errors reinforced each other (a teammate skeptical the
+model ID was even real would have had no reason to check whether its price
+was current).
+
+**What was changed:**
+
+1. `spend/pricing.py`: corrected the rate to `{"input": 2.00, "output":
+   10.00}`, with a comment giving the standard rate and the 2026-08-31
+   expiry date so a future session knows to revert it.
+2. Recomputed every affected row in both spend logs from their raw token
+   counts through the corrected `cost_gbp()` (not a blanket ×0.667 multiply,
+   to avoid compounding rounding error on rows that also had the batch
+   discount or cache terms applied) - 6 `ClaudeCode` rows and all 4
+   `Claude API`/analysis-run rows in the two CSVs.
+3. While correcting those rows, also reclassified 3 more `ClaudeCode` rows
+   that had appeared since the last Purpose-correction pass (all still
+   auto-tagged `Debugging` by the same keyword-order heuristic) to
+   `Implementation`/`Testing` based on what that turn actually did (the
+   Sakiu/Susana/Tom merge reconciliation, and the verification pass before
+   committing it) - same reasoning as the earlier correction, not a new
+   pattern.
+
+**Files:** `solution/spend/pricing.py`, `solution/ai-spend-log-Agent-Jack.csv`,
+`solution/ai-spend-log-Agent-Jack-analysis-runs.csv`.
+
+**Note for future sessions:** re-check this rate after 2026-08-31 - it needs
+to revert to the standard $3.00/$15.00 once the introductory window ends.
