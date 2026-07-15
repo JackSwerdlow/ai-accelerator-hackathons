@@ -19,14 +19,17 @@ try:
     from spend.pricing import cost_gbp
 except ImportError:
     # Fallback if the package isn't on sys.path — avoids silent failures
-    def cost_gbp(model, inp, out):
+    def cost_gbp(model, inp, out, cache_creation_tokens=0, cache_read_tokens=0):
         rates = {
             "claude-sonnet-4-6": (3.00, 15.00),
+            "claude-sonnet-5":   (2.00, 10.00),
             "claude-opus-4-8":   (5.00, 25.00),
             "claude-haiku-4-5":  (1.00,  5.00),
         }
         r = rates.get(model, (3.00, 15.00))
-        return round((inp * r[0] + out * r[1]) / 1_000_000 * 0.79, 4)
+        usd = (inp * r[0] + cache_creation_tokens * r[0] * 1.25
+               + cache_read_tokens * r[0] * 0.1 + out * r[1]) / 1_000_000
+        return round(usd * 0.79, 4)
 
 AGENT_NAME = os.environ.get("AGENT_NAME", socket.gethostname())
 LOG_PATH = _SPEND_DIR / f"ai-spend-log-{AGENT_NAME}.csv"
@@ -67,8 +70,16 @@ def _read_new_entries(transcript_path, from_line):
 
 
 def _parse_usage(entries):
-    """Sum input/output tokens from new assistant messages, deduplicating by message ID."""
-    inp = out = 0
+    """Sum token usage from new assistant messages, deduplicating by message ID.
+
+    Includes cache_creation_input_tokens/cache_read_input_tokens - in a long
+    Claude Code session almost all "input" is served from the prompt cache
+    (each turn resends the growing conversation history), so input_tokens
+    alone captures only a tiny fraction of true input volume/cost. Omitting
+    the cache fields was a real bug here, not just an approximation - it
+    undercounted logged spend by roughly an order of magnitude.
+    """
+    inp = out = cache_creation = cache_read = 0
     model = "claude-sonnet-4-6"
     seen = set()
     for entry in entries:
@@ -82,9 +93,11 @@ def _parse_usage(entries):
         usage = msg.get("usage", {})
         inp += usage.get("input_tokens", 0)
         out += usage.get("output_tokens", 0)
+        cache_creation += usage.get("cache_creation_input_tokens", 0)
+        cache_read += usage.get("cache_read_input_tokens", 0)
         if msg.get("model"):
             model = msg["model"]
-    return inp, out, model
+    return inp, out, cache_creation, cache_read, model
 
 
 # Keyword map used to auto-detect purpose category from last assistant message.
@@ -123,7 +136,12 @@ def _infer_purpose(last_message: str) -> str:
     return "Other"
 
 
-def _write_row(purpose, model, inp, out):
+def _write_row(purpose, model, inp, out, cache_creation, cache_read):
+    cost = cost_gbp(model, inp, out, cache_creation_tokens=cache_creation, cache_read_tokens=cache_read)
+    # UploadTokens is the true total input-side volume (fresh + cache write +
+    # cache read), matching the convention spend_logger.log_analysis_run uses -
+    # the cache split isn't lost, it's priced differently inside cost_gbp().
+    total_input = inp + cache_creation + cache_read
     write_header = not LOG_PATH.exists()
     with LOG_PATH.open("a", newline="") as f:
         w = csv.writer(f)
@@ -132,7 +150,7 @@ def _write_row(purpose, model, inp, out):
         w.writerow([
             datetime.now(timezone.utc).isoformat(),
             AGENT_NAME, "ClaudeCode", purpose,
-            model, inp, out, cost_gbp(model, inp, out),
+            model, total_input, out, cost,
         ])
 
 
@@ -164,11 +182,11 @@ def main():
     from_line = state.get(session_id, 0)
 
     new_entries, total_lines = _read_new_entries(transcript_path, from_line)
-    inp, out, model = _parse_usage(new_entries)
+    inp, out, cache_creation, cache_read, model = _parse_usage(new_entries)
 
-    if inp > 0 or out > 0:
+    if inp > 0 or out > 0 or cache_creation > 0 or cache_read > 0:
         purpose = _infer_purpose(last_message)
-        _write_row(purpose, model, inp, out)
+        _write_row(purpose, model, inp, out, cache_creation, cache_read)
 
     state[session_id] = total_lines
     _save_state(state)

@@ -376,3 +376,88 @@ was current).
 
 **Note for future sessions:** re-check this rate after 2026-08-31 - it needs
 to revert to the standard $3.00/$15.00 once the introductory window ends.
+
+## [Agent-Jack] 2026-07-15 — Fix the real bug: the Stop hook never counted cache tokens at all
+
+**Task:** After the pricing fix above, the user checked our logged totals
+against actual account usage and found a large mismatch - our CSV showed a
+few pounds total; they were seeing roughly $45 of real usage for the
+session. Asked to find and fix the actual discrepancy, not just assume the
+"tracking started late" explanation from earlier in the session covered it.
+
+**What was wrong:** `log_claude_code_session.py`'s `_parse_usage()` only
+ever summed `usage.input_tokens` and `usage.output_tokens` from the
+transcript. It never read `cache_creation_input_tokens` or
+`cache_read_input_tokens` at all. In a long Claude Code session, almost all
+"input" is served from the prompt cache - each turn resends the entire,
+ever-growing conversation history, and the vast majority of that arrives as
+a cache read rather than fresh input. Checked this directly on the real
+transcript rather than assuming: across the ~300 assistant messages logged
+this session, raw `input_tokens` totalled ~1,900 tokens, while
+`cache_read_input_tokens` totalled **~120 million**. The hook's cost
+calculation was built entirely on the ~1,900 number - the field that
+actually drove real cost was never read at all. This wasn't the
+"we started tracking late" gap from earlier - that was a real, separate,
+smaller effect; this was a straightforward missing-field bug in the same
+script, present since it was first written (before this session touched it).
+
+**How it was found and verified, not assumed:**
+1. Located this session's own transcript JSONL and directly summed
+   `cache_creation_input_tokens`/`cache_read_input_tokens` across all
+   assistant messages (deduplicated by message ID, same as the hook does) -
+   confirmed the ~120M figure was real, not a parsing artefact.
+2. Computed what the corrected total *should* be using the already-fixed,
+   cache-aware `cost_gbp()` from two commits ago: ~£25 (~$32) at the
+   introductory `claude-sonnet-5` rate, ~£38 (~$48) at the standard rate -
+   both land close to the user's observed ~$45, versus the ~£3 (~$4) the
+   buggy hook had actually logged. This is what confirmed the missing-cache-
+   fields bug was the dominant cause, not a rounding or rate issue.
+3. Reconstructed each of the 12 already-logged `ClaudeCode` rows from the
+   real transcript rather than just fixing the code going forward: paired
+   each row's timestamp to the transcript entries between it and the
+   previous row's timestamp (both bounded by the point tracking was seeded
+   from - see the earlier "cost tracking" entries), summed the correct
+   fields per segment, and replaced each row's `UploadTokens`/`CostGBP` with
+   the corrected values. Spot-checked that the reconstructed `input`/`output`
+   figures matched the old logged values almost exactly per row (confirming
+   the segment boundaries were reconstructed correctly) before trusting the
+   newly-recovered cache figures layered on top.
+
+**What was changed:**
+1. `spend/log_claude_code_session.py`: `_parse_usage()` now also sums
+   `cache_creation_input_tokens`/`cache_read_input_tokens`; `_write_row()`
+   passes them into `cost_gbp()` for correct differential pricing, and now
+   logs `UploadTokens` as the true total input-side volume (fresh + cache
+   write + cache read) rather than just the fresh-input sliver - matching
+   the convention `spend_logger.log_analysis_run()` already used. The
+   `ImportError` fallback `cost_gbp` was updated to accept and price the
+   same cache parameters, for parity.
+2. `solution/ai-spend-log-Agent-Jack.csv`: all 12 `ClaudeCode` rows
+   recomputed from the real transcript as above. Corrected total for this
+   agent: **£21.48** (was £2.09) - roughly a 10x correction, consistent with
+   the scale of the missing cache-read volume.
+
+**What's still not fully reconciled, and why that's expected, not a new bug:**
+- **`ai-spend-log-Agent-Tom.csv` almost certainly has the identical bug**
+  (same shared hook script) but wasn't corrected here - this agent doesn't
+  have access to Agent-Tom's session transcript to reconstruct it from, and
+  guessing at his numbers would be worse than leaving them flagged as
+  suspect. Worth Agent-Tom re-running the same reconstruction on his own
+  transcript.
+- **Still a real gap to the user's ~$45 figure** even after this fix
+  (corrected team total here: ~£22.6, roughly $28.6 at the intro rate).
+  Plausible remaining causes, none of which are fixable in this file: (a)
+  whatever "usage" view the user is checking may show cost at the
+  *standard* rate rather than the introductory rate this project's
+  `pricing.py` deliberately uses (the standard-rate estimate above, ~$48,
+  is actually closer to $45 than the intro-rate one) - if so our tool is
+  self-consistently accurate to *this* project's chosen convention, just
+  not to whatever the console displays; (b) there is a second session from
+  earlier today on the same account (`734e69b9...`) not covered by this
+  reconstruction at all; (c) a further ~18 assistant messages generated
+  after the last logged row (during this very investigation) hadn't been
+  captured by the hook yet at the time of this fix - they'll log
+  automatically on the next Stop event.
+
+**Files:** `solution/spend/log_claude_code_session.py`,
+`solution/ai-spend-log-Agent-Jack.csv`.
