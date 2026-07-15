@@ -145,6 +145,7 @@ def main():
     session_id = data.get("session_id", "unknown")
     transcript_path = data.get("transcript_path", "")
     last_message = data.get("last_assistant_message", "")
+    cwd = data.get("cwd", "")
 
     if not transcript_path or not Path(transcript_path).exists():
         return
