@@ -1,3 +1,5 @@
+import logging
+
 import telemetry
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
@@ -78,3 +80,55 @@ def test_record_batch_rows_total_sets_gauge():
     points = _data_points(reader, "consultation.batch.rows_total")
     assert len(points) == 1
     assert points[0].value == 40
+
+
+def test_log_batch_started_logs_and_sets_gauge(caplog):
+    reader = _configured_reader()
+    with caplog.at_level(logging.INFO, logger="consultation_insights"):
+        telemetry.log_batch_started("claude-sonnet-4-6", row_count=40)
+
+    assert any(r.message == "batch.started" for r in caplog.records)
+    started = next(r for r in caplog.records if r.message == "batch.started")
+    assert started.model == "claude-sonnet-4-6"
+    assert started.row_count == 40
+
+    points = _data_points(reader, "consultation.batch.rows_total")
+    assert points[0].value == 40
+
+
+def test_log_batch_finished_reports_duration_and_spend(caplog):
+    with caplog.at_level(logging.INFO, logger="consultation_insights"):
+        start_time = telemetry.log_batch_started("claude-sonnet-4-6", row_count=3)
+        telemetry.log_batch_finished(
+            start_time,
+            outcomes={"success": 2, "parse_error": 1, "api_error": 0},
+            total_spend_gbp=0.0123,
+        )
+
+    finished = next(r for r in caplog.records if r.message == "batch.finished")
+    assert finished.rows_success == 2
+    assert finished.rows_parse_error == 1
+    assert finished.rows_api_error == 0
+    assert finished.total_spend_gbp == 0.0123
+    assert finished.duration_s >= 0
+
+
+def test_log_parse_error_redacts_full_response_text(caplog):
+    long_response = "not json " * 50  # 450 chars, well past REDACT_SNIPPET_LEN
+    with caplog.at_level(logging.ERROR, logger="consultation_insights"):
+        telemetry.log_parse_error("row-7", long_response, ValueError("bad json"))
+
+    error_record = next(r for r in caplog.records if r.message == "row.parse_error")
+    assert error_record.row_id == "row-7"
+    assert error_record.response_length == len(long_response)
+    assert long_response not in error_record.response_snippet
+    assert "bad json" in error_record.error
+
+
+def test_log_api_error_records_row_id_and_error(caplog):
+    with caplog.at_level(logging.ERROR, logger="consultation_insights"):
+        telemetry.log_api_error("row-9", RuntimeError("rate limited"))
+
+    error_record = next(r for r in caplog.records if r.message == "row.api_error")
+    assert error_record.row_id == "row-9"
+    assert "rate limited" in error_record.error

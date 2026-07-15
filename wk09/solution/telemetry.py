@@ -6,6 +6,7 @@ know: GBP spend, row outcome, response size, batch progress.
 """
 
 import logging
+import time
 
 SERVICE_NAME = "consultation-insights"
 REDACT_SNIPPET_LEN = 80
@@ -75,3 +76,39 @@ def record_response_size(num_bytes):
 
 def record_batch_rows_total(row_count):
     _batch_rows_gauge.set(row_count)
+
+
+def log_batch_started(model, row_count):
+    logger.info("batch.started", extra={"model": model, "row_count": row_count})
+    record_batch_rows_total(row_count)
+    return time.monotonic()
+
+
+def log_batch_finished(start_time, outcomes, total_spend_gbp):
+    duration_s = time.monotonic() - start_time
+    logger.info(
+        "batch.finished",
+        extra={
+            "duration_s": round(duration_s, 2),
+            "total_spend_gbp": round(total_spend_gbp, 4),
+            "rows_success": outcomes.get("success", 0),
+            "rows_parse_error": outcomes.get("parse_error", 0),
+            "rows_api_error": outcomes.get("api_error", 0),
+        },
+    )
+
+
+def log_parse_error(row_id, raw_response, error):
+    logger.error(
+        "row.parse_error",
+        extra={
+            "row_id": row_id,
+            "response_length": len(raw_response),
+            "response_snippet": _redact_snippet(raw_response),
+            "error": str(error),
+        },
+    )
+
+
+def log_api_error(row_id, error):
+    logger.error("row.api_error", extra={"row_id": row_id, "error": str(error)})
