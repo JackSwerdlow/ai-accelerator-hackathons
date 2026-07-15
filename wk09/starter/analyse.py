@@ -45,9 +45,9 @@ def analyse_response(text):
 
 
 def main():
-    with open("data/responses_sample.csv", newline="", encoding="utf-8") as f:
+    with open("../data/responses_sample.csv", newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
-
+    
     print(f"Analysing {len(rows)} responses...")
     results = []
 
