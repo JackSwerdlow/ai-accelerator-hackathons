@@ -1,2 +1,6 @@
 flask
 langchain-anthropic
+pandas
+matplotlib
+streamlit
+plotly

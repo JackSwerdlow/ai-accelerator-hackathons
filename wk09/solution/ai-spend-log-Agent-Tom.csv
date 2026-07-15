@@ -1,0 +1,5 @@
+Timestamp,AgentName,CallType,Purpose,Model,UploadTokens,DownloadTokens,CostGBP
+2026-07-15T11:07:43.524653+00:00,Agent-Tom,ClaudeCode,Claude Code — wk09 (subagent),claude-sonnet-4-6,3,770,0.0091
+2026-07-15T11:07:43.536611+00:00,Agent-Tom,ClaudeCode,"Claude Code — wk09 (session 2, pre-hook)",claude-sonnet-4-6,112,43414,0.5147
+2026-07-15T11:08:23.240140+00:00,Agent-Tom,ClaudeCode,Claude Code — wk09,claude-sonnet-4-6,115,46538,0.5517
+2026-07-15T11:13:16.069560+00:00,Agent-Tom,ClaudeCode,Debugging,claude-sonnet-4-6,9,5203,0.0617
