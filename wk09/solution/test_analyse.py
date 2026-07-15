@@ -76,3 +76,30 @@ def test_analyse_response_api_error_returns_api_error_not_raise():
     assert outcome == "api_error"
     assert analysis is None
     assert spend_gbp == 0.0
+
+
+def test_mixed_batch_accumulates_outcomes_and_spend_without_stopping():
+    good_message = _fake_message('{"summary": "s", "themes": ["cost"], "sentiment": "mixed"}')
+    bad_json_message = _fake_message("not json")
+
+    rows = [
+        ("row-1", FakeClient(message=good_message)),
+        ("row-2", FakeClient(message=bad_json_message)),
+        ("row-3", FakeClient(error=anthropic.AnthropicError("down"))),
+        ("row-4", FakeClient(message=good_message)),
+    ]
+
+    outcomes = {"success": 0, "parse_error": 0, "api_error": 0}
+    results = []
+    total_spend_gbp = 0.0
+
+    for row_id, client in rows:
+        outcome, analysis, spend_gbp = analyse.analyse_response(client, row_id, "text")
+        outcomes[outcome] += 1
+        total_spend_gbp += spend_gbp
+        if analysis is not None:
+            results.append(analysis)
+
+    assert outcomes == {"success": 2, "parse_error": 1, "api_error": 1}
+    assert len(results) == 2  # only the successful rows produced output
+    assert total_spend_gbp > 0  # rows 1, 2, 4 all made a billed API call
