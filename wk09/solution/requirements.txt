@@ -1,2 +1,4 @@
 flask
 langchain-anthropic
+pandas
+matplotlib
