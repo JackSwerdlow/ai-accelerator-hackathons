@@ -4,18 +4,6 @@ working rules, the model-choice rules, and this week's `AI_LOG.md` format. **Rep
 conventions — agent identity, git workflow, and commit format — live in the
 repository-root `CLAUDE.md`; follow that as well, and this file does not repeat them.**
 
-## Project goal
-
-Build a CLI multi-agent system that automates the repeatable parts of UK Freedom of
-Information (FOI) request handling. It processes a folder of FOI request files and,
-for each one: a **triage** agent classifies it, a **compliance** agent checks it
-against policy documents using RAG, a **response** agent drafts a reply, and a
-**supervisor** orchestrates the pipeline and enforces a human-in-the-loop approval
-gate — no response is finalised without human approval. Every LLM call is
-cost-tracked and every decision is logged to an audit trail.
-
-Aim for the top ("Excellent") band on every axis of the assessment rubric.
-
 ## Source of truth & scope
 
 - **`context/hackathon-brief-2-consultation-insights.pdf` is authoritative** for the brief, requirements, etc.
@@ -72,7 +60,7 @@ it documents.
 
 ## Cost tracking
 
-Our API spend is production spend and must be tracked accurately. Maintain a ai-spend-log.csv
+Our API spend is production spend and must be tracked accurately. Maintain a `ai-spend-log.csv`
 file that records **all** AI token usage. At the end of the project we should be able to see
 how and where AI API spect was used.
 
@@ -80,7 +68,7 @@ Fields should include:
 - Timestamp
 - AgentName
 - Call type  - ClaudeCode/Claude API
-- Purpose  - e.g. Codebase review, plan generation, research, code generation/edits, 
+- Purpose  - e.g. Codebase review, plan generation, research, code generation/edits
 - Model
 - Upload tokens
 - Download tokens
