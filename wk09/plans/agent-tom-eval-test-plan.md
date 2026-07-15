@@ -8,14 +8,19 @@ visibility, correctness, resilience, security, and operability — as numbers an
 demonstrations, not vibes. This plan defines the eval/test suite that produces
 that evidence.
 
-**Baseline finding (2026-07-15):** `solution/viewer.py` is currently byte-identical
-to `starter/viewer.py`, and `solution/analyse.py` does not exist yet. The only
-work committed to `solution/` so far is the spend-tracking tooling (`solution/spend/`),
-which measures the team's own Claude Code usage — not the consultation-insights
-pipeline's runtime cost. This plan is therefore written **spec-first**: the suite
-is authored and run against `starter/` now, to document the baseline failure modes
-("the sin") with reproducible evidence, and is then reused/extended as
-`solution/analyse.py` is built, to prove the fix and quantify the delta.
+**Baseline finding (2026-07-15):** `solution/viewer.py` is byte-identical to
+`starter/viewer.py`, and — until this pass — `solution/analyse.py` was
+missing entirely; it has now been added as an exact copy of `starter/analyse.py`,
+which is the correct starting point: `solution/` starts as a copy of `starter/`
+and is refined iteratively from there, not written from scratch. This means
+`solution/analyse.py` currently has every baseline sin listed below, unchanged.
+The suite in this plan is written to run against **both** `starter/` (frozen,
+permanent record of "the sin") and `solution/` (the same suite, run continuously
+as the code is refined) from day one. Tests against `solution/` are **expected
+to fail identically to `starter/` right now** — that's the correct starting
+state, not a bug in the plan — and should be resolved one by one as
+`solution/analyse.py` is iterated on, giving a concrete red-to-green trajectory
+to show on Day 2.
 
 **Scope:** the core pipeline only — `analyse.py` and `viewer.py`. `solution/spend/`
 is out of scope for this suite (it's tooling for tracking the team's own AI spend,
@@ -28,9 +33,10 @@ These are the concrete, file-and-line-referenced "sins" the suite targets:
 - `starter/analyse.py:11-15` — `ChatAnthropic` client and API key are constructed
   at **import time**, with a hardcoded `"PASTE-YOUR-KEY-HERE"` fallback baked into
   source if the env var is unset. This also means the module can't be imported in
-  a test without a real (or monkeypatched) key already in the environment —
-  a prerequisite refactor for `solution/analyse.py` is to defer client
-  construction so it's mockable.
+  a test without a real (or monkeypatched) key already in the environment.
+  `solution/analyse.py` has this same issue today (it's an unrefined copy) —
+  deferring client construction out of import time is the first refinement
+  step, and is what unlocks the unit-test tier below.
 - `starter/analyse.py:44` — `json.loads(response.content)` with no error handling;
   comment literally says "the model always returns valid JSON (right?)". Any
   non-JSON completion crashes the whole run.
@@ -85,8 +91,9 @@ solution/
 
 Run `python analyse.py` / `python viewer.py` as subprocesses against fixture
 CSVs, inspect `results.json`, exit codes, and stdout — not internals. This
-survives whatever internal refactor `solution/analyse.py` goes through, which
-matters because its structure doesn't exist yet.
+survives whatever internal refactor `solution/analyse.py` goes through as it's
+iterated on, which matters because it currently has the same internals as
+`starter/analyse.py` and those will change significantly during refinement.
 
 - **Resilience:**
   - Kill the process (`subprocess.Popen` + `terminate()`) after N of M rows
@@ -111,7 +118,9 @@ matters because its structure doesn't exist yet.
 
 Requires `solution/analyse.py` to expose testable functions (client
 construction deferred out of import time — see Known baseline behaviour
-above). Mocked `ChatAnthropic`, no network, no cost.
+above; this is not yet true today, since `solution/analyse.py` is currently
+an unrefined copy of `starter/analyse.py`, so this test tier is blocked
+until that first refinement lands). Mocked `ChatAnthropic`, no network, no cost.
 
 - **Correctness:** JSON extraction/repair (fenced code blocks, leading/trailing
   prose, truncated output), checkpoint file format round-trips, idempotent
@@ -130,22 +139,27 @@ above). Mocked `ChatAnthropic`, no network, no cost.
     (spreadsheet formula injection) is neutralised if results are ever
     exported to CSV/Excel downstream.
 
-### 3. Baseline snapshot suite (the "before")
+### 3. Baseline snapshot suite (the "before" and the "before → after" trajectory)
 
-Runs *only* against `starter/`, frozen once written, never "fixed":
+Runs against `starter/`, frozen once written, never "fixed" — this is the
+permanent record of "the sin":
 
 - Reproduces the full-batch-loss crash: inject a malformed-JSON response
   partway through a run and assert `starter/analyse.py` crashes and
-  `results.json` is never written (proves data loss).
-  captured as evidence
+  `results.json` is never written (proves data loss), captured as evidence
   (exit code, traceback, absence of partial results) for the Day 2
   "before" slide.
-- The same two scenarios (documented above) are re-run against
-  `solution/analyse.py` once it exists, using the *same* fixtures, to
-  produce the "after" — partial results ARE recoverable, the run
-  completes despite the bad row.
-- `EVAL_REPORT.md` records both runs side by side: this is the literal
-  "before and after" artifact the brief asks for in the Day 2 presentation.
+- The *same* fixtures are run against `solution/analyse.py` on every commit,
+  using identical scenarios. Right now — since `solution/analyse.py` is
+  still an unrefined copy of `starter/analyse.py` — this run reproduces the
+  exact same crash and data loss. That's the expected starting state, not a
+  gap in the plan: it's proof the suite actually detects the sin, and it
+  gives a concrete red baseline against `solution/` to turn green as the
+  fix lands.
+- `EVAL_REPORT.md` records the `starter/` run and the current `solution/`
+  run side by side, updated as `solution/analyse.py` is refined — this is
+  the literal "before and after" (and the trajectory between them) that the
+  brief asks for in the Day 2 presentation.
 
 ### 4. Quality eval — scored, not pass/fail (Correctness, semantic)
 
@@ -187,16 +201,23 @@ spending real budget on all 20,000 calls. Instead:
 
 ## Sequencing
 
-1. **Now (spec-first):** write `tests/baseline/`, `tests/system/`, and
-   fixtures; run the baseline suite against `starter/` and freeze the
-   captured crash evidence. This alone is a deliverable — it demonstrates
-   the sin with reproducible proof, usable in a Day 1 presentation even
-   before any fix exists.
-2. **As `solution/analyse.py` is built:** `tests/unit/` and the
-   operability/resilience assertions in `tests/system/` become the TDD
-   spec the implementation is written against — red before the fix,
-   green after.
-3. **Once core correctness/resilience is green:** run the quality eval and
+1. **Now:** write `tests/baseline/`, `tests/system/`, and fixtures; run the
+   suite against both `starter/` and today's `solution/analyse.py` (an
+   unrefined copy). Freeze the `starter/` evidence. Expect `solution/` to
+   fail identically to `starter/` at this point — record that as the
+   starting red baseline, not a surprise. This alone is a deliverable: it
+   demonstrates the sin with reproducible proof, usable in a Day 1
+   presentation even before any fix lands.
+2. **First refinement step — defer client construction out of import time
+   in `solution/analyse.py`:** this alone doesn't fix any brief-stated sin,
+   but it's the prerequisite that unlocks `tests/unit/` (mocked, no real
+   API calls) — do this before or alongside the first behavioural fix.
+3. **As `solution/analyse.py` is iteratively refined:** `tests/unit/` and
+   the operability/resilience assertions in `tests/system/` are the TDD
+   spec each change is written against. Track which assertions flip from
+   red to green and when — that per-fix trajectory is itself evidence for
+   the Day 2 presentation, not just the final green state.
+4. **Once core correctness/resilience is green:** run the quality eval and
    scale/cost projection to quantify the improvement for the Day 2
    presentation, and regenerate `EVAL_REPORT.md`.
 
@@ -218,7 +239,7 @@ spending real budget on all 20,000 calls. Instead:
   scope) or infrastructure/deployment concerns (no Docker/CI in scope per
   the brief's ground rules).
 
-## Open items to confirm once `solution/analyse.py` design is chosen
+## Open items to confirm once `solution/analyse.py`'s refined design is chosen
 
 - Which model `solution/analyse.py` targets (affects the cost-projection
   numbers in `project_cost.py`).
