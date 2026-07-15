@@ -71,6 +71,7 @@ Fields:
 - AgentName
 - Call type  — `ClaudeCode` or `Claude API`
 - Purpose  — **must be one of the categories below**
+- Description  — one sentence: what this specific call/session achieved
 - Model
 - Upload tokens
 - Download tokens

@@ -11,7 +11,7 @@ _LOG_DIR = Path(__file__).resolve().parent
 _LOG_PATH = _LOG_DIR / f"ai-spend-log-{AGENT_NAME}.csv"
 
 _HEADERS = [
-    "Timestamp", "AgentName", "CallType", "Purpose",
+    "Timestamp", "AgentName", "CallType", "Purpose", "Description",
     "Model", "UploadTokens", "DownloadTokens", "CostGBP",
 ]
 
@@ -22,7 +22,7 @@ _HEADERS = [
 # totals still include it - it's a separate file, not a separate ledger.
 _ANALYSIS_LOG_PATH = _LOG_DIR / f"ai-spend-log-{AGENT_NAME}-analysis-runs.csv"
 _ANALYSIS_HEADERS = [
-    "Timestamp", "AgentName", "CallType", "Purpose",
+    "Timestamp", "AgentName", "CallType", "Purpose", "Description",
     "Model", "RunMode", "UploadTokens", "DownloadTokens", "CostGBP",
 ]
 
@@ -34,6 +34,7 @@ def log_row(
     input_tokens: int,
     output_tokens: int,
     cost_gbp: float,
+    description: str = "",
 ) -> None:
     write_header = not _LOG_PATH.exists()
     with _LOG_PATH.open("a", newline="") as f:
@@ -45,6 +46,7 @@ def log_row(
             AGENT_NAME,
             call_type,
             purpose,
+            description,
             model,
             input_tokens,
             output_tokens,
@@ -59,6 +61,7 @@ def log_analysis_run(
     input_tokens: int,
     output_tokens: int,
     cost_gbp: float,
+    description: str = "",
 ) -> None:
     """Log one completed analyse.py run (sequential/concurrent/batch)."""
     write_header = not _ANALYSIS_LOG_PATH.exists()
@@ -71,6 +74,7 @@ def log_analysis_run(
             AGENT_NAME,
             "Claude API",
             purpose,
+            description,
             model,
             mode,
             input_tokens,

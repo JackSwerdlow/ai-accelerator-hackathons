@@ -36,7 +36,7 @@ LOG_PATH = _SPEND_DIR / f"ai-spend-log-{AGENT_NAME}.csv"
 STATE_FILE = Path.home() / ".claude" / "spend_tracking_state.json"
 
 _HEADERS = [
-    "Timestamp", "AgentName", "CallType", "Purpose",
+    "Timestamp", "AgentName", "CallType", "Purpose", "Description",
     "Model", "UploadTokens", "DownloadTokens", "CostGBP",
 ]
 
@@ -136,7 +136,16 @@ def _infer_purpose(last_message: str) -> str:
     return "Other"
 
 
-def _write_row(purpose, model, inp, out, cache_creation, cache_read):
+def _extract_description(last_message: str, max_len: int = 120) -> str:
+    """Return the first meaningful line of last_assistant_message as a one-liner."""
+    for line in last_message.splitlines():
+        line = line.strip().lstrip("#").strip()
+        if line:
+            return line[:max_len]
+    return ""
+
+
+def _write_row(purpose, description, model, inp, out, cache_creation, cache_read):
     cost = cost_gbp(model, inp, out, cache_creation_tokens=cache_creation, cache_read_tokens=cache_read)
     # UploadTokens is the true total input-side volume (fresh + cache write +
     # cache read), matching the convention spend_logger.log_analysis_run uses -
@@ -149,7 +158,7 @@ def _write_row(purpose, model, inp, out, cache_creation, cache_read):
             w.writerow(_HEADERS)
         w.writerow([
             datetime.now(timezone.utc).isoformat(),
-            AGENT_NAME, "ClaudeCode", purpose,
+            AGENT_NAME, "ClaudeCode", purpose, description,
             model, total_input, out, cost,
         ])
 
@@ -186,7 +195,8 @@ def main():
 
     if inp > 0 or out > 0 or cache_creation > 0 or cache_read > 0:
         purpose = _infer_purpose(last_message)
-        _write_row(purpose, model, inp, out, cache_creation, cache_read)
+        description = _extract_description(last_message)
+        _write_row(purpose, description, model, inp, out, cache_creation, cache_read)
 
     state[session_id] = total_lines
     _save_state(state)
