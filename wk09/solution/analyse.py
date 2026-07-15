@@ -1,18 +1,15 @@
 # Consultation Insights - batch analyser
 # Analyses consultation responses one at a time and saves the results.
-# Takes a while to run but you can watch the progress bar. Grab a coffee.
 
 import csv
 import json
 import os
 
-from langchain_anthropic import ChatAnthropic
+import anthropic
 
-llm = ChatAnthropic(
-    model="claude-sonnet-5",
-    max_tokens=500,
-    api_key=os.environ.get("ANTHROPIC_API_KEY", "PASTE-YOUR-KEY-HERE"),
-)
+import telemetry
+
+MODEL = "claude-sonnet-5"
 
 # Full instructions sent with every single response - keeps each call
 # self-contained so there's no state to worry about.
@@ -39,33 +36,89 @@ RESPONSE TO ANALYSE:
 """
 
 
-def analyse_response(text):
-    response = llm.invoke(INSTRUCTIONS + text)
-    return json.loads(response.content)  # the model always returns valid JSON (right?)
+def make_client():
+    return anthropic.Anthropic(
+        api_key=os.environ.get("ANTHROPIC_API_KEY", "PASTE-YOUR-KEY-HERE")
+    )
+
+
+def analyse_response(client, row_id, text):
+    """Analyse one consultation response. Returns (outcome, analysis, spend_gbp):
+      - outcome: "success" | "parse_error" | "api_error"
+      - analysis: the parsed dict on success, else None
+      - spend_gbp: cost of this call in GBP, 0.0 if the API call itself failed
+    Never raises: API and JSON-parse failures are caught, recorded via
+    telemetry (metric + log), and returned as a failed outcome so the caller
+    can skip this row and continue with the rest of the batch.
+    """
+    try:
+        message = client.messages.create(
+            model=MODEL,
+            max_tokens=500,
+            messages=[{"role": "user", "content": INSTRUCTIONS + text}],
+        )
+    except anthropic.AnthropicError as error:
+        telemetry.record_row_outcome("api_error")
+        telemetry.log_api_error(row_id, error)
+        return "api_error", None, 0.0
+
+    raw_text = message.content[0].text
+    telemetry.record_response_size(len(raw_text.encode("utf-8")))
+    spend_gbp = telemetry.record_spend(
+        MODEL, message.usage.input_tokens, message.usage.output_tokens
+    )
+
+    try:
+        analysis = json.loads(raw_text)
+    except json.JSONDecodeError as error:
+        telemetry.record_row_outcome("parse_error")
+        telemetry.log_parse_error(row_id, raw_text, error)
+        return "parse_error", None, spend_gbp
+
+    telemetry.record_row_outcome("success")
+    return "success", analysis, spend_gbp
 
 
 def main():
+    telemetry.init_telemetry()
+
     with open("../data/responses_sample.csv", newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
-    
+
     print(f"Analysing {len(rows)} responses...")
+    client = make_client()
+    start_time = telemetry.log_batch_started(MODEL, len(rows))
+
     results = []
+    outcomes = {"success": 0, "parse_error": 0, "api_error": 0}
+    total_spend_gbp = 0.0
 
     for i, row in enumerate(rows, start=1):
-        analysis = analyse_response(row["response_text"])
-        results.append({
-            "id": row["id"],
-            "respondent_type": row["respondent_type"],
-            "response_text": row["response_text"],
-            **analysis,
-        })
-        print(f"  [{i}/{len(rows)}] done")
+        outcome, analysis, spend_gbp = analyse_response(
+            client, row["id"], row["response_text"]
+        )
+        outcomes[outcome] += 1
+        total_spend_gbp += spend_gbp
+        if analysis is not None:
+            results.append(
+                {
+                    "id": row["id"],
+                    "respondent_type": row["respondent_type"],
+                    "response_text": row["response_text"],
+                    **analysis,
+                }
+            )
+        print(f"  [{i}/{len(rows)}] {outcome}")
 
-    # Write everything out at the end in one go.
     with open("results.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
 
-    print("Saved results.json")
+    telemetry.log_batch_finished(start_time, outcomes, total_spend_gbp)
+    print(
+        f"Saved results.json ({outcomes['success']} succeeded, "
+        f"{outcomes['parse_error']} parse errors, {outcomes['api_error']} API "
+        f"errors, £{total_spend_gbp:.4f} spent)"
+    )
 
 
 if __name__ == "__main__":
