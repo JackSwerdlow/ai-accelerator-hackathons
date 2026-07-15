@@ -149,6 +149,12 @@ def main():
     if not transcript_path or not Path(transcript_path).exists():
         return
 
+    # Guard: only log when Claude Code is running inside this project.
+    # Prevents accidental logging if the hook ever ends up in global settings.
+    cwd_path = Path(cwd).resolve() if cwd else Path.cwd()
+    if _SOLUTION_DIR not in [cwd_path, *cwd_path.parents]:
+        return
+
     state = _load_state()
     from_line = state.get(session_id, 0)
 
