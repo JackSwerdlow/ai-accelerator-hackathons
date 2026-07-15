@@ -1,5 +1,10 @@
 flask
-langchain-anthropic
+anthropic
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp
+openinference-instrumentation-anthropic
+pytest
 pandas
 matplotlib
 streamlit
