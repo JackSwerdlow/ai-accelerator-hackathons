@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room 7 — wk06 FOI Multi-Agent System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1d27;
+    --border: #2a2e3e;
+    --text: #e8eaf0;
+    --muted: #8892a4;
+    --accent1: #6c63ff;
+    --accent2: #00d4aa;
+    --accent3: #ff6b6b;
+    --accent4: #ffd166;
+    --accent5: #06d6a0;
+    --jack: #7c6cff;
+    --tom: #00c9a7;
+    --seven: #ff9f43;
+    --david: #54a0ff;
+    --collator: #ff6b9d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  /* ── Layout ── */
+  .page { max-width: 1200px; margin: 0 auto; padding: 0 32px 80px; }
+
+  /* ── Hero ── */
+  .hero {
+    position: relative;
+    padding: 80px 0 60px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 800px 400px at 50% -100px,
+      rgba(108,99,255,0.22) 0%, transparent 70%),
+      radial-gradient(ellipse 600px 300px at 80% 50%,
+      rgba(0,212,170,0.10) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-tag {
+    display: inline-block;
+    background: rgba(108,99,255,0.15);
+    border: 1px solid rgba(108,99,255,0.4);
+    color: #a59eff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 58px);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 30%, #a59eff 70%, #00d4aa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+  .hero-sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 620px;
+    margin: 0 auto 32px;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .hero-meta-item span { font-weight: 600; color: var(--text); }
+
+  /* ── Section ── */
+  .section { margin-top: 72px; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 32px;
+  }
+  .section-title em { font-style: normal; color: var(--accent1); }
+
+  /* ── Stats bar ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-top: 40px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--bar-color, var(--accent1));
+  }
+  .stat-num {
+    font-size: 38px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--bar-color, var(--accent1));
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Agent cards ── */
+  .agents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .agent-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .agent-card:hover { border-color: var(--agent-color); transform: translateY(-2px); }
+  .agent-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse 200px 200px at 80% 0%,
+      color-mix(in srgb, var(--agent-color) 12%, transparent) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .agent-avatar {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800;
+    margin-bottom: 14px;
+    background: color-mix(in srgb, var(--agent-color) 20%, transparent);
+    color: var(--agent-color);
+    border: 1px solid color-mix(in srgb, var(--agent-color) 40%, transparent);
+  }
+  .agent-name {
+    font-size: 15px; font-weight: 700;
+    color: var(--agent-color);
+    margin-bottom: 6px;
+  }
+  .agent-role {
+    font-size: 12px; color: var(--muted);
+    margin-bottom: 14px; line-height: 1.5;
+  }
+  .agent-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .agent-tag {
+    font-size: 10px; font-weight: 600;
+    padding: 3px 8px; border-radius: 6px;
+    background: color-mix(in srgb, var(--agent-color) 15%, transparent);
+    color: var(--agent-color);
+    border: 1px solid color-mix(in srgb, var(--agent-color) 30%, transparent);
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Pipeline ── */
+  .pipeline-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 32px;
+  }
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .pipe-step {
+    flex: 1;
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+  }
+  .pipe-step + .pipe-step::before {
+    content: '→';
+    position: absolute;
+    left: -12px;
+    top: 28px;
+    color: var(--border);
+    font-size: 20px;
+    font-weight: 300;
+    z-index: 1;
+  }
+  .pipe-icon {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    position: relative;
+    z-index: 2;
+    transition: transform 0.2s;
+  }
+  .pipe-step:hover .pipe-icon { transform: scale(1.08); }
+  .pipe-name {
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .pipe-model {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pipe-badge {
+    margin-top: 8px;
+    font-size: 9px; font-weight: 700;
+    padding: 2px 7px; border-radius: 5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .pipe-caption {
+    margin-top: 24px;
+    font-size: 13px; color: var(--muted);
+    text-align: center;
+    font-style: italic;
+  }
+
+  /* ── Timeline ── */
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px; top: 8px; bottom: 8px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--accent1), var(--accent2), transparent);
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 28px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -27px; top: 8px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--dot-color, var(--accent1));
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-color, var(--accent1)) 20%, transparent);
+  }
+  .timeline-phase {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--dot-color, var(--accent1));
+    margin-bottom: 4px;
+  }
+  .timeline-title {
+    font-size: 15px; font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .timeline-body {
+    font-size: 13px; color: var(--muted);
+    line-height: 1.6;
+  }
+  .timeline-agents {
+    display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;
+  }
+  .timeline-agent {
+    font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 5px;
+  }
+
+  /* ── Challenges ── */
+  .challenges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+  }
+  .challenge-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .challenge-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 3px;
+    background: var(--sev-color, var(--accent3));
+    border-radius: 3px 0 0 3px;
+  }
+  .challenge-sev {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 6px;
+    background: color-mix(in srgb, var(--sev-color, var(--accent3)) 15%, transparent);
+    color: var(--sev-color, var(--accent3));
+    border: 1px solid color-mix(in srgb, var(--sev-color, var(--accent3)) 30%, transparent);
+    margin-bottom: 10px;
+  }
+  .challenge-title {
+    font-size: 14px; font-weight: 700;
+    margin-bottom: 8px; line-height: 1.3;
+  }
+  .challenge-problem {
+    font-size: 12px; color: var(--muted);
+    margin-bottom: 10px; line-height: 1.6;
+  }
+  .challenge-fix {
+    font-size: 12px;
+    background: var(--bg3);
+    border-left: 2px solid var(--accent2);
+    padding: 8px 12px;
+    border-radius: 0 8px 8px 0;
+    color: var(--accent2);
+    line-height: 1.5;
+  }
+  .challenge-fix strong { color: var(--accent2); }
+  .challenge-task {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-size: 10px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Tech stack ── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .tech-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 16px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .tech-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg3);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .tech-name {
+    font-size: 13px; font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .tech-desc {
+    font-size: 11px; color: var(--muted); line-height: 1.4;
+  }
+
+  /* ── Learnings ── */
+  .learnings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .learning-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .learning-num {
+    font-size: 36px; font-weight: 900;
+    color: var(--accent1);
+    opacity: 0.25;
+    line-height: 1;
+    margin-bottom: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .learning-title {
+    font-size: 14px; font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .learning-body {
+    font-size: 13px; color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── Outcomes ── */
+  .outcomes-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 700px) { .outcomes-row { grid-template-columns: 1fr; } }
+  .outcome-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .outcome-block h3 {
+    font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .outcome-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-bottom: 10px;
+    font-size: 13px; line-height: 1.5;
+  }
+  .outcome-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 7px;
+  }
+
+  /* ── Decision log ── */
+  .decision-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .decision-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .decision-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+  .decision-topic {
+    font-size: 13px; font-weight: 700; line-height: 1.3;
+  }
+  .decision-badge {
+    font-size: 9px; font-weight: 700;
+    padding: 3px 7px; border-radius: 5px;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .decision-chosen {
+    font-size: 12px;
+    color: var(--accent2);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 6px;
+  }
+  .decision-why {
+    font-size: 11px; color: var(--muted); line-height: 1.5;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 80px;
+    padding: 32px 0 0;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .footer-left { font-size: 13px; color: var(--muted); }
+  .footer-right {
+    font-size: 12px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── Quote ── */
+  .callout {
+    background: var(--bg2);
+    border: 1px solid color-mix(in srgb, var(--accent1) 30%, transparent);
+    border-left: 3px solid var(--accent1);
+    border-radius: 0 12px 12px 0;
+    padding: 16px 20px;
+    font-size: 14px; color: var(--muted);
+    font-style: italic;
+    margin: 24px 0;
+    line-height: 1.7;
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .page { padding: 0 16px 60px; }
+    .pipeline { flex-wrap: wrap; gap: 12px; }
+    .pipe-step + .pipe-step::before { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="hero-tag">Room 7 · Hackathon wk06 · 24–25 June 2026</div>
+    <h1>FOI Multi-Agent<br>Automation System</h1>
+    <p class="hero-sub">A five-agent team spent 48 hours designing and building a UK Freedom of Information request pipeline — from independent specs to a tested, running CLI.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item">📅 <span>24–25 June 2026</span></div>
+      <div class="hero-meta-item">👥 <span>5 AI agents</span></div>
+      <div class="hero-meta-item">⚡ <span>48 hrs</span></div>
+      <div class="hero-meta-item">✅ <span>69 tests passing</span></div>
+    </div>
+  </section>
+
+  <!-- ── STATS ── -->
+  <div class="stats-grid">
+    <div class="stat-card" style="--bar-color: var(--accent1)">
+      <div class="stat-num">5</div>
+      <div class="stat-label">AI Agents</div>
+    </div>
+    <div class="stat-card" style="--bar-color: var(--accent2)">
+      <div class="stat-num">15</div>
+      <div class="stat-label">TDD Tasks</div>
+    </div>
+    <div class="stat-card" style="--bar-color: var(--accent4)">
+      <div class="stat-num">69</div>
+      <div class="stat-label">Tests Passing</div>
+    </div>
+    <div class="stat-card" style="--bar-color: var(--accent5)">
+      <div class="stat-num">4</div>
+      <div class="stat-label">Specs Merged</div>
+    </div>
+    <div class="stat-card" style="--bar-color: var(--jack)">
+      <div class="stat-num">6</div>
+      <div class="stat-label">Critical Bugs Fixed</div>
+    </div>
+    <div class="stat-card" style="--bar-color: var(--collator)">
+      <div class="stat-num">855k</div>
+      <div class="stat-label">Tokens (Collation)</div>
+    </div>
+    <div class="stat-card" style="--bar-color: var(--seven)">
+      <div class="stat-num">~$0.04</div>
+      <div class="stat-label">Per Request Cost</div>
+    </div>
+    <div class="stat-card" style="--bar-color: var(--david)">
+      <div class="stat-num">2</div>
+      <div class="stat-label">Days End-to-End</div>
+    </div>
+  </div>
+
+  <!-- ── THE TEAM ── -->
+  <section class="section">
+    <div class="section-label">The Team</div>
+    <div class="section-title">Five agents, <em>one codebase</em></div>
+    <div class="agents-grid">
+
+      <div class="agent-card" style="--agent-color: var(--jack)">
+        <div class="agent-avatar">J</div>
+        <div class="agent-name">Agent-Jack</div>
+        <div class="agent-role">Lead architect. Owned the spec, implementation plan, and the trust-critical pipeline core — RAG grounding, citation ladder, compliance gate.</div>
+        <div class="agent-tags">
+          <span class="agent-tag">Spec</span>
+          <span class="agent-tag">RAG Core</span>
+          <span class="agent-tag">Citation Ladder</span>
+          <span class="agent-tag">Compliance Gate</span>
+          <span class="agent-tag">TDD Tasks 1–9</span>
+          <span class="agent-tag">Final Review</span>
+        </div>
+      </div>
+
+      <div class="agent-card" style="--agent-color: var(--tom)">
+        <div class="agent-avatar">T</div>
+        <div class="agent-name">Agent-Tom</div>
+        <div class="agent-role">Research &amp; architecture. Discovered the LangChain built-in cost callback, designed HITL display, circuit breaker, and CostTracker polish.</div>
+        <div class="agent-tags">
+          <span class="agent-tag">Architecture</span>
+          <span class="agent-tag">Tooling Research</span>
+          <span class="agent-tag">HITL Display</span>
+          <span class="agent-tag">CostTracker</span>
+          <span class="agent-tag">Circuit Breaker</span>
+        </div>
+      </div>
+
+      <div class="agent-card" style="--agent-color: var(--seven)">
+        <div class="agent-avatar">7</div>
+        <div class="agent-name">AgentDoubleOSeven</div>
+        <div class="agent-role">UX &amp; operator experience. Generated an interactive HTML brainstorm planner to elicit operator decisions. Contributed single-seam, section-aware chunking, five-layer reliability.</div>
+        <div class="agent-tags">
+          <span class="agent-tag">HTML Planner</span>
+          <span class="agent-tag">Single-Seam</span>
+          <span class="agent-tag">Chunking</span>
+          <span class="agent-tag">Reliability Layers</span>
+          <span class="agent-tag">Operator Decisions</span>
+        </div>
+      </div>
+
+      <div class="agent-card" style="--agent-color: var(--david)">
+        <div class="agent-avatar">D</div>
+        <div class="agent-name">Agent-David</div>
+        <div class="agent-role">Governance &amp; defaults. Contributed audit governance (append-only across runs, rejected requests still persist), and MVP fallback patterns.</div>
+        <div class="agent-tags">
+          <span class="agent-tag">Audit Governance</span>
+          <span class="agent-tag">MVP Fallback</span>
+          <span class="agent-tag">Append-Only Log</span>
+        </div>
+      </div>
+
+      <div class="agent-card" style="--agent-color: var(--collator)">
+        <div class="agent-avatar">C</div>
+        <div class="agent-name">Agent-Collator</div>
+        <div class="agent-role">Neutral judge. Ran a five-stage multi-agent workflow (~855k tokens) to consolidate four divergent plans into one ratified PLAN.md without bias toward any single agent.</div>
+        <div class="agent-tags">
+          <span class="agent-tag">Collation Workflow</span>
+          <span class="agent-tag">Decision Record</span>
+          <span class="agent-tag">API Verification</span>
+          <span class="agent-tag">Close-Call Surfacing</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── PIPELINE ── -->
+  <section class="section">
+    <div class="section-label">System Architecture</div>
+    <div class="section-title">A deterministic <em>four-agent pipeline</em></div>
+    <div class="pipeline-container">
+      <div class="pipeline">
+
+        <div class="pipe-step">
+          <div class="pipe-icon" style="background: rgba(255,209,102,0.12); border-color: rgba(255,209,102,0.3)">📥</div>
+          <div class="pipe-name">INPUT</div>
+          <div class="pipe-model">request.txt</div>
+          <div class="pipe-badge" style="background: rgba(255,209,102,0.1); color: #ffd166">FOI File</div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-icon" style="background: rgba(108,99,255,0.15); border-color: rgba(108,99,255,0.4)">🔍</div>
+          <div class="pipe-name">TRIAGE</div>
+          <div class="pipe-model">Haiku 4.5</div>
+          <div class="pipe-badge" style="background: rgba(108,99,255,0.1); color: #a59eff">Classify</div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-icon" style="background: rgba(0,212,170,0.12); border-color: rgba(0,212,170,0.3)">🗂️</div>
+          <div class="pipe-name">RETRIEVE</div>
+          <div class="pipe-model">nomic-embed</div>
+          <div class="pipe-badge" style="background: rgba(0,212,170,0.1); color: #00d4aa">RAG</div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-icon" style="background: rgba(255,107,107,0.12); border-color: rgba(255,107,107,0.3)">⚖️</div>
+          <div class="pipe-name">COMPLIANCE</div>
+          <div class="pipe-model">Sonnet 4.6</div>
+          <div class="pipe-badge" style="background: rgba(255,107,107,0.1); color: #ff6b6b">Exempt?</div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-icon" style="background: rgba(84,160,255,0.12); border-color: rgba(84,160,255,0.3)">✍️</div>
+          <div class="pipe-name">RESPONSE</div>
+          <div class="pipe-model">Sonnet 4.6</div>
+          <div class="pipe-badge" style="background: rgba(84,160,255,0.1); color: #54a0ff">Draft</div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-icon" style="background: rgba(255,159,67,0.12); border-color: rgba(255,159,67,0.3)">🔒</div>
+          <div class="pipe-name">REDACTION</div>
+          <div class="pipe-model">Haiku 4.5</div>
+          <div class="pipe-badge" style="background: rgba(255,159,67,0.1); color: #ff9f43">PII Strip</div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-icon" style="background: rgba(6,214,160,0.12); border-color: rgba(6,214,160,0.3)">🧑‍💼</div>
+          <div class="pipe-name">HITL GATE</div>
+          <div class="pipe-model">Human required</div>
+          <div class="pipe-badge" style="background: rgba(6,214,160,0.1); color: #06d6a0">Approve</div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-icon" style="background: rgba(255,109,157,0.12); border-color: rgba(255,109,157,0.3)">📊</div>
+          <div class="pipe-name">AUDIT</div>
+          <div class="pipe-model">.jsonl + .txt</div>
+          <div class="pipe-badge" style="background: rgba(255,109,157,0.1); color: #ff6b9d">Log</div>
+        </div>
+
+      </div>
+      <p class="pipe-caption">Every model call routes through a single seam: <code style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#a59eff">structured(build_llm(agent), Schema)</code> inside <code style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#a59eff">cost.track(agent)</code> — no auto-approval, ever.</p>
+    </div>
+  </section>
+
+  <!-- ── TIMELINE ── -->
+  <section class="section">
+    <div class="section-label">Execution Timeline</div>
+    <div class="section-title">From brief to build in <em>48 hours</em></div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+      <div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;">24 June — Planning Day</div>
+        <div class="timeline">
+
+          <div class="timeline-item" style="--dot-color: var(--jack)">
+            <div class="timeline-phase">Morning</div>
+            <div class="timeline-title">AI_LOG format &amp; conventions defined</div>
+            <div class="timeline-body">Sequential numbering replaced with attributed+dated headers to avoid parallel-agent merge conflicts.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(124,108,255,0.15); color: var(--jack)">Agent-Jack</span>
+            </div>
+          </div>
+
+          <div class="timeline-item" style="--dot-color: var(--tom)">
+            <div class="timeline-phase">Morning</div>
+            <div class="timeline-title">Docs restructured: specs / architecture / plans</div>
+            <div class="timeline-body">Three-tier doc hierarchy. Discovered built-in <code style="font-family:'JetBrains Mono',monospace; font-size:11px">get_usage_metadata_callback</code> — replaces custom BaseCallbackHandler subclass.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(0,201,167,0.15); color: var(--tom)">Agent-Tom</span>
+            </div>
+          </div>
+
+          <div class="timeline-item" style="--dot-color: var(--jack)">
+            <div class="timeline-phase">Midday</div>
+            <div class="timeline-title">Primary spec authored + hardened</div>
+            <div class="timeline-body">Three Sonnet review subagents. Fixed FOI domain errors: s40 is not absolute; s36 needs qualified-person opinion; added grounding as citation-integrity backstop.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(124,108,255,0.15); color: var(--jack)">Agent-Jack</span>
+            </div>
+          </div>
+
+          <div class="timeline-item" style="--dot-color: var(--seven)">
+            <div class="timeline-phase">Afternoon</div>
+            <div class="timeline-title">Interactive HTML brainstorm planner</div>
+            <div class="timeline-body">16 decision cards with recommended defaults. Operator overrides: downgrade compliance to Sonnet 4.6, HITL re-centred on decision, cost hidden at gate, audit switched to .txt.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(255,159,67,0.15); color: var(--seven)">AgentDoubleOSeven</span>
+            </div>
+          </div>
+
+          <div class="timeline-item" style="--dot-color: var(--collator)">
+            <div class="timeline-phase">Evening</div>
+            <div class="timeline-title">Four plans collated into PLAN.md</div>
+            <div class="timeline-body">Five-stage multi-agent workflow. Surfaced LangChain vs plain-SDK close-call. Human ratified LangChain. 15 TDD tasks + 4 stretch goals locked.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(255,107,157,0.15); color: var(--collator)">Agent-Collator</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;">24–25 June — Build Day</div>
+        <div class="timeline">
+
+          <div class="timeline-item" style="--dot-color: var(--accent4)">
+            <div class="timeline-phase">Task 1</div>
+            <div class="timeline-title">Scaffold — disk crisis &amp; CPU-torch pivot</div>
+            <div class="timeline-body">CUDA wheels filled a 32 GB disk to 100%. Reinstalled with CPU-only PyTorch (~190 MB vs 1.9 GB). Clean install restored; all 5 schema/config tests green.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(124,108,255,0.15); color: var(--jack)">Agent-Jack</span>
+            </div>
+          </div>
+
+          <div class="timeline-item" style="--dot-color: var(--accent2)">
+            <div class="timeline-phase">Tasks 2–4</div>
+            <div class="timeline-title">LLM seam, cost tracker, indexing</div>
+            <div class="timeline-body">Caught composition-order bug: <code style="font-family:'JetBrains Mono',monospace; font-size:11px">.with_retry()</code> returns RunnableRetry — no <code style="font-family:'JetBrains Mono',monospace; font-size:11px">with_structured_output</code>. Inverted order. Fixed chunker regex (IGNORECASE split wrong). Day-1 nomic validation gate passed.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(124,108,255,0.15); color: var(--jack)">Agent-Jack</span>
+            </div>
+          </div>
+
+          <div class="timeline-item" style="--dot-color: var(--accent3)">
+            <div class="timeline-phase">Tasks 5–9</div>
+            <div class="timeline-title">All four agents + citation ladder</div>
+            <div class="timeline-body">FakeListChatModel doesn't support structured output. Replaced with RunnableLambda DI. Fixed broken L2 metric (ratio→quote-coverage). Compliance grounding gate makes injection structurally impossible.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(124,108,255,0.15); color: var(--jack)">Agent-Jack</span>
+            </div>
+          </div>
+
+          <div class="timeline-item" style="--dot-color: var(--accent1)">
+            <div class="timeline-phase">Tasks 10–15</div>
+            <div class="timeline-title">Supervisor, HITL, audit, eval harness</div>
+            <div class="timeline-body">Full pipeline wired. Dual-format audit (JSONL + TXT). Interactive Rich HITL gate. Triage + compliance eval harness. 69 tests passing, ruff + mypy clean.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(124,108,255,0.15); color: var(--jack)">Agent-Jack</span>
+            </div>
+          </div>
+
+          <div class="timeline-item" style="--dot-color: var(--accent5)">
+            <div class="timeline-phase">Post-build</div>
+            <div class="timeline-title">Real-API smoke run + final review</div>
+            <div class="timeline-body">Two critical governance bugs found and fixed: redaction fallback leaked PII, batch cost was cumulative. <code style="font-family:'JetBrains Mono',monospace; font-size:11px">case.costs</code> never assigned in result JSON. All fixed. Live run verified $0.046/request.</div>
+            <div class="timeline-agents">
+              <span class="timeline-agent" style="background: rgba(124,108,255,0.15); color: var(--jack)">Agent-Jack</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── KEY CHALLENGES ── -->
+  <section class="section">
+    <div class="section-label">Key Challenges Overcome</div>
+    <div class="section-title">Six <em>critical bugs</em> caught before shipping</div>
+    <div class="callout">
+      The test suite (TDD red→green) and a mandatory real-API smoke run caught every critical issue before the branch was merged. <strong>Unit tests with fake LLMs cannot validate token/cost capture</strong> — the real-run step is a required gate.
+    </div>
+    <div class="challenges-grid">
+
+      <div class="challenge-card" style="--sev-color: #ff4757">
+        <div class="challenge-task">Task 1</div>
+        <div class="challenge-sev">🔴 Critical — Environment</div>
+        <div class="challenge-title">CUDA wheels filled disk to 100%</div>
+        <div class="challenge-problem">Default pip install pulled 1.9 GB of nvidia-cu13 + triton CUDA wheels onto a 32 GB drive already at ~30 GB. Install died mid-way with ENOSPC, leaving a broken partial venv.</div>
+        <div class="challenge-fix"><strong>Fix:</strong> Install CPU-only torch first via <code>--index-url pytorch.org/whl/cpu</code> (190 MB), then sentence-transformers skips CUDA. Used <code>--no-cache-dir</code> to prevent cache refill. Freed 5.6 GB; disk at 89%.</div>
+      </div>
+
+      <div class="challenge-card" style="--sev-color: #ff4757">
+        <div class="challenge-task">Task 2</div>
+        <div class="challenge-sev">🔴 Critical — API Composition</div>
+        <div class="challenge-title">with_retry() → RunnableRetry has no with_structured_output</div>
+        <div class="challenge-problem">PLAN.md sketched: <code>build_llm().with_retry()</code> then call <code>.with_structured_output()</code> on the result. But <code>RunnableRetry</code> does not expose <code>with_structured_output</code> — this would raise AttributeError at runtime.</div>
+        <div class="challenge-fix"><strong>Fix:</strong> Invert the order. Apply <code>with_structured_output(schema)</code> to the bare <code>ChatAnthropic</code> first, then wrap the result with <code>.with_retry(...)</code>. Both invariants (single seam, single retry) preserved.</div>
+      </div>
+
+      <div class="challenge-card" style="--sev-color: #ffa502">
+        <div class="challenge-task">Task 3</div>
+        <div class="challenge-sev">🟠 High — Correctness</div>
+        <div class="challenge-title">re.IGNORECASE broke the section-aware chunker</div>
+        <div class="challenge-problem">The heading regex used IGNORECASE, so body-text mentions like "Section 40 provides…" also triggered a chunk split. This broke the "one exemption = one citable chunk" invariant that citation grounding depends on.</div>
+        <div class="challenge-fix"><strong>Fix:</strong> Case-sensitive anchored regex <code>^SECTION\s+(\d+)\b</code> — only uppercase real headings trigger splits. TDD test <code>test_section_aware_chunk_is_one_exemption</code> caught it.</div>
+      </div>
+
+      <div class="challenge-card" style="--sev-color: #ff4757">
+        <div class="challenge-task">Task 6</div>
+        <div class="challenge-sev">🔴 Critical — Trust Core</div>
+        <div class="challenge-title">SequenceMatcher.ratio() rejects valid verbatim quotes</div>
+        <div class="challenge-problem"><code>ratio()</code> penalises length difference: a verbatim excerpt of a long chunk scores ~0.63, far below the 0.85 threshold. The only way to score ≥0.85 would be to quote the entire chunk — defeating the purpose of citation excerpts entirely.</div>
+        <div class="challenge-fix"><strong>Fix:</strong> Quote-coverage = fraction of the quote's characters found in the chunk. Verbatim=1.0, near-verbatim(typo)=0.99, fabricated=0.63. Threshold 0.85 now correctly passes real citations and rejects hallucinated ones.</div>
+      </div>
+
+      <div class="challenge-card" style="--sev-color: #ff4757">
+        <div class="challenge-task">Final Review</div>
+        <div class="challenge-sev">🔴 Critical — Governance</div>
+        <div class="challenge-title">Redaction fallback leaked unredacted PII to HITL gate</div>
+        <div class="challenge-problem">The supervisor's typed fallback for redaction stage returned <code>case.response.letter</code> verbatim. Emails, phone numbers, postcodes, and staff numbers could reach the human decision screen without redaction.</div>
+        <div class="challenge-fix"><strong>Fix:</strong> Import and call <code>redact_with_regex</code> inside <code>_redaction_fallback</code>, matching the agent's own internal fallback. Unredacted PII at the HITL gate undermines the entire governance contract.</div>
+      </div>
+
+      <div class="challenge-card" style="--sev-color: #ff4757">
+        <div class="challenge-task">Post-build run</div>
+        <div class="challenge-sev">🔴 Critical — Cost Tracking</div>
+        <div class="challenge-title">case.costs always [] in result JSON</div>
+        <div class="challenge-problem"><code>get_usage_metadata_callback</code> captured usage correctly and <code>cost.entries</code> accumulated fine — but <code>process_request</code> never assigned <code>case.costs</code>. Every result JSON had <code>"costs": []</code>. Masked by unit tests which use RunnableLambda fakes (no real usage metadata).</div>
+        <div class="challenge-fix"><strong>Fix:</strong> One line — <code>case.costs = list(_request_entries)</code> using the per-request slice. Live run verified: 4 cost entries ($0.046) in result JSON. Lesson: only a real-API smoke run surfaces cost-capture gaps.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── KEY DECISIONS ── -->
+  <section class="section">
+    <div class="section-label">Architecture Decisions</div>
+    <div class="section-title">Eight <em>ratified choices</em> that shaped the build</div>
+    <div class="decision-grid">
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <div class="decision-topic">LLM framework spine</div>
+          <div class="decision-badge" style="background: rgba(255,109,157,0.15); color: var(--collator)">Close call</div>
+        </div>
+        <div class="decision-chosen">langchain-anthropic (ratified)</div>
+        <div class="decision-why">AgentDoubleOSeven used plain Anthropic SDK; starter + CLAUDE.md lean that way too. Re-opened as a genuine close-call during collation. Human ratified LangChain for <code>with_structured_output</code> + <code>get_usage_metadata_callback</code>.</div>
+      </div>
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <div class="decision-topic">Embedding model</div>
+          <div class="decision-badge" style="background: rgba(6,214,160,0.15); color: var(--accent5)">Validated</div>
+        </div>
+        <div class="decision-chosen">nomic-embed-text-v1.5</div>
+        <div class="decision-why">Day-1 gate confirmed: dim=768, cosine(s40-query, s40-doc)=0.92. MiniLM fallback not needed. gte-base was originally proposed but also requires trust_remote_code — the stated advantage was wrong.</div>
+      </div>
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <div class="decision-topic">Compliance model tier</div>
+          <div class="decision-badge" style="background: rgba(255,159,67,0.15); color: var(--seven)">Operator override</div>
+        </div>
+        <div class="decision-chosen">Sonnet 4.6 (not Opus)</div>
+        <div class="decision-why">HTML planner's recommended default was Opus 4.8. Operator downgraded via dropdown — a cost/quality call the AI would not have made unprompted. Validated: Sonnet handles IRAC analysis adequately.</div>
+      </div>
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <div class="decision-topic">HITL cost display</div>
+          <div class="decision-badge" style="background: rgba(255,159,67,0.15); color: var(--seven)">Operator override</div>
+        </div>
+        <div class="decision-chosen">Hidden at gate; in logs only</div>
+        <div class="decision-why">Toggle <code>show_cost: false</code> in HTML planner. Rationale: showing cost at the decision point introduces automation bias (officers may approve to save money). Cost surfaces only in end-of-run summary and audit trail.</div>
+      </div>
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <div class="decision-topic">Retry strategy</div>
+          <div class="decision-badge" style="background: rgba(0,212,170,0.15); color: var(--accent2)">Settled</div>
+        </div>
+        <div class="decision-chosen">.with_retry() only, stop_after=4</div>
+        <div class="decision-why">Rejected tenacity (extra dependency) and SDK retries (double-counting). Single LangChain .with_retry() wrapping the structured runnable. Clean, one mechanism, matches the ratified single-seam principle.</div>
+      </div>
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <div class="decision-topic">Audit format</div>
+          <div class="decision-badge" style="background: rgba(255,159,67,0.15); color: var(--seven)">Operator override</div>
+        </div>
+        <div class="decision-chosen">JSONL (primary) + .txt (secondary)</div>
+        <div class="decision-why">Planner note switched primary format from JSONL to .txt. Reconciled to dual-format: JSONL for programmatic processing, .txt for human-readable audits. Append-only across sessions (Agent-David governance contribution).</div>
+      </div>
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <div class="decision-topic">Agent unit-test seam</div>
+          <div class="decision-badge" style="background: rgba(255,107,107,0.15); color: var(--accent3)">Plan deviation</div>
+        </div>
+        <div class="decision-chosen">RunnableLambda DI (not FakeListChatModel)</div>
+        <div class="decision-why">Plan specified FakeListChatModel. Verified before writing: its <code>with_structured_output()</code> raises NotImplementedError. Switched to dependency injection — every agent takes <code>llm: Runnable | None = None</code>; tests inject a lambda.</div>
+      </div>
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <div class="decision-topic">Grounding gate / injection defence</div>
+          <div class="decision-badge" style="background: rgba(6,214,160,0.15); color: var(--accent5)">Novel</div>
+        </div>
+        <div class="decision-chosen">Citation failure → force withhold</div>
+        <div class="decision-why">Prompt delimiters reduce injection but can't eliminate it. Post-processing runs verify_citations; on any failure forces recommendation="withhold". A fully injection-flipped "release" citing a fabricated chunk is structurally blocked — not prompt-reliant.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── TECH STACK ── -->
+  <section class="section">
+    <div class="section-label">Technology</div>
+    <div class="section-title">The <em>stack</em></div>
+    <div class="tech-grid">
+
+      <div class="tech-card">
+        <div class="tech-icon">🤖</div>
+        <div>
+          <div class="tech-name">Claude (Haiku + Sonnet)</div>
+          <div class="tech-desc">Haiku 4.5 for triage &amp; redaction ($1/$5/MTok). Sonnet 4.6 for compliance &amp; response ($3/$15/MTok). All calls via single seam.</div>
+        </div>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-icon">🔗</div>
+        <div>
+          <div class="tech-name">langchain-anthropic 1.4.7</div>
+          <div class="tech-desc">with_structured_output(method="json_schema") + get_usage_metadata_callback + .with_retry(). Ratified over plain SDK after collation close-call.</div>
+        </div>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-icon">🗄️</div>
+        <div>
+          <div class="tech-name">ChromaDB 1.5.9</div>
+          <div class="tech-desc">Persistent local vector store. Cosine similarity via HNSW. Verify-or-recreate guard. Freshness check on index age.</div>
+        </div>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-icon">📐</div>
+        <div>
+          <div class="tech-name">nomic-embed-text-v1.5</div>
+          <div class="tech-desc">768-dim embeddings, ~274 MB. encode_query/encode_document auto-apply task prefixes. Day-1 gate confirmed cosine(s40)=0.92.</div>
+        </div>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-icon">🏗️</div>
+        <div>
+          <div class="tech-name">Pydantic v2</div>
+          <div class="tech-desc">13 schemas: CaseRecord, TriageResult, ComplianceResult, RedactionResult, ResponseDraft, HumanDecision, AuditEntry, CostEntry, Citation, Exemption…</div>
+        </div>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-icon">🖥️</div>
+        <div>
+          <div class="tech-name">Typer + Rich</div>
+          <div class="tech-desc">CLI with three commands: foi index, foi process, foi eval. Rich panels for HITL gate: recommendation → triage → exemptions → evidence → draft.</div>
+        </div>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-icon">🧪</div>
+        <div>
+          <div class="tech-name">pytest + ruff + mypy</div>
+          <div class="tech-desc">69 tests. All three gates required before every commit. TDD red→green discipline for each of the 15 tasks.</div>
+        </div>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-icon">🔥</div>
+        <div>
+          <div class="tech-name">PyTorch (CPU-only)</div>
+          <div class="tech-desc">Installed via pytorch.org/whl/cpu. ~190 MB vs 1.9 GB CUDA build. Required first to prevent sentence-transformers pulling CUDA wheels.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── LEARNINGS ── -->
+  <section class="section">
+    <div class="section-label">Key Learnings</div>
+    <div class="section-title">What <em>the team</em> learned</div>
+    <div class="learnings-grid">
+
+      <div class="learning-card">
+        <div class="learning-num">01</div>
+        <div class="learning-title">Unit tests with fake LLMs cannot validate cost capture</div>
+        <div class="learning-body">RunnableLambda fakes emit no usage_metadata, so cost.entries is legitimately empty in all unit tests. The only way to catch "costs never assigned" is a mandatory real-API smoke run. This should be a required acceptance gate on any LLM system.</div>
+      </div>
+
+      <div class="learning-card">
+        <div class="learning-num">02</div>
+        <div class="learning-title">Verify library APIs against installed versions before writing code</div>
+        <div class="learning-body">Three bugs (composition order, FakeListChatModel, SequenceMatcher L2 metric) came from trusting the plan's API sketches. Context7 + verifying against actually-installed packages caught all three before code was shipped.</div>
+      </div>
+
+      <div class="learning-card">
+        <div class="learning-num">03</div>
+        <div class="learning-title">TDD is the only reliable way to catch trust-critical correctness bugs</div>
+        <div class="learning-body">The IGNORECASE chunker bug (splits wrong exemption boundaries) and the SequenceMatcher metric bug (rejects valid verbatim quotes) were both silent — no error, just wrong behaviour. Tests named to the invariant caught them; manual inspection would have missed them.</div>
+      </div>
+
+      <div class="learning-card">
+        <div class="learning-num">04</div>
+        <div class="learning-title">Structural defences beat prompt-level defences for governance</div>
+        <div class="learning-body">Prompt injection hygiene reduces but cannot eliminate attacks. Making grounding-gate failure unconditionally force "withhold" means even a fully compromised LLM output citing fabricated chunks is blocked deterministically — the defence is in the code, not the prompt.</div>
+      </div>
+
+      <div class="learning-card">
+        <div class="learning-num">05</div>
+        <div class="learning-title">Interactive HTML planners elicit genuine operator decisions</div>
+        <div class="learning-body">The HTML brainstorm planner converted an open-ended "design this" into discrete, attributable choices (dropdown, toggle, notes). Five operator overrides materially changed the spec — including one the AI would never have made unprompted (downgrade compliance model).</div>
+      </div>
+
+      <div class="learning-card">
+        <div class="learning-num">06</div>
+        <div class="learning-title">Parallel independent specs + neutral collation beats consensus drafting</div>
+        <div class="learning-body">Four agents producing genuinely independent specs uncovered real disagreements (langchain vs plain SDK, HITL focus, cost display) that would have been smoothed over in a collaborative draft. The collator's job became clearer because the disagreements were explicit.</div>
+      </div>
+
+      <div class="learning-card">
+        <div class="learning-num">07</div>
+        <div class="learning-title">Sequential numbering is a merge-conflict magnet for parallel agents</div>
+        <div class="learning-body">The original AI_LOG format used global sequential headers (Prompt 0, Prompt 1…). With multiple agents appending simultaneously on different machines, collisions are inevitable. Attributed+dated headers (## [AgentName] YYYY-MM-DD) need no central counter and merge cleanly.</div>
+      </div>
+
+      <div class="learning-card">
+        <div class="learning-num">08</div>
+        <div class="learning-title">CPU-only torch install is a first-class dev environment concern</div>
+        <div class="learning-body">On a disk-constrained lab box, the default pip install of sentence-transformers pulls ~1.9 GB of CUDA wheels. Installing torch CPU-first reduces this to ~190 MB. This is now documented in the README quick-start as a required step, not an edge case.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── OUTCOMES ── -->
+  <section class="section">
+    <div class="section-label">Outcomes</div>
+    <div class="section-title">What was <em>delivered</em></div>
+    <div class="outcomes-row">
+
+      <div class="outcome-block">
+        <h3>Built &amp; Verified</h3>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent2)"></div>
+          <div>Full CLI pipeline: <code style="font-family:'JetBrains Mono',monospace; font-size:11px">foi index</code>, <code style="font-family:'JetBrains Mono',monospace; font-size:11px">foi process</code>, <code style="font-family:'JetBrains Mono',monospace; font-size:11px">foi eval</code></div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent2)"></div>
+          <div>69 passing offline tests — ruff, mypy, pytest all green</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent2)"></div>
+          <div>Real-API run verified: 4 cost entries, $0.046/request (plan projected $0.05–0.08)</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent2)"></div>
+          <div>HITL gate: 6 Rich panels, approve / reject / modify semantics</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent2)"></div>
+          <div>Dual-format audit trail: JSONL + human-readable .txt, append-only across sessions</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent2)"></div>
+          <div>Eval harness: triage accuracy + compliance grounding metrics</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent2)"></div>
+          <div>8 synthetic FOI requests (5 valid + 3 edge cases) + 25-item gold set</div>
+        </div>
+      </div>
+
+      <div class="outcome-block">
+        <h3>Quality &amp; Governance</h3>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent1)"></div>
+          <div>Zero auto-approval: HITL gate is a hard structural rule, not a flag</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent1)"></div>
+          <div>Citation grounding ladder (L1 id-membership + L2 quote-coverage) on every compliance finding</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent1)"></div>
+          <div>Injection-flipped "release" with fabricated citation is structurally forced to "withhold"</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent1)"></div>
+          <div>PII never reaches the HITL gate unredacted (redaction fallback hardened)</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent1)"></div>
+          <div>Per-request costs isolated in batch mode (no cumulative leakage between requests)</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent1)"></div>
+          <div>Held-out test set gitignored — operators test with requests the builder hasn't seen</div>
+        </div>
+        <div class="outcome-item">
+          <div class="outcome-dot" style="background: var(--accent1)"></div>
+          <div>14 AI_LOG entries: full provenance trail of every non-trivial decision</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <div class="footer">
+    <div class="footer-left">
+      Room 7 · Hackathon wk06 · AI Accelerator Programme · 24–25 June 2026<br>
+      Agents: Jack · Tom · DoubleOSeven · David · Collator
+    </div>
+    <div class="footer-right">
+      wk06/solution/ · main branch<br>
+      69 tests · ruff + mypy clean
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
