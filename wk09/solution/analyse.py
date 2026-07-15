@@ -64,6 +64,7 @@ _SOLUTION_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_SOLUTION_DIR))
 from spend.pricing import cost_gbp  # noqa: E402
 from spend.spend_logger import log_analysis_run  # noqa: E402
+import telemetry  # noqa: E402
 
 DEFAULT_INPUT = _SOLUTION_DIR.parent / "data" / "responses_sample.csv"
 DEFAULT_OUTPUT = _SOLUTION_DIR / "results.json"
@@ -331,8 +332,16 @@ def analyse_response(client, response_text, row_id, model=DEFAULT_MODEL, max_tok
     text = "".join(
         block.text for block in resp.content if getattr(block, "type", None) == "text"
     )
+    usage = extract_usage(resp, row_id, model=model)
+    # Recorded here, before parse_model_output can raise: the API call was
+    # made and billed regardless of whether the output goes on to parse.
+    telemetry.record_response_size(len(text.encode("utf-8")))
+    telemetry.record_spend(model, usage.input_tokens, usage.output_tokens,
+                            cache_creation_tokens=usage.cache_creation_input_tokens,
+                            cache_read_tokens=usage.cache_read_input_tokens, batch=False)
+    telemetry.record_cache_status(usage.cache_status)
     analysis = parse_model_output(text)
-    return analysis, extract_usage(resp, row_id, model=model)
+    return analysis, usage
 
 
 def call_single_sync(client, row, model, max_tokens):
@@ -342,16 +351,21 @@ def call_single_sync(client, row, model, max_tokens):
     try:
         analysis, usage = analyse_response(client, row["response_text"], row["id"],
                                             model=model, max_tokens=max_tokens)
+        telemetry.record_row_outcome("success")
     except ParseError as e:
         analysis = {"summary": "PARSE_ERROR", "themes": [], "sentiment": "neutral",
                     "parse_error": str(e)}
         usage = UsageRecord(row_id=row["id"], model=model, input_tokens=0,
                              cache_creation_input_tokens=0, cache_read_input_tokens=0, output_tokens=0)
+        telemetry.record_row_outcome("parse_error")
+        telemetry.log_parse_error(row["id"], str(e), e)
     except Exception as e:
         analysis = {"summary": "API_ERROR", "themes": [], "sentiment": "neutral",
                     "parse_error": str(e)}
         usage = UsageRecord(row_id=row["id"], model=model, input_tokens=0,
                              cache_creation_input_tokens=0, cache_read_input_tokens=0, output_tokens=0)
+        telemetry.record_row_outcome("api_error")
+        telemetry.log_api_error(row["id"], e)
     return _merge_row(row, analysis), usage
 
 
@@ -448,16 +462,27 @@ def fetch_and_merge_results(client, batch_id, rows_by_id, model=DEFAULT_MODEL):
 
         if item.result.type == "succeeded":
             message = item.result.message
-            totals.add(extract_usage(message, row_id, model=model))
+            usage = extract_usage(message, row_id, model=model)
+            totals.add(usage)
             raw_text = "".join(
                 block.text for block in message.content if block.type == "text"
             )
+            # Recorded regardless of parse outcome: the batch item succeeded
+            # and was billed (at the batch discount) either way.
+            telemetry.record_response_size(len(raw_text.encode("utf-8")))
+            telemetry.record_spend(model, usage.input_tokens, usage.output_tokens,
+                                    cache_creation_tokens=usage.cache_creation_input_tokens,
+                                    cache_read_tokens=usage.cache_read_input_tokens, batch=True)
+            telemetry.record_cache_status(usage.cache_status)
             try:
                 analysis = parse_model_output(raw_text)
+                telemetry.record_row_outcome("success")
             except ParseError as e:
                 errors += 1
                 analysis = {"summary": "PARSE_ERROR", "themes": [], "sentiment": "neutral",
                             "parse_error": str(e)}
+                telemetry.record_row_outcome("parse_error")
+                telemetry.log_parse_error(row_id, str(e), e)
         else:
             errors += 1
             detail = getattr(item.result, "error", None)
@@ -467,6 +492,8 @@ def fetch_and_merge_results(client, batch_id, rows_by_id, model=DEFAULT_MODEL):
                 "sentiment": "neutral",
                 "parse_error": str(detail) if detail else item.result.type,
             }
+            telemetry.record_row_outcome("api_error")
+            telemetry.log_api_error(row_id, detail if detail else item.result.type)
 
         by_custom_id[row_id] = _merge_row(row, analysis)
 
@@ -549,6 +576,7 @@ def main():
     rows_by_id = {row["id"]: row for row in rows}
     signature = compute_signature(rows, args.model, args.max_tokens, args.mode)
 
+    telemetry.init_telemetry()
     client = Anthropic()
     state = _load_state(args.state_file)
 
@@ -560,7 +588,7 @@ def main():
         print(f"batch {batch.id}: {batch.processing_status} {batch.request_counts}")
         return
 
-    started = time.monotonic()
+    started = telemetry.log_batch_started(args.model, len(rows))
 
     if args.mode == "batch":
         outcome = run_batch(client, rows, rows_by_id, args, signature, state, args.state_file)
@@ -599,6 +627,17 @@ def main():
         output_tokens=totals.output_tokens,
         cost_gbp=cost,
     )
+
+    outcomes = {"success": 0, "parse_error": 0, "api_error": 0}
+    for r in results:
+        summary = r["summary"]
+        if summary == "PARSE_ERROR":
+            outcomes["parse_error"] += 1
+        elif summary == "API_ERROR" or summary.startswith("BATCH_"):
+            outcomes["api_error"] += 1
+        else:
+            outcomes["success"] += 1
+    telemetry.log_batch_finished(started, outcomes, cost)
 
     _clear_state(args.state_file)
 
