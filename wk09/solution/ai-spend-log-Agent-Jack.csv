@@ -9,3 +9,4 @@ Timestamp,AgentName,CallType,Purpose,Model,UploadTokens,DownloadTokens,CostGBP
 2026-07-15T13:07:49.039648+00:00,Agent-Jack,ClaudeCode,Implementation,claude-sonnet-5,48,25301,0.2
 2026-07-15T13:40:56.588260+00:00,Agent-Jack,ClaudeCode,Implementation,claude-sonnet-5,22,22857,0.1806
 2026-07-15T14:02:24.317630+00:00,Agent-Jack,ClaudeCode,Testing,claude-sonnet-5,142,86953,0.6872
+2026-07-15T14:07:12.993302+00:00,Agent-Jack,ClaudeCode,Debugging,claude-sonnet-5,40,17851,0.1411
