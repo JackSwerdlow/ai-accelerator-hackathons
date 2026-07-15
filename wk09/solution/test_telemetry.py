@@ -63,6 +63,40 @@ def test_record_spend_returns_and_records_gbp_amount():
     assert points[0].value == gbp
 
 
+def test_record_spend_prices_cache_and_batch_tokens_and_labels_batch():
+    reader = _configured_reader()
+
+    gbp = telemetry.record_spend(
+        "claude-sonnet-4-6", input_tokens=1000, output_tokens=1000,
+        cache_creation_tokens=500, cache_read_tokens=2000, batch=True,
+    )
+
+    # Independently derive the expected cost via the same pricing table
+    # analyse.py uses, so this doesn't just re-assert telemetry's own math.
+    from spend.pricing import cost_gbp
+    expected = cost_gbp("claude-sonnet-4-6", 1000, 1000,
+                         cache_creation_tokens=500, cache_read_tokens=2000, batch=True)
+    assert gbp == expected
+
+    points = _data_points(reader, "consultation.spend.gbp")
+    assert len(points) == 1
+    assert points[0].attributes["model"] == "claude-sonnet-4-6"
+    assert points[0].attributes["batch"] is True
+    assert points[0].value == gbp
+
+
+def test_record_cache_status_increments_counter_with_status_label():
+    reader = _configured_reader()
+    telemetry.record_cache_status("hit")
+    telemetry.record_cache_status("hit")
+    telemetry.record_cache_status("write")
+    telemetry.record_cache_status("miss")
+
+    points = _data_points(reader, "consultation.cache.status")
+    by_status = {p.attributes["status"]: p.value for p in points}
+    assert by_status == {"hit": 2, "write": 1, "miss": 1}
+
+
 def test_record_response_size_records_histogram_value():
     reader = _configured_reader()
     telemetry.record_response_size(256)
@@ -124,6 +158,22 @@ def test_log_parse_error_redacts_full_response_text(caplog):
     assert error_record.response_length == len(long_response)
     assert long_response not in error_record.response_snippet
     assert "bad json" in error_record.error
+
+
+def test_log_parse_error_redacts_full_text_embedded_in_error_message(caplog):
+    """analyse.py's ParseError messages embed the raw model output directly
+    in the exception text (e.g. "malformed JSON: ...; raw output: <full
+    text>") — str(error) alone can carry the same full consultation-response
+    text this function exists to keep out of the telemetry backend. The
+    `error` field must be redacted too, not just `raw_response`."""
+    raw_output = "not json " * 50  # 450 chars
+    error_with_embedded_text = ValueError(f"malformed JSON: bad token; raw output: {raw_output!r}")
+
+    with caplog.at_level(logging.ERROR, logger="consultation_insights"):
+        telemetry.log_parse_error("row-8", raw_output, error_with_embedded_text)
+
+    error_record = next(r for r in caplog.records if r.message == "row.parse_error")
+    assert raw_output not in error_record.error
 
 
 def test_log_api_error_records_row_id_and_error(caplog):

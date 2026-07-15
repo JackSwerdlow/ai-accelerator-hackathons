@@ -32,6 +32,7 @@ _spend_counter = None
 _rows_counter = None
 _response_size_histogram = None
 _batch_rows_gauge = None
+_cache_status_counter = None
 _initialized = False
 
 
@@ -51,6 +52,7 @@ def configure_metrics(meter_provider):
     called directly by tests with an in-memory provider — this seam is what
     makes the metrics testable without a running SigNoz collector."""
     global _spend_counter, _rows_counter, _response_size_histogram, _batch_rows_gauge
+    global _cache_status_counter
     meter = meter_provider.get_meter(SERVICE_NAME)
     _spend_counter = meter.create_counter(
         "consultation.spend.gbp", unit="GBP", description="Anthropic API spend in GBP"
@@ -67,6 +69,10 @@ def configure_metrics(meter_provider):
         "consultation.batch.rows_total", unit="1",
         description="Total rows in the current batch run",
     )
+    _cache_status_counter = meter.create_counter(
+        "consultation.cache.status", unit="1",
+        description="Prompt-cache outcome per API call (hit/write/miss)",
+    )
 
 
 def record_row_outcome(outcome):
@@ -74,13 +80,25 @@ def record_row_outcome(outcome):
     _rows_counter.add(1, {"outcome": outcome})
 
 
-def record_spend(model, input_tokens, output_tokens):
+def record_spend(model, input_tokens, output_tokens, cache_creation_tokens=0,
+                  cache_read_tokens=0, batch=False):
     """Computes GBP cost via spend.pricing.cost_gbp (the existing pricing table
     used by solution/spend/) and records it. Returns the GBP amount so callers
-    can accumulate a run total without re-deriving it."""
-    gbp = cost_gbp(model, input_tokens, output_tokens)
-    _spend_counter.add(gbp, {"model": model})
+    can accumulate a run total without re-deriving it. cache_creation_tokens/
+    cache_read_tokens/batch are passed straight through to cost_gbp so prompt-
+    cache writes/reads and the Batch API's 50% discount are priced correctly;
+    `batch` is also recorded as a metric label so batch vs standard spend are
+    distinguishable on a dashboard."""
+    gbp = cost_gbp(model, input_tokens, output_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
+                    cache_read_tokens=cache_read_tokens, batch=batch)
+    _spend_counter.add(gbp, {"model": model, "batch": batch})
     return gbp
+
+
+def record_cache_status(status):
+    """status: one of 'hit', 'write', 'miss' (see analyse.py's UsageRecord.cache_status)."""
+    _cache_status_counter.add(1, {"status": status})
 
 
 def record_response_size(num_bytes):
@@ -112,19 +130,24 @@ def log_batch_finished(start_time, outcomes, total_spend_gbp):
 
 
 def log_parse_error(row_id, raw_response, error):
+    # error is redacted too, not just raw_response: analyse.py's ParseError
+    # messages embed the raw model output in the exception text itself
+    # (e.g. "malformed JSON: ...; raw output: <full text>"), so str(error)
+    # can carry the same full consultation-response text this function
+    # exists to keep out of the telemetry backend.
     logger.error(
         "row.parse_error",
         extra={
             "row_id": row_id,
             "response_length": len(raw_response),
             "response_snippet": _redact_snippet(raw_response),
-            "error": str(error),
+            "error": _redact_snippet(str(error)),
         },
     )
 
 
 def log_api_error(row_id, error):
-    logger.error("row.api_error", extra={"row_id": row_id, "error": str(error)})
+    logger.error("row.api_error", extra={"row_id": row_id, "error": _redact_snippet(str(error))})
 
 
 def init_telemetry():
