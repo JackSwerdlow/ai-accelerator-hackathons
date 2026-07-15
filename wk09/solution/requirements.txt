@@ -1,5 +1,5 @@
 flask
-langchain-anthropic
+anthropic
 pandas
 matplotlib
 streamlit
