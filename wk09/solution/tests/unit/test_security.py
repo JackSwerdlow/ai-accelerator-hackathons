@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from conftest import ANALYSE_PY, DUMMY_API_KEY, run_analyse  # noqa: E402
+from conftest import ANALYSE_PY, DUMMY_API_KEY, run_solution  # noqa: E402
 
 
 def test_no_hardcoded_api_key_fallback_in_source():
@@ -24,12 +24,12 @@ def test_api_key_never_appears_in_stdout_stderr_or_results(tmp_path, mock_llm_se
     """Closes S2. Deliberately triggers a crash (malformed JSON) so any key
     leakage via an unhandled exception/traceback would be caught too."""
     mock_llm_server.queue_malformed()
-    result = run_analyse(tmp_path, mock_llm_server, fixture_name="responses_tiny.csv")
+    result = run_solution(tmp_path, mock_llm_server, fixture_name="responses_tiny.csv")
 
     assert DUMMY_API_KEY not in result.stdout
     assert DUMMY_API_KEY not in result.stderr
-    if result.results_path.exists():
-        assert DUMMY_API_KEY not in result.results_path.read_text(encoding="utf-8")
+    if result.output_path.exists():
+        assert DUMMY_API_KEY not in result.output_path.read_text(encoding="utf-8")
 
 
 def test_viewer_escapes_response_derived_text_in_html_output(tmp_path):

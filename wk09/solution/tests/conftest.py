@@ -1,15 +1,24 @@
 """Shared fixtures for the Consultation Insights eval/test suite.
 
 See plans/eval-test-plan-agent-tom.md for the architecture these fixtures
-support. Key idea: `analyse.py` builds its Anthropic client at import time
-and reads/writes paths relative to the process's working directory, not
-`__file__` - so black-box tests run it as a real subprocess with the cwd
-laid out to match how it's actually invoked (`python analyse.py` from
-inside `solution/`, reading `../data/responses_sample.csv`), and redirect
-it to a local mock server via the `ANTHROPIC_BASE_URL` env var (confirmed
-supported by inspecting the installed `anthropic`/`langchain-anthropic`
-packages directly - `Anthropic.__init__` reads `os.environ.get("ANTHROPIC_BASE_URL")`
-when no explicit `base_url` is passed).
+support, and EVAL_REPORT.md for why there are two different subprocess
+runners below. In short: `solution/analyse.py` was substantially rewritten
+by a teammate partway through this work (sequential/concurrent/batch modes,
+prompt caching, checkpoint-and-resume, explicit --input/--output/--state-file
+flags) - a big improvement, but a different CLI than the one this test
+suite was originally built against. `run_solution`/`start_solution` target
+today's real CLI; `run_analyse`/`start_analyse` remain for the frozen
+baseline suite, which intentionally runs the *original* prototype's
+cwd-relative-path interface (see FROZEN_STARTER_SNAPSHOT) and must not be
+"fixed" to match the new one.
+
+Both redirect the client to a local mock server via `ANTHROPIC_BASE_URL`
+(confirmed supported by inspecting the installed `anthropic` package's
+source directly - `Anthropic.__init__` reads
+`os.environ.get("ANTHROPIC_BASE_URL")` when no explicit `base_url` is passed;
+this holds for both the raw `anthropic` client the new analyse.py uses and
+the `langchain_anthropic` wrapper the frozen snapshot uses, since both sit
+on top of the same underlying SDK).
 """
 import http.server
 import json
@@ -199,14 +208,17 @@ def run_analyse(
     fixture_name="responses_tiny.csv",
     extra_env=None,
     timeout=30,
-    analyse_py=ANALYSE_PY,
+    analyse_py=FROZEN_STARTER_SNAPSHOT,
 ):
-    """Run a real analyse.py under test as a subprocess.
+    """Run the OLD cwd-relative-path CLI as a subprocess - only still valid
+    for FROZEN_STARTER_SNAPSHOT (the frozen baseline suite). Today's real
+    solution/analyse.py takes explicit --input/--output/--state-file flags
+    instead; use run_solution() for that.
 
     Lays out `<tmp>/data/responses_sample.csv` and cwd=`<tmp>/solution` to
-    match analyse.py's own relative paths (`../data/...`, `results.json`)
-    exactly as `python analyse.py` is really invoked from `solution/` (or
-    `starter/`, for the frozen baseline suite - pass `analyse_py=STARTER_ANALYSE_PY`).
+    match the original prototype's relative paths (`../data/...`,
+    `results.json`) exactly as `python analyse.py` was invoked from
+    `solution/` (or `starter/`) before the CLI was rewritten.
     """
     data_dir = tmp_path / "data"
     run_dir = tmp_path / "solution"
@@ -233,10 +245,12 @@ def run_analyse(
     return AnalyseRun(proc.returncode, proc.stdout, proc.stderr, run_dir)
 
 
-def start_analyse(tmp_path, mock_server, fixture_name="responses_tiny.csv", extra_env=None, analyse_py=ANALYSE_PY):
-    """Like run_analyse but returns a live Popen handle (for kill/resume and
-    concurrent-run tests that need to interact with the process while it's
-    still running)."""
+def start_analyse(
+    tmp_path, mock_server, fixture_name="responses_tiny.csv", extra_env=None, analyse_py=FROZEN_STARTER_SNAPSHOT
+):
+    """Like run_analyse but returns a live Popen handle. Old cwd-relative-path
+    CLI - only still valid for FROZEN_STARTER_SNAPSHOT; use start_solution()
+    for today's real solution/analyse.py."""
     data_dir = tmp_path / "data"
     run_dir = tmp_path / "solution"
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -260,6 +274,88 @@ def start_analyse(tmp_path, mock_server, fixture_name="responses_tiny.csv", extr
         text=True,
     )
     return proc, run_dir
+
+
+class SolutionRun:
+    """A completed (or crashed) invocation of today's real analyse.py CLI,
+    against explicit --input/--output/--state-file paths under tmp_path -
+    no cwd tricks needed, since the new CLI takes real path arguments."""
+
+    def __init__(self, returncode, stdout, stderr, output_path, state_file):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+        self.output_path = output_path
+        self.state_file = state_file
+
+    @property
+    def results(self):
+        if not self.output_path.exists():
+            return None
+        with open(self.output_path, encoding="utf-8") as f:
+            return json.load(f)
+
+    @property
+    def state(self):
+        if not self.state_file.exists():
+            return None
+        with open(self.state_file, encoding="utf-8") as f:
+            return json.load(f)
+
+
+def _solution_args(tmp_path, fixture_name, mode, extra_args):
+    input_csv = tmp_path / "input.csv"
+    output_json = tmp_path / "results.json"
+    state_file = tmp_path / ".batch_state.json"
+    _write_fixture_csv(input_csv, fixture_name)
+    args = [
+        sys.executable,
+        str(ANALYSE_PY.resolve()),
+        "--input", str(input_csv),
+        "--output", str(output_json),
+        "--state-file", str(state_file),
+        "--mode", mode,
+    ]
+    if extra_args:
+        args.extend(extra_args)
+    return args, output_json, state_file
+
+
+def run_solution(
+    tmp_path, mock_server, fixture_name="responses_tiny.csv", extra_env=None,
+    timeout=30, mode="sequential", extra_args=None,
+):
+    """Run today's real solution/analyse.py as a subprocess against the mock
+    server, using its actual current CLI."""
+    args, output_json, state_file = _solution_args(tmp_path, fixture_name, mode, extra_args)
+    env = {
+        "ANTHROPIC_API_KEY": DUMMY_API_KEY,
+        "ANTHROPIC_BASE_URL": mock_server.base_url,
+        "PATH": __import__("os").environ.get("PATH", ""),
+    }
+    if extra_env:
+        env.update(extra_env)
+    proc = subprocess.run(args, env=env, capture_output=True, text=True, timeout=timeout)
+    return SolutionRun(proc.returncode, proc.stdout, proc.stderr, output_json, state_file)
+
+
+def start_solution(
+    tmp_path, mock_server, fixture_name="responses_tiny.csv", extra_env=None,
+    mode="sequential", extra_args=None,
+):
+    """Like run_solution but returns a live Popen handle, for kill/resume and
+    concurrent-run tests that need to interact with the process while it's
+    still running."""
+    args, output_json, state_file = _solution_args(tmp_path, fixture_name, mode, extra_args)
+    env = {
+        "ANTHROPIC_API_KEY": DUMMY_API_KEY,
+        "ANTHROPIC_BASE_URL": mock_server.base_url,
+        "PATH": __import__("os").environ.get("PATH", ""),
+    }
+    if extra_env:
+        env.update(extra_env)
+    proc = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    return proc, output_json, state_file
 
 
 @pytest.fixture

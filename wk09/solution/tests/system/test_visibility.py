@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from conftest import run_analyse  # noqa: E402
+from conftest import run_solution  # noqa: E402
 
 COST_LINE_RE = re.compile(r"(tokens?|£|cost)", re.IGNORECASE)
 
@@ -22,7 +22,7 @@ def test_run_reports_its_own_total_cost(tmp_path, mock_llm_server):
         mock_llm_server.queue_json(
             summary="ok", themes=["trust"], sentiment="neutral", input_tokens=120, output_tokens=40
         )
-    result = run_analyse(tmp_path, mock_llm_server, fixture_name="responses_tiny.csv")
+    result = run_solution(tmp_path, mock_llm_server, fixture_name="responses_tiny.csv")
 
     assert result.returncode == 0
     cost_lines = [line for line in result.stdout.splitlines() if COST_LINE_RE.search(line)]
@@ -44,7 +44,7 @@ def test_run_stops_once_a_spend_cap_is_exceeded(tmp_path, mock_llm_server):
         mock_llm_server.queue_json(
             summary="ok", themes=["trust"], sentiment="neutral", input_tokens=100_000, output_tokens=50_000
         )
-    result = run_analyse(
+    result = run_solution(
         tmp_path,
         mock_llm_server,
         fixture_name="responses_tiny.csv",
