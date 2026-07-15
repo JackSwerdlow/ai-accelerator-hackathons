@@ -6,7 +6,12 @@ Do not run directly. Installed via install_hook.sh, which adds it to
 ~/.claude/settings.json so Claude Code calls it automatically at the end
 of every response.
 """
-import csv, json, os, socket, sys
+import csv
+import fcntl
+import json
+import os
+import socket
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -34,11 +39,44 @@ except ImportError:
 AGENT_NAME = os.environ.get("AGENT_NAME", socket.gethostname())
 LOG_PATH = _SPEND_DIR / f"ai-spend-log-{AGENT_NAME}.csv"
 STATE_FILE = Path.home() / ".claude" / "spend_tracking_state.json"
+LOCK_FILE = Path.home() / ".claude" / "spend_tracking_state.lock"
+
+# How many recently-billed message ids to remember per session. Duplicates
+# in practice cluster tightly (empirically, no message id has been observed
+# more than ~20 transcript lines from its first occurrence), so this is a
+# generous safety margin, not a tight fit - it bounds state file growth for
+# very long sessions without needing to remember every id ever billed.
+MAX_BILLED_IDS_PER_SESSION = 2000
 
 _HEADERS = [
     "Timestamp", "AgentName", "CallType", "Purpose", "Description",
     "Model", "UploadTokens", "DownloadTokens", "CostGBP",
 ]
+
+
+class _StateLock:
+    """Exclusive file lock covering the whole load-modify-save cycle.
+
+    Multiple Claude Code sessions/worktrees in this environment share one
+    ~/.claude/spend_tracking_state.json. Without this, two hook invocations
+    (even for different sessions) can race: both read the same on-disk
+    state, both compute an update, and whichever writes last silently
+    discards the other's update — corrupting the OTHER session's line
+    cursor, not just this one's. This previously caused a session's
+    from_line to regress, which reprocessed a huge already-billed swath of
+    the transcript and inflated a logged row to tens of millions of tokens
+    (see AI_LOG.md for the incident and diagnosis).
+    """
+
+    def __enter__(self):
+        LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+        self._fd = open(LOCK_FILE, "w")
+        fcntl.flock(self._fd, fcntl.LOCK_EX)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        fcntl.flock(self._fd, fcntl.LOCK_UN)
+        self._fd.close()
 
 
 def _load_state():
@@ -51,7 +89,24 @@ def _load_state():
 
 
 def _save_state(state):
-    STATE_FILE.write_text(json.dumps(state))
+    # Write-then-rename so a crash or a concurrent reader mid-write can
+    # never observe a truncated/corrupt state file.
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = STATE_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state))
+    tmp.replace(STATE_FILE)
+
+
+def _session_state(state, session_id):
+    """Return (from_line, billed_ids_set) for a session, migrating the old
+    {session_id: int} format (line cursor only, no billed-id tracking)
+    transparently."""
+    raw = state.get(session_id)
+    if isinstance(raw, dict):
+        return raw.get("from_line", 0), set(raw.get("billed_ids", []))
+    if isinstance(raw, int):
+        return raw, set()
+    return 0, set()
 
 
 def _read_new_entries(transcript_path, from_line):
@@ -69,8 +124,17 @@ def _read_new_entries(transcript_path, from_line):
     return entries, total
 
 
-def _parse_usage(entries):
-    """Sum token usage from new assistant messages, deduplicating by message ID.
+def _parse_usage(entries, already_billed):
+    """Sum token usage from new assistant messages, deduplicating by
+    message ID against BOTH this batch and the persisted `already_billed`
+    set from prior invocations.
+
+    The persisted set is the safety net: `from_line`-based slicing is the
+    normal-case optimisation (avoids re-reading the whole transcript every
+    time), but if it's ever stale or wrong - a lost state update, an
+    off-by-one - re-including already-billed lines must not re-bill them.
+    Line-cursor correctness alone was exactly the assumption that broke
+    (see AI_LOG.md); this makes correctness independent of it.
 
     Includes cache_creation_input_tokens/cache_read_input_tokens - in a long
     Claude Code session almost all "input" is served from the prompt cache
@@ -81,15 +145,16 @@ def _parse_usage(entries):
     """
     inp = out = cache_creation = cache_read = 0
     model = "claude-sonnet-4-6"
-    seen = set()
+    newly_billed = set()
     for entry in entries:
         if entry.get("type") != "assistant":
             continue
         msg = entry.get("message", {})
         msg_id = msg.get("id", "")
-        if msg_id and msg_id in seen:
-            continue  # same turn, multiple tool-use steps — count once
-        seen.add(msg_id)
+        if msg_id and (msg_id in already_billed or msg_id in newly_billed):
+            continue  # same turn, multiple tool-use steps, or already billed previously
+        if msg_id:
+            newly_billed.add(msg_id)
         usage = msg.get("usage", {})
         inp += usage.get("input_tokens", 0)
         out += usage.get("output_tokens", 0)
@@ -97,7 +162,7 @@ def _parse_usage(entries):
         cache_read += usage.get("cache_read_input_tokens", 0)
         if msg.get("model"):
             model = msg["model"]
-    return inp, out, cache_creation, cache_read, model
+    return inp, out, cache_creation, cache_read, model, newly_billed
 
 
 # Keyword map used to auto-detect purpose category from last assistant message.
@@ -187,19 +252,21 @@ def main():
     if cwd_path != repo_root and repo_root not in cwd_path.parents:
         return
 
-    state = _load_state()
-    from_line = state.get(session_id, 0)
+    with _StateLock():
+        state = _load_state()
+        from_line, already_billed = _session_state(state, session_id)
 
-    new_entries, total_lines = _read_new_entries(transcript_path, from_line)
-    inp, out, cache_creation, cache_read, model = _parse_usage(new_entries)
+        new_entries, total_lines = _read_new_entries(transcript_path, from_line)
+        inp, out, cache_creation, cache_read, model, newly_billed = _parse_usage(new_entries, already_billed)
 
-    if inp > 0 or out > 0 or cache_creation > 0 or cache_read > 0:
-        purpose = _infer_purpose(last_message)
-        description = _extract_description(last_message)
-        _write_row(purpose, description, model, inp, out, cache_creation, cache_read)
+        if inp > 0 or out > 0 or cache_creation > 0 or cache_read > 0:
+            purpose = _infer_purpose(last_message)
+            description = _extract_description(last_message)
+            _write_row(purpose, description, model, inp, out, cache_creation, cache_read)
 
-    state[session_id] = total_lines
-    _save_state(state)
+        billed_ids = list(already_billed | newly_billed)[-MAX_BILLED_IDS_PER_SESSION:]
+        state[session_id] = {"from_line": total_lines, "billed_ids": billed_ids}
+        _save_state(state)
 
 
 if __name__ == "__main__":

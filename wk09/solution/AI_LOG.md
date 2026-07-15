@@ -483,3 +483,59 @@ script, present since it was first written (before this session touched it).
    - **Corrected with a real, minimal API call:** called the real Anthropic API with `model="claude-sonnet-5"` directly rather than trusting either claim - it returned a normal response. The `spend/pricing.py` comment is incorrect (likely written before this model existed) and is flagged in `EVAL_REPORT.md` so nobody "fixes" `analyse.py` to a worse model based on it. The verification call's tiny real cost (18 input / 4 output tokens) is logged to `spend/ai-spend-log-Agent-Tom.csv`.
 
 **What was otherwise test-harness bugs, not product findings (fixed without ceremony):** `MockAnthropicServer.queue_json()` initially didn't accept token-count kwargs (`TypeError` on first run of `tests/system/test_visibility.py`); the README/viewer reachability test initially only caught `URLError`/`ConnectionError`, not the bare `TimeoutError` a slow-starting Flask server actually raised. Both were caught by watching tests fail for the wrong reason (per TDD's "verify RED" step) and fixed in the test harness, not the assertions.
+
+---
+
+## [Agent-Tom] 2026-07-15 — Diagnosed and fixed a real spend-log double-counting bug
+
+**Task:** Investigate why two `ai-spend-log-Agent-Tom.csv` rows from this
+session showed 73,574,226 and 118,180,028 "upload tokens" (£16.37 and
+£23.41) for two ordinary Claude Code turns - a human (you) flagged this as
+implausible after noticing the Purpose column was also miscategorised
+("Debugging" for what was really "Testing" work).
+
+**What AI investigated and found:** Recomputing the true, deduplicated
+token total across the entire session transcript (`918b131a-....jsonl`,
+2,146 lines) gave 126.5M input-equivalent tokens for 370 unique messages -
+plausible for a very long session. Recomputing the *cumulative* running
+total specifically at the line offsets recorded in
+`~/.claude/spend_tracking_state.json` (459 / 1726 / 2106) gave 8.8M / 83.9M
+/ 122.3M - closely tracking the two bogus CSV rows. That match is the
+signature of "summed everything since the start of the file," not "summed
+everything since the last checkpoint." Ruled out one candidate explanation
+first: checked whether message IDs were re-emitted far apart in the
+transcript (they weren't - all duplicates cluster within 20 lines of first
+occurrence), so it isn't simple duplicate-write pollution.
+
+**Root cause:** `log_claude_code_session.py`'s `_load_state`/`_save_state`
+did a non-atomic, unlocked read-modify-write on a *single state file
+shared across every concurrent Claude Code session/worktree in this
+environment*. A write race between concurrent hook invocations can lose an
+update to a session's line cursor; the next invocation then re-reads a
+stale (lower) cursor, reprocesses a huge already-billed swath of the
+transcript, and - because deduplication was by `msg_id` within a single
+invocation's batch only, never persisted - re-bills tokens that were
+already counted in an earlier row.
+
+**Fix:**
+- `_StateLock`: an `fcntl.flock`-based exclusive lock held across the
+  entire load → process → write-CSV → save cycle in `main()`, so concurrent
+  invocations (same session or different) can no longer race on the shared
+  state file at all.
+- `_save_state` now writes via write-temp-then-rename (matching the pattern
+  already used for `analyse.py`'s own checkpoint file), so a crash mid-write
+  can't corrupt the state file even without the lock.
+- State now persists a bounded (last 2,000) set of already-billed
+  `msg_id`s per session, not just a line-number cursor - a second,
+  independent line of defence: even if the cursor is ever wrong again for
+  some other reason, already-billed messages can't be re-billed.
+- `tests/unit/test_spend_logging.py` (4 tests, all against tmp_path -
+  never the real `~/.claude` state or a real CSV): reproduces the exact
+  failure mode (a reverted line cursor after billing) and proves the fix
+  yields the true total, not a doubled one; proves old-format
+  (line-cursor-only) state entries migrate without crashing; proves the
+  lock actually serialises two threads racing the critical section.
+
+**What you changed + why:** Nothing - this was investigate-then-fix at
+your explicit request, with no correction needed to the diagnosis or the
+implementation.
