@@ -179,7 +179,9 @@ class UsageTotalsTests(unittest.TestCase):
 
 class AnalyseResponseBehaviourTests(unittest.TestCase):
     """The core behaviour - parses JSON out of the model reply and returns
-    a (dict, UsageRecord) pair - must still work after adding batching."""
+    a (dict, UsageRecord, raw_text) triple - must still work after adding
+    batching. raw_text was added for checklist GOV6 (audit provenance):
+    callers need the unparsed model output alongside the parsed result."""
 
     def test_returns_parsed_json_and_usage(self):
         client = MagicMock()
@@ -187,7 +189,8 @@ class AnalyseResponseBehaviourTests(unittest.TestCase):
             "input_tokens": 5, "cache_creation_input_tokens": 0,
             "cache_read_input_tokens": 1200, "output_tokens": 40,
         })
-        analysis, usage = analyse.analyse_response(client, "resp text", row_id="42")
+        analysis, usage, raw_text = analyse.analyse_response(client, "resp text", row_id="42")
+        self.assertEqual(raw_text, ANALYSIS_JSON)
         self.assertEqual(analysis["summary"], "s")
         self.assertEqual(analysis["themes"], ["privacy"])
         self.assertEqual(analysis["sentiment"], "neutral")

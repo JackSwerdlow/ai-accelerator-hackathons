@@ -48,6 +48,7 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -69,6 +70,16 @@ import telemetry  # noqa: E402
 DEFAULT_INPUT = _SOLUTION_DIR.parent / "data" / "responses_sample.csv"
 DEFAULT_OUTPUT = _SOLUTION_DIR / "results.json"
 DEFAULT_STATE_FILE = _SOLUTION_DIR / ".batch_state.json"
+# checklist GOV3: verified via a real client.models.list() call (2026-07-15)
+# that no dated-snapshot id exists for this model - every current-generation
+# model (sonnet-5, opus-4-8, opus-4-7, sonnet-4-6, opus-4-6, fable-5) is
+# listed only under its bare name; only OLDER models
+# (opus-4-5-20251101, haiku-4-5-20251001, ...) have a separate dated variant.
+# There is no different string to "pin" this to. The achievable mitigation
+# is recording the model actually used per-row (see _merge_row) so a later
+# change in what this name resolves to is at least visible in old results,
+# even though it can't be prevented at request time. Re-check
+# `client.models.list()` if this ever needs revisiting.
 DEFAULT_MODEL = "claude-sonnet-5"
 DEFAULT_MAX_TOKENS = 500
 DEFAULT_POLL_INTERVAL = 20  # seconds
@@ -240,14 +251,29 @@ def _load_state(state_file):
 
 def _save_state(state_file, state):
     # Write-then-rename so a crash mid-write can't corrupt the checkpoint.
-    tmp = state_file.with_suffix(".tmp")
+    # The temp filename includes the PID: two processes sharing the same
+    # state_file (e.g. two people running this against the same checkout)
+    # previously raced on an identical temp path, and one's rename could
+    # fail with FileNotFoundError after the other's rename already
+    # consumed it (checklist S5 - reproduced ~1-in-5-6 concurrent-pair
+    # attempts, see EVAL_REPORT.md). A per-process temp name removes the
+    # collision outright.
+    tmp = state_file.with_suffix(f".{os.getpid()}.tmp")
     tmp.write_text(json.dumps(state))
     tmp.replace(state_file)
 
 
 def _clear_state(state_file):
-    if state_file.exists():
+    # No exists()-then-unlink() check: that gap lets a concurrent process
+    # (e.g. another completing run against the same shared state file)
+    # delete it between the check and the unlink, crashing this one with
+    # FileNotFoundError - the same class of bug as the _save_state race
+    # above (checklist S5), just in the cleanup path instead of the write
+    # path. Deleting is idempotent - "already gone" IS success here.
+    try:
         state_file.unlink()
+    except FileNotFoundError:
+        pass
 
 
 def strip_code_fence(text):
@@ -305,13 +331,22 @@ def parse_model_output(text):
     return {"summary": summary, "themes": themes, "sentiment": sentiment}
 
 
-def _merge_row(row, analysis):
-    return {
+def _merge_row(row, analysis, model=None, raw_response=None):
+    # checklist GOV6: model + raw_response are what let an FOI request or
+    # audit answer "why was this response classified this way" from
+    # results.json alone, without re-running the analysis - the parsed
+    # summary/themes/sentiment alone can't reconstruct that.
+    merged = {
         "id": row["id"],
         "respondent_type": row["respondent_type"],
         "response_text": row["response_text"],
         **analysis,
     }
+    if model is not None:
+        merged["model"] = model
+    if raw_response is not None:
+        merged["raw_response"] = raw_response
+    return merged
 
 
 # ---------------------------------------------------------------------------
@@ -340,21 +375,31 @@ def analyse_response(client, response_text, row_id, model=DEFAULT_MODEL, max_tok
                             cache_creation_tokens=usage.cache_creation_input_tokens,
                             cache_read_tokens=usage.cache_read_input_tokens, batch=False)
     telemetry.record_cache_status(usage.cache_status)
-    analysis = parse_model_output(text)
-    return analysis, usage
+    try:
+        analysis = parse_model_output(text)
+    except ParseError as e:
+        # Attach the raw text to the exception so call_single_sync can
+        # still record it (checklist GOV6) even though parsing failed -
+        # the raw output is most valuable for auditing exactly the rows
+        # that DIDN'T parse cleanly.
+        e.raw_text = text
+        raise
+    return analysis, usage, text
 
 
 def call_single_sync(client, row, model, max_tokens):
     """One direct Messages API call for one row. Never raises - any API or
     parse failure becomes a sentinel row instead of crashing the run, the
     same principle the batch path applies per-result."""
+    raw_text = None
     try:
-        analysis, usage = analyse_response(client, row["response_text"], row["id"],
-                                            model=model, max_tokens=max_tokens)
+        analysis, usage, raw_text = analyse_response(client, row["response_text"], row["id"],
+                                                      model=model, max_tokens=max_tokens)
         telemetry.record_row_outcome("success")
     except ParseError as e:
         analysis = {"summary": "PARSE_ERROR", "themes": [], "sentiment": "neutral",
                     "parse_error": str(e)}
+        raw_text = getattr(e, "raw_text", None)
         usage = UsageRecord(row_id=row["id"], model=model, input_tokens=0,
                              cache_creation_input_tokens=0, cache_read_input_tokens=0, output_tokens=0)
         telemetry.record_row_outcome("parse_error")
@@ -366,10 +411,16 @@ def call_single_sync(client, row, model, max_tokens):
                              cache_creation_input_tokens=0, cache_read_input_tokens=0, output_tokens=0)
         telemetry.record_row_outcome("api_error")
         telemetry.log_api_error(row["id"], e)
-    return _merge_row(row, analysis), usage
+    return _merge_row(row, analysis, model=model, raw_response=raw_text), usage
 
 
-def run_sequential(client, rows, model, max_tokens, state, state_file):
+def _cost_so_far(model, totals):
+    return cost_gbp(model, totals.uncached_input_tokens, totals.output_tokens,
+                     cache_creation_tokens=totals.cache_creation_tokens,
+                     cache_read_tokens=totals.cache_read_tokens)
+
+
+def run_sequential(client, rows, model, max_tokens, state, state_file, max_spend_gbp=None):
     totals = UsageTotals()
     already_done = len(state["progress"])
     if already_done:
@@ -382,10 +433,17 @@ def run_sequential(client, rows, model, max_tokens, state, state_file):
         state["progress"][row["id"]] = merged
         _save_state(state_file, state)
         print(f"  [{i}/{len(rows)}] done ({merged['sentiment']}, cache={usage.cache_status})")
+        if max_spend_gbp is not None:
+            spent = _cost_so_far(model, totals)
+            if spent >= max_spend_gbp:
+                print(f"Spend cap of £{max_spend_gbp:.4f} reached (£{spent:.4f} spent) after "
+                      f"{i}/{len(rows)} rows - stopping. Re-run to raise the cap or continue later; "
+                      f"completed rows are checkpointed and won't be re-billed.")
+                break
     return totals
 
 
-def run_concurrent(client, rows, model, max_tokens, state, state_file, max_workers):
+def run_concurrent(client, rows, model, max_tokens, state, state_file, max_workers, max_spend_gbp=None):
     totals = UsageTotals()
     todo = [row for row in rows if row["id"] not in state["progress"]]
     done_count = len(rows) - len(todo)
@@ -394,6 +452,7 @@ def run_concurrent(client, rows, model, max_tokens, state, state_file, max_worke
     print(f"Firing {len(todo)} requests with up to {max_workers} concurrent workers...")
 
     lock = Lock()
+    cap_hit = False
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(call_single_sync, client, row, model, max_tokens): row
@@ -403,12 +462,22 @@ def run_concurrent(client, rows, model, max_tokens, state, state_file, max_worke
             row = futures[future]
             merged, usage = future.result()
             with lock:
+                if cap_hit:
+                    continue  # already stopping - don't keep persisting further completions
                 totals.add(usage)
                 state["progress"][row["id"]] = merged
                 _save_state(state_file, state)
                 done_count += 1
                 print(f"  [{done_count}/{len(rows)}] done (row {row['id']}, "
                       f"{merged['sentiment']}, cache={usage.cache_status})")
+                if max_spend_gbp is not None:
+                    spent = _cost_so_far(model, totals)
+                    if spent >= max_spend_gbp:
+                        print(f"Spend cap of £{max_spend_gbp:.4f} reached (£{spent:.4f} spent) after "
+                              f"{done_count}/{len(rows)} rows - stopping. Requests already in flight for "
+                              f"this run will still complete and be billed, but their results won't be "
+                              f"saved; re-run to raise the cap or continue later.")
+                        cap_hit = True
     return totals
 
 
@@ -460,6 +529,7 @@ def fetch_and_merge_results(client, batch_id, rows_by_id, model=DEFAULT_MODEL):
         row_id = item.custom_id.removeprefix("row-")
         row = rows_by_id.get(row_id, {"id": row_id, "respondent_type": "unknown", "response_text": ""})
 
+        raw_text = None
         if item.result.type == "succeeded":
             message = item.result.message
             usage = extract_usage(message, row_id, model=model)
@@ -495,7 +565,7 @@ def fetch_and_merge_results(client, batch_id, rows_by_id, model=DEFAULT_MODEL):
             telemetry.record_row_outcome("api_error")
             telemetry.log_api_error(row_id, detail if detail else item.result.type)
 
-        by_custom_id[row_id] = _merge_row(row, analysis)
+        by_custom_id[row_id] = _merge_row(row, analysis, model=model, raw_response=raw_text)
 
     # Preserve original CSV order regardless of the order batch results stream in.
     ordered = [by_custom_id[row_id] for row_id in rows_by_id if row_id in by_custom_id]
@@ -584,6 +654,12 @@ def main():
                          help="[batch mode only] ignore any existing checkpoint and submit a new batch")
     parser.add_argument("--status", action="store_true",
                          help="[batch mode only] report on any in-flight batch and exit")
+    parser.add_argument(
+        "--max-spend-gbp", type=float,
+        default=float(os.environ["MAX_SPEND_GBP"]) if os.environ.get("MAX_SPEND_GBP") else None,
+        help="stop the run once total cost reaches this cap (env var MAX_SPEND_GBP also works) - "
+             "sequential/concurrent modes only, a submitted batch can't be partially cancelled",
+    )
     args = parser.parse_args()
 
     if args.mode != "batch" and (args.no_wait or args.status or args.force_resubmit):
@@ -620,10 +696,11 @@ def main():
             state = {"mode": args.mode, "signature": signature, "progress": {}}
         print(f"Running {len(rows)} rows in {args.mode} mode (model={args.model})...")
         if args.mode == "sequential":
-            totals = run_sequential(client, rows, args.model, args.max_tokens, state, args.state_file)
+            totals = run_sequential(client, rows, args.model, args.max_tokens, state, args.state_file,
+                                     max_spend_gbp=args.max_spend_gbp)
         else:
             totals = run_concurrent(client, rows, args.model, args.max_tokens, state,
-                                     args.state_file, args.concurrency)
+                                     args.state_file, args.concurrency, max_spend_gbp=args.max_spend_gbp)
         results = [state["progress"][row["id"]] for row in rows]
         error_count = sum(1 for r in results if r["summary"] in ("PARSE_ERROR", "API_ERROR"))
         is_batch_pricing = False
