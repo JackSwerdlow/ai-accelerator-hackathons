@@ -710,3 +710,49 @@ correct-looking fixes.
 `solution/spend/spend_logger.py`, `solution/AI_LOG.md`,
 `solution/ai-spend-log-Agent-Jack.csv`,
 `solution/ai-spend-log-Agent-Jack-analysis-runs.csv`.
+
+## [Agent-Jack] 2026-07-16 — Interactive "batch vs concurrent" decision tool (HTML)
+
+**Task:** Turn the one-slide "Batch APIs: cheaper, not faster" lightning talk
+into a larger, interactive HTML page for a company audience — one that lets a
+viewer *select* when batch beats concurrent (and vice-versa) by dialling real
+variables (request count, cost per request, concurrent/batch turnaround, cost
+of waiting, and a manual-labour baseline), with live charts showing which mode
+is cheapest for their case. Style modelled on `wk06/docs/tutorial/foi_demo_v2.html`.
+
+**What AI generated:** A single self-contained page
+(`wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`) — a
+total-cost-of-ownership model (API cost + cost-of-waiting + manual labour), a
+live recommendation banner, and three hand-built SVG charts: a stacked TCO bar,
+a crossover line chart (x-axis toggles between request count and cost-of-waiting),
+and a volume×urgency decision-map heatmap with a "you are here" marker. Defaults
+seeded from the real measured 40-row run and `evals/scale/project_cost.py`.
+
+**What you changed + why:**
+- *Palette not eyeballed.* Ran the dataviz `validate_palette.js` before writing
+  any colour: the first candidate (blue/green/amber) FAILED the dark-surface
+  lightness band and sat in the 6–8 CVD floor. Switched to the reference
+  palette's pre-validated steps (manual=orange, concurrent=blue, batch=green),
+  which pass all checks on **both** light and dark surfaces.
+- *SVG colour bug caught and fixed.* The first draft set fills/strokes as
+  `setAttribute('fill','var(--…)')`. `var()` is not reliably resolved as an SVG
+  *presentation attribute* (unlike a real CSS property), so colours could
+  silently fail — and the theme toggle wouldn't recolour the charts. Added a
+  `resolveVar()` step inside the `el()` helper that resolves custom properties
+  to concrete hex (cached per render, re-resolved on theme change) — fixing all
+  call sites at once and keeping the 2,000-cell map fast.
+- *Adaptive region labels, not fixed ones.* Map labels are placed at each
+  winning region's computed centroid and only drawn when the region is large
+  enough — so a label can never sit in the wrong-coloured region as the
+  boundaries move with the sliders (an earlier fixed-position `labelAt()` helper
+  would have mislabelled shifted regions; it was removed).
+- *Honest economics.* Kept the model faithful even where it undersells a mode:
+  at 20k rows with someone waiting, concurrent wins because batch's multi-hour
+  wait costs more than its 50% token saving; batch only wins once cost-of-waiting
+  drops. Manual almost never wins for this cheap a task — surfaced as a finding,
+  not hidden. Verified all state paths (presets, toggles, hover, both themes)
+  produce no NaN/undefined geometry via a Node DOM-stub harness (no browser
+  available in this environment).
+
+**Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
+`wk09/solution/AI_LOG.md`.

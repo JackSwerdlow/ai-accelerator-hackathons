@@ -1,0 +1,1171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Batch vs Concurrent — the money decision, interactive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---------- palette (validated with dataviz validate_palette.js) ----------
+     Categorical, 3 slots — all checks PASS on both surfaces:
+       Manual  = orange   Concurrent = blue   Batch = green
+     dark  #d95926 / #3987e5 / #199e70   (worst adjacent ΔE 19.6)
+     light #eb6834 / #2a78d6 / #008300   (worst adjacent ΔE 24.7)                */
+  :root {
+    color-scheme: dark;
+    --bg-0: #0a0e1a;
+    --bg-1: #11172a;
+    --bg-2: #1a2240;
+    --surface: #0d1226;
+    --ink: #e7ecf6;
+    --dim: #98a4c4;
+    --muted: #6c7796;
+    --line: #2a3556;
+    --line-soft: rgba(106,167,255,0.10);
+
+    --manual:     #d95926;   /* slot 1 — human / do it by hand      */
+    --concurrent: #3987e5;   /* slot 2 — fast, full price           */
+    --batch:      #199e70;   /* slot 3 — cheap, async               */
+    --manual-ink:     #f0895f;
+    --concurrent-ink: #6aa7ff;
+    --batch-ink:      #3fce9b;
+
+    --good: #3fce9b;
+    --warn: #ffc857;
+    --bad:  #ff6b8a;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg-0: #fcfcfb;
+    --bg-1: #f6f5f2;
+    --bg-2: #eeece7;
+    --surface: #ffffff;
+    --ink: #0b0b0b;
+    --dim: #52514e;
+    --muted: #86847d;
+    --line: rgba(11,11,11,0.14);
+    --line-soft: rgba(11,11,11,0.07);
+
+    --manual:     #eb6834;
+    --concurrent: #2a78d6;
+    --batch:      #008300;
+    --manual-ink:     #b8471c;
+    --concurrent-ink: #1f5fac;
+    --batch-ink:      #006b00;
+
+    --good: #0ca30c;
+    --warn: #b07a00;
+    --bad:  #c02a4a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-0);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
+  }
+  code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .bg-gradient {
+    position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    background:
+      radial-gradient(ellipse at 12% 0%, rgba(57,135,229,0.16), transparent 52%),
+      radial-gradient(ellipse at 88% 8%, rgba(25,158,112,0.13), transparent 52%),
+      radial-gradient(ellipse at 50% 100%, rgba(217,89,38,0.07), transparent 55%),
+      var(--bg-0);
+    transition: opacity 0.3s;
+  }
+  :root[data-theme="light"] .bg-gradient { opacity: 0.55; }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 40px 0; position: relative; }
+  h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(2rem, 4.4vw, 3.6rem); line-height: 1.06; }
+  h2 { font-size: clamp(1.4rem, 2.6vw, 2.1rem); margin-bottom: 8px; }
+  h3 { font-size: 1.05rem; margin-bottom: 6px; }
+  p { color: var(--dim); }
+  p.lead { font-size: 1.14rem; color: var(--dim); max-width: 820px; }
+
+  .eyebrow {
+    display: inline-block; font-size: 0.74rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--concurrent-ink);
+    padding: 4px 10px; border: 1px solid var(--line); border-radius: 99px;
+    background: var(--line-soft); margin-bottom: 14px;
+  }
+  .accent-c { color: var(--concurrent-ink); }
+  .accent-b { color: var(--batch-ink); }
+  .accent-m { color: var(--manual-ink); }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--bg-0) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; padding-bottom: 12px; gap: 16px; }
+  .topbar .brand { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; }
+  .topbar .brand span { color: var(--muted); font-weight: 500; }
+  .theme-toggle {
+    background: var(--bg-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 13px; font-size: 0.82rem; cursor: pointer;
+    font-family: inherit; font-weight: 600; transition: border-color 0.15s;
+  }
+  .theme-toggle:hover { border-color: var(--concurrent); }
+
+  /* ---------- hero ---------- */
+  .hero { padding-top: 56px; padding-bottom: 24px; }
+  .hero h1 .grad {
+    background: linear-gradient(110deg, var(--concurrent-ink), var(--batch-ink) 60%, var(--manual-ink));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .measured {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px;
+  }
+  .mcard {
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+    background: linear-gradient(180deg, var(--bg-1), transparent);
+  }
+  .mcard .tag { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+  .mcard .big { font-family: 'JetBrains Mono', monospace; font-size: 1.9rem; font-weight: 600; line-height: 1.1; margin: 6px 0 2px; }
+  .mcard .sub { font-size: 0.82rem; color: var(--dim); }
+  .mcard.c { border-top: 3px solid var(--concurrent); }
+  .mcard.c .big { color: var(--concurrent-ink); }
+  .mcard.b { border-top: 3px solid var(--batch); }
+  .mcard.b .big { color: var(--batch-ink); }
+  .mcard.s { border-top: 3px solid var(--muted); }
+  .provenance { font-size: 0.8rem; color: var(--muted); margin-top: 12px; }
+  @media (max-width: 760px) { .measured { grid-template-columns: 1fr; } }
+
+  /* ---------- money-model strip ---------- */
+  .money-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 6px; }
+  .money {
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 15px; background: var(--surface);
+  }
+  .money h3 { font-size: 0.92rem; display: flex; align-items: center; gap: 7px; }
+  .money .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+  .money p { font-size: 0.83rem; margin-top: 4px; }
+  @media (max-width: 860px) { .money-strip { grid-template-columns: 1fr 1fr; } }
+
+  /* ---------- app layout ---------- */
+  .app { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 1000px) { .app { grid-template-columns: 1fr; } }
+
+  .panel {
+    border: 1px solid var(--line); border-radius: 16px; background: var(--surface);
+    padding: 18px; position: sticky; top: 74px;
+  }
+  @media (max-width: 1000px) { .panel { position: static; } }
+  .panel h2 { font-size: 1.05rem; margin-bottom: 2px; }
+  .panel .hint { font-size: 0.78rem; color: var(--muted); margin-bottom: 14px; }
+
+  .group { border-top: 1px solid var(--line-soft); padding-top: 12px; margin-top: 12px; }
+  .group:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+  .group-title {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.09em;
+    font-weight: 700; color: var(--muted); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .group-title .dot { width: 9px; height: 9px; border-radius: 3px; }
+
+  .ctrl { margin-bottom: 13px; }
+  .ctrl-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+  .ctrl label { font-size: 0.84rem; color: var(--dim); font-weight: 500; }
+  .ctrl .val { font-family: 'JetBrains Mono', monospace; font-size: 0.86rem; font-weight: 600; color: var(--ink); }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+    background: var(--line); border-radius: 99px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--concurrent); border: 2px solid var(--surface); cursor: pointer;
+    box-shadow: 0 0 0 1px var(--concurrent);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 15px; height: 15px; border-radius: 50%; background: var(--concurrent);
+    border: 2px solid var(--surface); cursor: pointer;
+  }
+  .ctrl .caption { font-size: 0.73rem; color: var(--muted); margin-top: 3px; }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+  .mini-btn {
+    flex: 1; background: var(--bg-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 6px; font-size: 0.76rem; cursor: pointer;
+    font-family: inherit; font-weight: 600; transition: border-color 0.15s, background 0.15s;
+    line-height: 1.2;
+  }
+  .mini-btn:hover { border-color: var(--concurrent); }
+  .mini-btn.active { border-color: var(--concurrent); background: color-mix(in srgb, var(--concurrent) 18%, var(--surface)); }
+
+  /* ---------- recommendation banner ---------- */
+  .rec {
+    border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px;
+    background: var(--surface); position: relative; overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .rec::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+    background: var(--rec-color, var(--concurrent)); transition: background 0.3s;
+  }
+  .rec .rec-label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; }
+  .rec .rec-name { font-size: 1.7rem; font-weight: 800; margin: 2px 0 4px; color: var(--rec-color, var(--concurrent-ink)); }
+  .rec .rec-why { font-size: 0.95rem; color: var(--dim); max-width: 720px; }
+  .rec .rec-why b { color: var(--ink); }
+  .rec .rec-nums { display: flex; gap: 22px; margin-top: 12px; flex-wrap: wrap; }
+  .rec .rec-num .n { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 1.15rem; }
+  .rec .rec-num .l { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .rec-warn {
+    margin-top: 12px; font-size: 0.85rem; color: var(--warn);
+    display: none; align-items: center; gap: 8px;
+  }
+  .rec-warn.show { display: flex; }
+
+  /* ---------- chart cards ---------- */
+  .chart-card {
+    border: 1px solid var(--line); border-radius: 16px; background: var(--surface);
+    padding: 18px 20px 20px; margin-bottom: 20px;
+  }
+  .chart-card .ch-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
+  .chart-card h2 { font-size: 1.15rem; }
+  .chart-card .ch-sub { font-size: 0.86rem; color: var(--dim); max-width: 640px; margin-bottom: 12px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.82rem; color: var(--dim); margin-bottom: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .axis line, .axis path { stroke: var(--line); }
+  .grid line { stroke: var(--line-soft); }
+  text { fill: var(--dim); font-family: 'Inter', sans-serif; }
+  .axis-label { fill: var(--muted); font-size: 11px; }
+  .tick-label { fill: var(--muted); font-size: 11px; }
+
+  .seg-manual { fill: var(--manual); }
+  .seg-conc { fill: var(--concurrent); }
+  .seg-batch { fill: var(--batch); }
+
+  /* tooltip */
+  .tooltip {
+    position: fixed; z-index: 100; pointer-events: none; opacity: 0;
+    background: var(--bg-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.5;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.6); transition: opacity 0.12s; max-width: 280px;
+  }
+  .tooltip .tt-title { font-weight: 700; margin-bottom: 4px; }
+  .tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; }
+  .tooltip .tt-row .k { color: var(--dim); }
+  .tooltip .tt-row .v { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .tooltip .tt-sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+
+  .toggle-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .toggle-row .lbl { font-size: 0.78rem; color: var(--muted); margin-right: 4px; }
+
+  .map-note { font-size: 0.78rem; color: var(--muted); margin-top: 10px; }
+  .youare {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem;
+    color: var(--ink); background: var(--bg-2); border: 1px solid var(--line);
+    padding: 3px 9px; border-radius: 99px;
+  }
+
+  footer { padding: 40px 0 64px; color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--line); margin-top: 20px; }
+  footer code { background: var(--bg-1); padding: 2px 6px; border-radius: 4px; color: var(--dim); }
+  footer .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { footer .cols { grid-template-columns: 1fr; } }
+  footer h3 { color: var(--dim); font-size: 0.86rem; margin-bottom: 6px; }
+  footer ul { margin: 0; padding-left: 18px; }
+  footer li { margin-bottom: 3px; }
+</style>
+</head>
+<body>
+<div class="bg-gradient"></div>
+
+<!-- ============ TOP BAR ============ -->
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Batch <span>vs</span> Concurrent <span>· the money decision</span></div>
+    <button class="theme-toggle" id="theme-toggle">◐ Light</button>
+  </div>
+</div>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Operationalising an LLM prototype · Consultation Insights</span>
+    <h1>
+      The 50% batch discount is real.<br>
+      <span class="grad">So is the cost of waiting for it.</span>
+    </h1>
+    <p class="lead" style="margin-top:18px;">
+      Same model, same output — three ways to drive the same API. The token bill
+      is only half the story. This tool weighs the API saving against the cost of
+      <em>time</em>: how long each mode makes people or downstream work wait, and
+      what that delay is worth. Move the sliders; the recommendation is live.
+    </p>
+
+    <div class="measured">
+      <div class="mcard s">
+        <div class="tag">Sequential · 40 rows</div>
+        <div class="big">103<span style="font-size:1rem;">s</span></div>
+        <div class="sub">one at a time · £0.083 <span style="color:var(--muted)">(standard rate)</span></div>
+      </div>
+      <div class="mcard c">
+        <div class="tag">Concurrent · 40 rows</div>
+        <div class="big">11<span style="font-size:1rem;">s</span></div>
+        <div class="sub">fired in parallel · £0.082 <span style="color:var(--muted)">(standard rate)</span></div>
+      </div>
+      <div class="mcard b">
+        <div class="tag">Batch API · 40 rows</div>
+        <div class="big">~26<span style="font-size:1rem;">min</span></div>
+        <div class="sub">queued, async · £0.042 <span style="color:var(--muted)">(50% off)</span></div>
+      </div>
+    </div>
+    <p class="provenance">
+      Real numbers from running the 40-row sample through all three modes on
+      <code>analyse.py</code> (2026-07-15). Batch and concurrent produce the
+      <em>identical</em> analysis — they differ only in speed and price. Batch is
+      <strong>cheaper, never faster</strong>; concurrent is <strong>fast, at full price</strong>.
+    </p>
+  </div>
+</section>
+
+<!-- ============ MONEY MODEL ============ -->
+<section style="padding-top:8px;">
+  <div class="wrap">
+    <h2>Where the money actually goes</h2>
+    <p class="lead" style="margin-bottom:16px;">
+      A fair comparison adds three things no per-token price shows on its own.
+    </p>
+    <div class="money-strip">
+      <div class="money">
+        <h3><span class="dot" style="background:var(--concurrent)"></span>API cost</h3>
+        <p>Tokens × price per request. Batch is billed at <b>50% off</b>; sequential and concurrent pay the <b>full</b> token rate.</p>
+      </div>
+      <div class="money">
+        <h3><span class="dot" style="background:var(--warn)"></span>Cost of waiting</h3>
+        <p>Every hour results aren't ready has a price — blocked downstream work, an SLA, or a person idle. Paid <b>per hour of wall-clock</b>.</p>
+      </div>
+      <div class="money">
+        <h3><span class="dot" style="background:var(--manual)"></span>Manual labour</h3>
+        <p>The do-nothing-with-AI baseline: pay people to read and tag each response by hand. Sometimes, at tiny volumes, still the cheapest.</p>
+      </div>
+      <div class="money">
+        <h3><span class="dot" style="background:var(--batch)"></span>The trade</h3>
+        <p>Batch trades <b>speed for price</b>. It wins when nobody's waiting; it loses the moment the delay costs more than the token saving.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<section style="padding-top:22px;">
+  <div class="wrap">
+    <div class="app">
+
+      <!-- CONTROLS -->
+      <aside class="panel">
+        <h2>Your scenario</h2>
+        <p class="hint">Adjust to match a real job. Defaults are the measured Consultation Insights run at scale.</p>
+
+        <div class="group">
+          <div class="group-title">Workload</div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-n">Number of requests</label><span class="val" id="v-n">20,000</span></div>
+            <input type="range" id="c-n" min="1" max="5" step="0.01" value="4.301">
+            <div class="caption">the big identity consultation is expected to get 20,000+</div>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-cpr">API cost per request</label><span class="val" id="v-cpr">£0.0021</span></div>
+            <input type="range" id="c-cpr" min="0.0002" max="0.02" step="0.0001" value="0.0021">
+            <div class="caption">full token price for one response · batch pays half this</div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title"><span class="dot" style="background:var(--warn)"></span>Urgency — the cost of waiting</div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-block">Cost of waiting</label><span class="val" id="v-block">£30 / hr</span></div>
+            <input type="range" id="c-block" min="0" max="500" step="1" value="30">
+            <div class="caption">value of work blocked, or SLA/idle cost, per hour until <em>all</em> results are in</div>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-deadline">Deadline</label><span class="val" id="v-deadline">off</span></div>
+            <input type="range" id="c-deadline" min="0" max="48" step="0.25" value="0">
+            <div class="caption">hard limit on wall-clock — modes that miss it are ruled out (0 = no deadline)</div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title"><span class="dot" style="background:var(--concurrent)"></span>Concurrent settings</div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-conc">Max concurrent requests</label><span class="val" id="v-conc">10</span></div>
+            <input type="range" id="c-conc" min="1" max="500" step="1" value="10">
+            <div class="caption">this account's limit is 10,000 req/min — check yours before scaling</div>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-lat">Latency per request</label><span class="val" id="v-lat">2.6 s</span></div>
+            <input type="range" id="c-lat" min="0.5" max="15" step="0.1" value="2.6">
+            <div class="caption">measured ≈ 2.6 s/response (103 s ÷ 40 rows, sequential)</div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title"><span class="dot" style="background:var(--batch)"></span>Batch settings</div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-bt">Batch turnaround</label><span class="val" id="v-bt">4 hr</span></div>
+            <input type="range" id="c-bt" min="0.1" max="24" step="0.1" value="4">
+            <div class="caption">async: no minimum, SLA up to 24 h · measured ~26 min for 40 rows</div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title"><span class="dot" style="background:var(--manual)"></span>Manual alternative</div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-mm">Minutes per task, by hand</label><span class="val" id="v-mm">6 min</span></div>
+            <input type="range" id="c-mm" min="0.5" max="30" step="0.5" value="6">
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-rate">Employee cost</label><span class="val" id="v-rate">£25 / hr</span></div>
+            <input type="range" id="c-rate" min="10" max="120" step="1" value="25">
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-head"><label for="c-staff">People working in parallel</label><span class="val" id="v-staff">3</span></div>
+            <input type="range" id="c-staff" min="1" max="50" step="1" value="3">
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top:16px;">
+          <button class="mini-btn" data-preset="report">📊 20k report<br>(nobody waiting)</button>
+          <button class="mini-btn" data-preset="live">⚡ Live triage<br>(user waiting)</button>
+        </div>
+        <div class="btn-row">
+          <button class="mini-btn" data-preset="small">🔧 Small batch<br>(40 rows)</button>
+          <button class="mini-btn" data-preset="reset">↺ Reset<br>defaults</button>
+        </div>
+      </aside>
+
+      <!-- OUTPUT -->
+      <main>
+        <!-- RECOMMENDATION -->
+        <div class="rec" id="rec">
+          <div class="rec-label">Recommendation</div>
+          <div class="rec-name" id="rec-name">Concurrent</div>
+          <div class="rec-why" id="rec-why"></div>
+          <div class="rec-nums" id="rec-nums"></div>
+          <div class="rec-warn" id="rec-warn"></div>
+        </div>
+
+        <!-- CHART 1: TCO -->
+        <div class="chart-card">
+          <div class="ch-head">
+            <div>
+              <h2>Total cost of ownership</h2>
+              <div class="ch-sub">What the whole job costs each way — token bill, the price of the wait, and human labour, stacked. Cheapest wins.</div>
+            </div>
+          </div>
+          <div class="legend">
+            <span><span class="sw" style="background:var(--concurrent)"></span>API cost</span>
+            <span><span class="sw" style="background:var(--warn)"></span>Cost of waiting</span>
+            <span><span class="sw" style="background:var(--manual)"></span>Manual labour</span>
+          </div>
+          <svg id="chart-tco" viewBox="0 0 720 340" role="img" aria-label="Total cost of ownership by mode"></svg>
+        </div>
+
+        <!-- CHART 2: CROSSOVER -->
+        <div class="chart-card">
+          <div class="ch-head">
+            <div>
+              <h2>The crossover</h2>
+              <div class="ch-sub">Sweep one variable and watch where the cheapest mode changes hands. The dashed line is your current scenario.</div>
+            </div>
+            <div class="toggle-row">
+              <span class="lbl">x-axis:</span>
+              <button class="mini-btn" data-xaxis="n" style="flex:none;padding:7px 12px;">Number of requests</button>
+              <button class="mini-btn active" data-xaxis="block" style="flex:none;padding:7px 12px;">Cost of waiting</button>
+            </div>
+          </div>
+          <div class="legend">
+            <span><span class="sw" style="background:var(--manual)"></span>Manual</span>
+            <span><span class="sw" style="background:var(--concurrent)"></span>Concurrent</span>
+            <span><span class="sw" style="background:var(--batch)"></span>Batch</span>
+          </div>
+          <svg id="chart-cross" viewBox="0 0 720 360" role="img" aria-label="Cost crossover chart"></svg>
+        </div>
+
+        <!-- CHART 3: DECISION MAP -->
+        <div class="chart-card">
+          <div class="ch-head">
+            <div>
+              <h2>Decision map</h2>
+              <div class="ch-sub">The cheapest mode for every combination of volume and urgency, at your other settings. Find your job; read the colour.</div>
+            </div>
+          </div>
+          <div class="legend">
+            <span><span class="sw" style="background:var(--manual)"></span>Manual wins</span>
+            <span><span class="sw" style="background:var(--concurrent)"></span>Concurrent wins</span>
+            <span><span class="sw" style="background:var(--batch)"></span>Batch wins</span>
+            <span class="youare">◉ your scenario</span>
+          </div>
+          <svg id="chart-map" viewBox="0 0 720 380" role="img" aria-label="Decision map: cheapest mode by volume and urgency"></svg>
+          <p class="map-note">
+            x → number of requests (log) · y → cost of waiting per hour (log). Batch owns the low-urgency
+            bottom; concurrent takes over as the wait gets expensive; manual survives only in the tiny-volume corner.
+          </p>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <h3>What's hardcoded (and why)</h3>
+        <ul>
+          <li><b>50% batch discount</b> — a fixed industry constant (Anthropic, OpenAI, Google all use it).</li>
+          <li><b>Both API modes need ~0.3 h oversight</b> — someone kicks the run off and checks results.</li>
+          <li><b>Batch time is treated as ~flat</b> (async SLA), not linear in volume — unlike concurrent, which scales with the number of waves.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Provenance</h3>
+        <ul>
+          <li>Per-mode timings &amp; costs: live 40-row run, <code>wk09/solution/analyse.py</code>, 2026-07-15.</li>
+          <li>Rates: <code>spend/pricing.py</code> · <code>claude-sonnet-5</code> intro rate through 2026-08-31.</li>
+          <li>Scale projection method: <code>evals/scale/project_cost.py</code>.</li>
+          <li>Palette validated with the dataviz <code>validate_palette.js</code> (all checks pass, both themes).</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:20px;color:var(--muted);">
+      Built by Agent-Jack · <code>wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html</code> ·
+      A model, not a quote — plug in your own numbers before a real budget decision.
+    </p>
+  </div>
+</footer>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+/* ============================================================
+   ECONOMIC MODEL
+   ============================================================ */
+const BATCH_DISCOUNT = 0.5;      // batch API: 50% off the token rate
+const OVERSIGHT_HOURS = 0.3;     // human setup + result check for API modes
+
+const state = {
+  n: 20000,
+  costPerReq: 0.0021,
+  blockRate: 30,     // £/hr cost of waiting
+  deadline: 0,       // hr, 0 = off
+  concurrency: 10,
+  latency: 2.6,      // s per request
+  batchHours: 4,
+  manualMin: 6,
+  empRate: 25,
+  staff: 3,
+};
+
+const DEFAULTS = { ...state };
+
+/* wall-clock hours for each mode at a given request count */
+function wallHours(mode, n, s = state) {
+  if (mode === 'manual')     return (n * s.manualMin / 60) / s.staff;
+  if (mode === 'concurrent') return Math.ceil(n / s.concurrency) * s.latency / 3600;
+  if (mode === 'batch')      return s.batchHours;
+  return 0;
+}
+
+/* full cost breakdown for one mode */
+function costOf(mode, n = state.n, s = state) {
+  const wall = wallHours(mode, n, s);
+  let api = 0, labour = 0;
+  if (mode === 'concurrent') { api = n * s.costPerReq;                 labour = OVERSIGHT_HOURS * s.empRate; }
+  if (mode === 'batch')      { api = n * s.costPerReq * BATCH_DISCOUNT; labour = OVERSIGHT_HOURS * s.empRate; }
+  if (mode === 'manual')     { api = 0;                                labour = n * (s.manualMin / 60) * s.empRate; }
+  const waiting = wall * s.blockRate;
+  const total = api + waiting + labour;
+  const meetsDeadline = s.deadline <= 0 || wall <= s.deadline + 1e-9;
+  return { mode, api, waiting, labour, total, wall, meetsDeadline };
+}
+
+const MODES = ['manual', 'concurrent', 'batch'];
+const MODE_LABEL = { manual: 'Manual', concurrent: 'Concurrent', batch: 'Batch' };
+const MODE_VAR   = { manual: 'var(--manual)', concurrent: 'var(--concurrent)', batch: 'var(--batch)' };
+const MODE_INK   = { manual: 'var(--manual-ink)', concurrent: 'var(--concurrent-ink)', batch: 'var(--batch-ink)' };
+
+/* pick cheapest mode that meets the deadline (fall back to cheapest overall) */
+function winner(n = state.n, s = state) {
+  const rows = MODES.map(m => costOf(m, n, s));
+  const eligible = rows.filter(r => r.meetsDeadline);
+  const pool = eligible.length ? eligible : rows;
+  pool.sort((a, b) => a.total - b.total);
+  return { best: pool[0], all: rows, deadlineForcedOut: eligible.length < rows.length };
+}
+
+/* ============================================================
+   FORMATTING
+   ============================================================ */
+const fmtGBP = v => {
+  if (v >= 100000) return '£' + (v / 1000).toFixed(0) + 'k';
+  if (v >= 1000)   return '£' + (v / 1000).toFixed(1) + 'k';
+  if (v >= 10)     return '£' + v.toFixed(0);
+  if (v >= 1)      return '£' + v.toFixed(2);
+  return '£' + v.toFixed(4);
+};
+const fmtInt = v => Math.round(v).toLocaleString('en-GB');
+const fmtHours = h => {
+  if (h < 1/60)  return (h * 3600).toFixed(0) + ' s';
+  if (h < 1)     return (h * 60).toFixed(0) + ' min';
+  if (h < 48)    return h.toFixed(1) + ' hr';
+  return (h / 24).toFixed(1) + ' days';
+};
+
+/* ============================================================
+   TOOLTIP
+   ============================================================ */
+const tip = document.getElementById('tooltip');
+function showTip(html, evt) {
+  tip.innerHTML = html;
+  tip.style.opacity = '1';
+  moveTip(evt);
+}
+function moveTip(evt) {
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + w > window.innerWidth)  x = evt.clientX - w - pad;
+  if (y + h > window.innerHeight) y = evt.clientY - h - pad;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+function hideTip() { tip.style.opacity = '0'; }
+
+/* ============================================================
+   SVG HELPERS
+   ============================================================ */
+const SVGNS = 'http://www.w3.org/2000/svg';
+// var() is not reliably resolved when set as an SVG presentation attribute,
+// so resolve it to a concrete colour here. Cached per render (cleared on
+// theme change) so the ~2,000-cell decision map stays fast.
+let _varCache = {};
+function resolveVar(v) {
+  if (typeof v !== 'string') return v;
+  const m = /^var\((--[\w-]+)\)$/.exec(v.trim());
+  if (!m) return v;
+  if (_varCache[m[1]] === undefined) {
+    _varCache[m[1]] = getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
+  }
+  return _varCache[m[1]] || v;
+}
+function el(tag, attrs = {}, parent = null) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) {
+    let val = attrs[k];
+    if ((k === 'fill' || k === 'stroke') && typeof val === 'string') val = resolveVar(val);
+    e.setAttribute(k, val);
+  }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function clear(svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+
+/* "nice" axis max */
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const exp = Math.floor(Math.log10(v));
+  const base = Math.pow(10, exp);
+  const f = v / base;
+  const nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10;
+  return nice * base;
+}
+
+/* ============================================================
+   CHART 1 — TCO STACKED BARS
+   ============================================================ */
+function drawTCO() {
+  const svg = document.getElementById('chart-tco');
+  clear(svg);
+  const W = 720, H = 340, m = { t: 20, r: 20, b: 58, l: 64 };
+  const plotW = W - m.l - m.r, plotH = H - m.t - m.b;
+  const rows = MODES.map(mm => costOf(mm));
+  const { best } = winner();
+
+  const maxTotal = niceMax(Math.max(...rows.map(r => r.total), 1));
+  const y = v => m.t + plotH - (v / maxTotal) * plotH;
+
+  const grid = el('g', { class: 'grid' }, svg);
+  const nTicks = 5;
+  for (let i = 0; i <= nTicks; i++) {
+    const val = maxTotal * i / nTicks;
+    const yy = y(val);
+    el('line', { x1: m.l, y1: yy, x2: m.l + plotW, y2: yy }, grid);
+    el('text', { x: m.l - 8, y: yy + 4, 'text-anchor': 'end', class: 'tick-label' }, svg)
+      .textContent = fmtGBP(val);
+  }
+  el('text', { x: 16, y: m.t + plotH / 2, 'text-anchor': 'middle', class: 'axis-label',
+    transform: `rotate(-90 16 ${m.t + plotH / 2})` }, svg).textContent = 'Total cost (£)';
+
+  const bandW = plotW / rows.length;
+  const barW = Math.min(120, bandW * 0.52);
+
+  rows.forEach((r, i) => {
+    const cx = m.l + bandW * (i + 0.5);
+    const x = cx - barW / 2;
+    const isWin = r.mode === best.mode;
+
+    // stack: api (mode colour or manual=0), waiting (warn), labour (manual colour)
+    const segs = [
+      { key: 'api',     val: r.api,     fill: MODE_VAR[r.mode], label: 'API cost' },
+      { key: 'waiting', val: r.waiting, fill: 'var(--warn)',    label: 'Cost of waiting' },
+      { key: 'labour',  val: r.labour,  fill: 'var(--manual)',  label: 'Manual labour' },
+    ].filter(s => s.val > 0);
+
+    let acc = 0;
+    // 2px surface gap between stacked segments
+    segs.forEach(s => {
+      const hpx = (s.val / maxTotal) * plotH;
+      const yy = y(acc + s.val);
+      const rect = el('rect', {
+        x, y: yy, width: barW, height: Math.max(0.5, hpx - 2),
+        rx: 3, fill: s.fill, opacity: isWin ? 1 : 0.82,
+      }, svg);
+      rect.style.cursor = 'pointer';
+      const tt = `<div class="tt-title">${MODE_LABEL[r.mode]}</div>
+        <div class="tt-row"><span class="k"><span class="tt-sw" style="background:${s.fill}"></span>${s.label}</span><span class="v">${fmtGBP(s.val)}</span></div>`;
+      rect.addEventListener('mousemove', e => showTip(tt, e));
+      rect.addEventListener('mouseleave', hideTip);
+      acc += s.val;
+    });
+
+    // total label on top
+    const topY = y(r.total);
+    el('text', { x: cx, y: topY - 9, 'text-anchor': 'middle',
+      fill: isWin ? 'var(--ink)' : 'var(--dim)', 'font-size': 14, 'font-weight': 700 }, svg)
+      .textContent = fmtGBP(r.total);
+
+    // winner crown
+    if (isWin) {
+      el('text', { x: cx, y: topY - 28, 'text-anchor': 'middle', 'font-size': 15 }, svg).textContent = '✓ cheapest';
+      const t2 = svg.lastChild; t2.setAttribute('fill', MODE_INK[r.mode]); t2.setAttribute('font-weight', 700);
+    }
+    // deadline miss
+    if (!r.meetsDeadline) {
+      el('text', { x: cx, y: topY - 28, 'text-anchor': 'middle', 'font-size': 12, fill: 'var(--bad)', 'font-weight': 700 }, svg)
+        .textContent = '✗ misses deadline';
+    }
+
+    // x label + wall-clock sub
+    el('text', { x: cx, y: m.t + plotH + 22, 'text-anchor': 'middle', fill: MODE_INK[r.mode], 'font-size': 13, 'font-weight': 700 }, svg)
+      .textContent = MODE_LABEL[r.mode];
+    el('text', { x: cx, y: m.t + plotH + 40, 'text-anchor': 'middle', class: 'tick-label' }, svg)
+      .textContent = fmtHours(r.wall) + ' wait';
+  });
+
+  el('line', { x1: m.l, y1: m.t + plotH, x2: m.l + plotW, y2: m.t + plotH, stroke: 'var(--line)' }, svg);
+}
+
+/* ============================================================
+   CHART 2 — CROSSOVER LINE CHART
+   ============================================================ */
+let crossXAxis = 'block';   // 'n' | 'block'
+
+function drawCrossover() {
+  const svg = document.getElementById('chart-cross');
+  clear(svg);
+  const W = 720, H = 360, m = { t: 20, r: 20, b: 54, l: 66 };
+  const plotW = W - m.l - m.r, plotH = H - m.t - m.b;
+
+  const useN = crossXAxis === 'n';
+  const STEPS = 90;
+
+  // x domain
+  let xMin, xMax, xVals, curX;
+  if (useN) {
+    xMin = 1; xMax = 100000;
+    const lgMin = Math.log10(xMin), lgMax = Math.log10(xMax);
+    xVals = Array.from({ length: STEPS + 1 }, (_, i) => Math.pow(10, lgMin + (lgMax - lgMin) * i / STEPS));
+    curX = state.n;
+  } else {
+    xMin = 0; xMax = 500;
+    xVals = Array.from({ length: STEPS + 1 }, (_, i) => xMin + (xMax - xMin) * i / STEPS);
+    curX = state.blockRate;
+  }
+
+  // compute series
+  const series = { manual: [], concurrent: [], batch: [] };
+  xVals.forEach(xv => {
+    const s = { ...state };
+    let n = state.n;
+    if (useN) n = xv; else s.blockRate = xv;
+    MODES.forEach(mm => series[mm].push(costOf(mm, n, s).total));
+  });
+
+  const allVals = [...series.manual, ...series.concurrent, ...series.batch].filter(v => isFinite(v) && v > 0);
+  const yMaxRaw = Math.max(...allVals);
+  const yMinRaw = Math.max(0.001, Math.min(...allVals));
+  // log y — spans many orders of magnitude (manual labour vs API pennies)
+  const lgYmin = Math.floor(Math.log10(yMinRaw));
+  const lgYmax = Math.ceil(Math.log10(yMaxRaw));
+  const yLog = v => {
+    const lv = Math.log10(Math.max(v, Math.pow(10, lgYmin)));
+    return m.t + plotH - (lv - lgYmin) / (lgYmax - lgYmin) * plotH;
+  };
+
+  // x scale
+  const xScale = useN
+    ? (v => { const lg = Math.log10(Math.max(v, 1)); return m.l + (lg - Math.log10(xMin)) / (Math.log10(xMax) - Math.log10(xMin)) * plotW; })
+    : (v => m.l + (v - xMin) / (xMax - xMin) * plotW);
+
+  // grid + y ticks (log decades)
+  const grid = el('g', { class: 'grid' }, svg);
+  for (let e2 = lgYmin; e2 <= lgYmax; e2++) {
+    const yy = yLog(Math.pow(10, e2));
+    el('line', { x1: m.l, y1: yy, x2: m.l + plotW, y2: yy }, grid);
+    el('text', { x: m.l - 8, y: yy + 4, 'text-anchor': 'end', class: 'tick-label' }, svg)
+      .textContent = fmtGBP(Math.pow(10, e2));
+  }
+  // x ticks
+  const xg = el('g', {}, svg);
+  if (useN) {
+    [1, 10, 100, 1000, 10000, 100000].forEach(t => {
+      const xx = xScale(t);
+      el('line', { x1: xx, y1: m.t, x2: xx, y2: m.t + plotH, class: 'grid', stroke: 'var(--line-soft)' }, xg);
+      el('text', { x: xx, y: m.t + plotH + 20, 'text-anchor': 'middle', class: 'tick-label' }, svg)
+        .textContent = t >= 1000 ? (t / 1000) + 'k' : t;
+    });
+  } else {
+    [0, 100, 200, 300, 400, 500].forEach(t => {
+      const xx = xScale(t);
+      el('text', { x: xx, y: m.t + plotH + 20, 'text-anchor': 'middle', class: 'tick-label' }, svg)
+        .textContent = '£' + t;
+    });
+  }
+  el('text', { x: m.l + plotW / 2, y: H - 8, 'text-anchor': 'middle', class: 'axis-label' }, svg)
+    .textContent = useN ? 'Number of requests (log)' : 'Cost of waiting (£ / hr)';
+  el('text', { x: 16, y: m.t + plotH / 2, 'text-anchor': 'middle', class: 'axis-label',
+    transform: `rotate(-90 16 ${m.t + plotH / 2})` }, svg).textContent = 'Total cost (£, log)';
+
+  // current-scenario vertical marker
+  const cxPix = xScale(curX);
+  el('line', { x1: cxPix, y1: m.t, x2: cxPix, y2: m.t + plotH, stroke: 'var(--ink)', 'stroke-width': 1.2,
+    'stroke-dasharray': '4 4', opacity: 0.55 }, svg);
+  el('text', { x: cxPix, y: m.t - 6, 'text-anchor': 'middle', fill: 'var(--dim)', 'font-size': 11, 'font-weight': 600 }, svg)
+    .textContent = 'you';
+
+  // lines (2px)
+  MODES.forEach(mm => {
+    let d = '';
+    series[mm].forEach((v, i) => {
+      const xx = xScale(xVals[i]);
+      const yy = yLog(v);
+      d += (i === 0 ? 'M' : 'L') + xx.toFixed(1) + ' ' + yy.toFixed(1) + ' ';
+    });
+    el('path', { d, fill: 'none', stroke: MODE_VAR[mm], 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+  });
+
+  // crossover markers: where the winning mode changes along x
+  let prevWin = null;
+  xVals.forEach((xv, i) => {
+    const totals = MODES.map(mm => ({ mm, v: series[mm][i] }));
+    totals.sort((a, b) => a.v - b.v);
+    const w = totals[0].mm;
+    if (prevWin && w !== prevWin && i > 0) {
+      const xx = xScale(xVals[i]);
+      const yy = yLog(series[w][i]);
+      el('circle', { cx: xx, cy: yy, r: 5, fill: 'var(--surface)', stroke: MODE_VAR[w], 'stroke-width': 2 }, svg);
+    }
+    prevWin = w;
+  });
+
+  // direct end-labels
+  MODES.forEach(mm => {
+    const lastV = series[mm][series[mm].length - 1];
+    const yy = yLog(lastV);
+    el('text', { x: m.l + plotW + 3, y: yy + 4, fill: MODE_INK[mm], 'font-size': 11, 'font-weight': 700 }, svg)
+      .textContent = MODE_LABEL[mm][0];
+  });
+
+  // invisible hover band for readout
+  const hover = el('rect', { x: m.l, y: m.t, width: plotW, height: plotH, fill: 'transparent' }, svg);
+  const vline = el('line', { x1: m.l, y1: m.t, x2: m.l, y2: m.t + plotH, stroke: 'var(--dim)', 'stroke-width': 1, opacity: 0 }, svg);
+  hover.style.cursor = 'crosshair';
+  hover.addEventListener('mousemove', e => {
+    const pt = svg.getBoundingClientRect();
+    const px = (e.clientX - pt.left) / pt.width * W;
+    const frac = (px - m.l) / plotW;
+    const idx = Math.max(0, Math.min(STEPS, Math.round(frac * STEPS)));
+    const xv = xVals[idx];
+    vline.setAttribute('x1', xScale(xv)); vline.setAttribute('x2', xScale(xv)); vline.setAttribute('opacity', 0.4);
+    const xlabel = useN ? fmtInt(xv) + ' requests' : fmtGBP(xv) + ' / hr wait';
+    const ordered = MODES.map(mm => ({ mm, v: series[mm][idx] })).sort((a, b) => a.v - b.v);
+    let html = `<div class="tt-title">${xlabel}</div>`;
+    ordered.forEach((o, k) => {
+      html += `<div class="tt-row"><span class="k"><span class="tt-sw" style="background:${MODE_VAR[o.mm]}"></span>${MODE_LABEL[o.mm]}${k === 0 ? ' ✓' : ''}</span><span class="v">${fmtGBP(o.v)}</span></div>`;
+    });
+    showTip(html, e);
+  });
+  hover.addEventListener('mouseleave', () => { hideTip(); vline.setAttribute('opacity', 0); });
+}
+
+/* ============================================================
+   CHART 3 — DECISION MAP (regions)
+   ============================================================ */
+function drawMap() {
+  const svg = document.getElementById('chart-map');
+  clear(svg);
+  const W = 720, H = 380, m = { t: 16, r: 20, b: 50, l: 62 };
+  const plotW = W - m.l - m.r, plotH = H - m.t - m.b;
+
+  const COLS = 60, ROWS = 34;
+  const nMin = 1, nMax = 100000;             // x — log
+  const bMin = 0.5, bMax = 500;              // y — log (cost of waiting)
+  const lgN0 = Math.log10(nMin), lgN1 = Math.log10(nMax);
+  const lgB0 = Math.log10(bMin), lgB1 = Math.log10(bMax);
+
+  const cw = plotW / COLS, ch = plotH / ROWS;
+  const fillFor = { manual: 'var(--manual)', concurrent: 'var(--concurrent)', batch: 'var(--batch)' };
+
+  // accumulate each region's cell count + pixel centroid so labels land
+  // inside the correct colour even as the boundaries move with the sliders
+  const region = { manual: { n: 0, x: 0, y: 0 }, concurrent: { n: 0, x: 0, y: 0 }, batch: { n: 0, x: 0, y: 0 } };
+  for (let c = 0; c < COLS; c++) {
+    const nv = Math.pow(10, lgN0 + (lgN1 - lgN0) * (c + 0.5) / COLS);
+    for (let r = 0; r < ROWS; r++) {
+      // row 0 at top = high wait; invert so bottom = low wait
+      const bv = Math.pow(10, lgB0 + (lgB1 - lgB0) * (ROWS - 1 - r + 0.5) / ROWS);
+      const s = { ...state, blockRate: bv };
+      const w = winner(nv, s).best.mode;
+      const px = m.l + (c + 0.5) * cw, py = m.t + (r + 0.5) * ch;
+      el('rect', {
+        x: m.l + c * cw, y: m.t + r * ch, width: cw + 0.6, height: ch + 0.6,
+        fill: fillFor[w], opacity: 0.8,
+      }, svg);
+      const reg = region[w]; reg.n++; reg.x += px; reg.y += py;
+    }
+  }
+
+  // one label per region present, at its centroid (only if big enough to read)
+  const totalCells = COLS * ROWS;
+  MODES.forEach(mm => {
+    const reg = region[mm];
+    if (reg.n / totalCells < 0.04) return;   // too small to label cleanly
+    const t = el('text', {
+      x: reg.x / reg.n, y: reg.y / reg.n, 'text-anchor': 'middle',
+      fill: '#fff', 'font-size': 13, 'font-weight': 800,
+      'paint-order': 'stroke', stroke: 'rgba(0,0,0,0.4)', 'stroke-width': 3,
+    }, svg);
+    t.textContent = MODE_LABEL[mm];
+    t.style.pointerEvents = 'none';
+  });
+
+  // axes ticks
+  [1, 10, 100, 1000, 10000, 100000].forEach(t => {
+    const xx = m.l + (Math.log10(t) - lgN0) / (lgN1 - lgN0) * plotW;
+    el('text', { x: xx, y: m.t + plotH + 20, 'text-anchor': 'middle', class: 'tick-label' }, svg)
+      .textContent = t >= 1000 ? (t / 1000) + 'k' : t;
+  });
+  [1, 10, 100, 500].forEach(t => {
+    const yy = m.t + plotH - (Math.log10(t) - lgB0) / (lgB1 - lgB0) * plotH;
+    el('text', { x: m.l - 8, y: yy + 4, 'text-anchor': 'end', class: 'tick-label' }, svg)
+      .textContent = '£' + t;
+  });
+  el('text', { x: m.l + plotW / 2, y: H - 6, 'text-anchor': 'middle', class: 'axis-label' }, svg)
+    .textContent = 'Number of requests (log)';
+  el('text', { x: 15, y: m.t + plotH / 2, 'text-anchor': 'middle', class: 'axis-label',
+    transform: `rotate(-90 15 ${m.t + plotH / 2})` }, svg).textContent = 'Cost of waiting (£/hr, log)';
+
+  // "you are here" marker
+  const yx = m.l + (Math.log10(Math.max(state.n, nMin)) - lgN0) / (lgN1 - lgN0) * plotW;
+  const yy = m.t + plotH - (Math.log10(Math.min(Math.max(state.blockRate, bMin), bMax)) - lgB0) / (lgB1 - lgB0) * plotH;
+  el('circle', { cx: yx, cy: yy, r: 9, fill: 'none', stroke: '#fff', 'stroke-width': 3 }, svg);
+  el('circle', { cx: yx, cy: yy, r: 9, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.4 }, svg);
+  el('circle', { cx: yx, cy: yy, r: 3, fill: '#fff' }, svg);
+
+  // hover readout across the map
+  const hover = el('rect', { x: m.l, y: m.t, width: plotW, height: plotH, fill: 'transparent' }, svg);
+  hover.style.cursor = 'crosshair';
+  hover.addEventListener('mousemove', e => {
+    const pt = svg.getBoundingClientRect();
+    const px = (e.clientX - pt.left) / pt.width * W;
+    const py = (e.clientY - pt.top) / pt.height * H;
+    const nFrac = (px - m.l) / plotW, bFrac = 1 - (py - m.t) / plotH;
+    if (nFrac < 0 || nFrac > 1 || bFrac < 0 || bFrac > 1) { hideTip(); return; }
+    const nv = Math.pow(10, lgN0 + (lgN1 - lgN0) * nFrac);
+    const bv = Math.pow(10, lgB0 + (lgB1 - lgB0) * bFrac);
+    const s = { ...state, blockRate: bv };
+    const w = winner(nv, s);
+    let html = `<div class="tt-title">${fmtInt(nv)} requests · ${fmtGBP(bv)}/hr wait</div>`;
+    html += `<div class="tt-row"><span class="k">cheapest</span><span class="v" style="color:${MODE_INK[w.best.mode]}">${MODE_LABEL[w.best.mode]}</span></div>`;
+    w.all.slice().sort((a,b)=>a.total-b.total).forEach(rr => {
+      html += `<div class="tt-row"><span class="k"><span class="tt-sw" style="background:${MODE_VAR[rr.mode]}"></span>${MODE_LABEL[rr.mode]}</span><span class="v">${fmtGBP(rr.total)}</span></div>`;
+    });
+    showTip(html, e);
+  });
+  hover.addEventListener('mouseleave', hideTip);
+}
+
+/* ============================================================
+   RECOMMENDATION
+   ============================================================ */
+function drawRec() {
+  const { best, all, deadlineForcedOut } = winner();
+  const rec = document.getElementById('rec');
+  rec.style.setProperty('--rec-color', MODE_VAR[best.mode]);
+  document.getElementById('rec-name').textContent = MODE_LABEL[best.mode];
+  document.getElementById('rec-name').style.color = MODE_INK[best.mode];
+
+  const sorted = all.slice().sort((a, b) => a.total - b.total);
+  const runnerUp = sorted.find(r => r.mode !== best.mode) || sorted[1];
+  const saving = runnerUp ? runnerUp.total - best.total : 0;
+
+  // build "why" text
+  let why = '';
+  const batch = all.find(r => r.mode === 'batch');
+  const conc = all.find(r => r.mode === 'concurrent');
+  if (best.mode === 'batch') {
+    why = `Nothing is waiting on these results, so the <b>50% token discount</b> wins outright. `
+        + `The extra wait (${fmtHours(batch.wall)}) costs only <b>${fmtGBP(batch.waiting)}</b> — less than the <b>${fmtGBP(conc.api - batch.api)}</b> you save on tokens versus concurrent.`;
+  } else if (best.mode === 'concurrent') {
+    why = `Someone — or some downstream job — is waiting. Batch would save <b>${fmtGBP(conc.api - batch.api)}</b> on tokens, `
+        + `but its ${fmtHours(batch.wall)} wait would cost <b>${fmtGBP(batch.waiting)}</b> in blocked time. `
+        + `Concurrent finishes in <b>${fmtHours(conc.wall)}</b>, so the discount isn't worth the delay.`;
+  } else {
+    why = `At this volume the token bill is negligible and human labour is cheap enough that doing it by hand `
+        + `beats paying for the API run plus its wait. This flips fast as volume climbs — watch the crossover.`;
+  }
+  if (deadlineForcedOut) {
+    why += ` <b>Deadline applied:</b> slower modes that miss your ${fmtHours(state.deadline)} limit were ruled out.`;
+  }
+  document.getElementById('rec-why').innerHTML = why;
+
+  const nums = document.getElementById('rec-nums');
+  nums.innerHTML = `
+    <div class="rec-num"><div class="n" style="color:${MODE_INK[best.mode]}">${fmtGBP(best.total)}</div><div class="l">total cost</div></div>
+    <div class="rec-num"><div class="n">${fmtHours(best.wall)}</div><div class="l">wall-clock</div></div>
+    <div class="rec-num"><div class="n" style="color:var(--good)">${saving > 0 ? fmtGBP(saving) : '—'}</div><div class="l">vs next best (${runnerUp ? MODE_LABEL[runnerUp.mode] : '—'})</div></div>
+    <div class="rec-num"><div class="n">${fmtGBP(best.api)}</div><div class="l">of which API</div></div>
+  `;
+
+  const warn = document.getElementById('rec-warn');
+  if (best.mode === 'batch' && conc && (conc.api - batch.api) > batch.waiting && batch.wall > 1) {
+    warn.classList.add('show');
+    warn.innerHTML = '⚠ Batch is cheapest <em>only because nobody is waiting</em> — raise "cost of waiting" to see it flip.';
+  } else if (state.deadline > 0 && best.wall > state.deadline) {
+    warn.classList.add('show');
+    warn.innerHTML = '⚠ Even the recommended mode misses your deadline — no option qualifies.';
+  } else {
+    warn.classList.remove('show');
+  }
+}
+
+/* ============================================================
+   RENDER ALL
+   ============================================================ */
+function renderAll() {
+  _varCache = {};   // theme may have changed — re-resolve palette
+  drawRec();
+  drawTCO();
+  drawCrossover();
+  drawMap();
+}
+
+/* ============================================================
+   CONTROLS WIRING
+   ============================================================ */
+// number-of-requests slider is logarithmic (1..100000 via 10^value)
+const nSlider = document.getElementById('c-n');
+function nFromSlider() { return Math.round(Math.pow(10, parseFloat(nSlider.value))); }
+function sliderFromN(n) { return Math.log10(n); }
+
+function syncLabels() {
+  document.getElementById('v-n').textContent = fmtInt(state.n);
+  document.getElementById('v-cpr').textContent = '£' + state.costPerReq.toFixed(4);
+  document.getElementById('v-block').textContent = '£' + state.blockRate + ' / hr';
+  document.getElementById('v-deadline').textContent = state.deadline <= 0 ? 'off' : fmtHours(state.deadline);
+  document.getElementById('v-conc').textContent = fmtInt(state.concurrency);
+  document.getElementById('v-lat').textContent = state.latency.toFixed(1) + ' s';
+  document.getElementById('v-bt').textContent = fmtHours(state.batchHours);
+  document.getElementById('v-mm').textContent = state.manualMin + ' min';
+  document.getElementById('v-rate').textContent = '£' + state.empRate + ' / hr';
+  document.getElementById('v-staff').textContent = fmtInt(state.staff);
+}
+
+function pushToSliders() {
+  nSlider.value = sliderFromN(state.n);
+  document.getElementById('c-cpr').value = state.costPerReq;
+  document.getElementById('c-block').value = state.blockRate;
+  document.getElementById('c-deadline').value = state.deadline;
+  document.getElementById('c-conc').value = state.concurrency;
+  document.getElementById('c-lat').value = state.latency;
+  document.getElementById('c-bt').value = state.batchHours;
+  document.getElementById('c-mm').value = state.manualMin;
+  document.getElementById('c-rate').value = state.empRate;
+  document.getElementById('c-staff').value = state.staff;
+}
+
+const bind = (id, key, parse = parseFloat) => {
+  document.getElementById(id).addEventListener('input', e => {
+    state[key] = parse(e.target.value);
+    syncLabels();
+    renderAll();
+  });
+};
+nSlider.addEventListener('input', () => { state.n = nFromSlider(); syncLabels(); renderAll(); });
+bind('c-cpr', 'costPerReq');
+bind('c-block', 'blockRate');
+bind('c-deadline', 'deadline');
+bind('c-conc', 'concurrency', v => parseInt(v, 10));
+bind('c-lat', 'latency');
+bind('c-bt', 'batchHours');
+bind('c-mm', 'manualMin');
+bind('c-rate', 'empRate', v => parseInt(v, 10));
+bind('c-staff', 'staff', v => parseInt(v, 10));
+
+/* presets */
+const PRESETS = {
+  report: { n: 20000, blockRate: 2, batchHours: 4, deadline: 0 },     // report nobody's waiting on
+  live:   { n: 500, blockRate: 200, batchHours: 4, deadline: 1 },     // user-facing, urgent
+  small:  { n: 40, blockRate: 30, batchHours: 0.43, deadline: 0 },    // the measured sample
+  reset:  { ...DEFAULTS },
+};
+document.querySelectorAll('[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    Object.assign(state, PRESETS[btn.dataset.preset]);
+    pushToSliders(); syncLabels(); renderAll();
+  });
+});
+
+/* crossover x-axis toggle */
+document.querySelectorAll('[data-xaxis]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-xaxis]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    crossXAxis = btn.dataset.xaxis;
+    drawCrossover();
+  });
+});
+
+/* theme toggle */
+const themeBtn = document.getElementById('theme-toggle');
+themeBtn.addEventListener('click', () => {
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  document.documentElement.setAttribute('data-theme', light ? 'dark' : 'light');
+  themeBtn.textContent = light ? '◐ Light' : '◑ Dark';
+  renderAll();   // re-read CSS vars into SVG
+});
+
+/* init */
+pushToSliders();
+syncLabels();
+renderAll();
+window.addEventListener('resize', () => { /* SVG is responsive via viewBox; tooltip repositions on next move */ });
+</script>
+</body>
+</html>
