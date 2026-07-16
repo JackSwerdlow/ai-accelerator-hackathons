@@ -931,3 +931,29 @@ paths via the Node DOM-stub harness.
 
 **Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
 `wk09/solution/AI_LOG.md`.
+
+## [Agent-Jack] 2026-07-16 — Decision tool: make concurrency the lever that flips the story
+
+**Task:** User wanted the walkthrough to show the concurrency effect — start at
+1 request in flight (effectively sequential) and demonstrate how raising
+concurrency makes "concurrent" the winner once waiting has a cost.
+
+**What AI generated (previous version):** A 5-step story that flipped batch→
+concurrent purely by raising the cost of waiting, with concurrency held at 10
+throughout.
+
+**What you changed + why:** Rebuilt it as 6 steps where **concurrency** drives
+the flip: step 1 tokens-only (C=1, batch wins on price); step 2 adds a £30/hr
+wait cost but stays sequential (C=1) — ~14 h of waiting means batch still wins,
+sequential can't compete; step 3 raises concurrency to 10 → wall-clock collapses
+to ~1.4 h, the wait cost falls with it, and concurrent overtakes batch (the flip
+is now attributable to the concurrency dial, since steps 2 and 3 differ only in
+concurrency); step 4 pushes to 50 (dominant); steps 5–6 add urgency then a hard
+SLA. Also added a third **"Concurrency" x-axis** to the crossover chart (log
+scale) so the concurrent line can be watched falling and diving under batch's
+flat line as parallelism increases. Verified the arc (batch, batch, concurrent×4)
+and the concurrency crossing (~C=4 at £30/hr) via the model, and all 6-step /
+3-axis / off-script paths via the Node DOM-stub harness.
+
+**Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
+`wk09/solution/AI_LOG.md`.

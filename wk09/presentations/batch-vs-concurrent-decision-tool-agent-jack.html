@@ -392,9 +392,9 @@
         <p class="hint">Start from a preset, then fine-tune below. Defaults are the measured Consultation Insights run at scale.</p>
 
         <div class="group">
-          <div class="group-title">Guided walkthrough — the story in 5 steps</div>
+          <div class="group-title">Guided walkthrough — the story in 6 steps</div>
           <div class="walk-head">
-            <span class="walk-step" id="walk-step">Step 1 / 5</span>
+            <span class="walk-step" id="walk-step">Step 1 / 6</span>
             <span class="walk-title" id="walk-title">Just the tokens</span>
           </div>
           <p class="walk-narr" id="walk-narr"></p>
@@ -508,12 +508,13 @@
           <div class="ch-head">
             <div>
               <h2>The crossover</h2>
-              <div class="ch-sub">Sweep one variable and watch where the cheapest mode changes hands. The dashed line is your current scenario.</div>
+              <div class="ch-sub">Sweep one variable and watch where the cheapest mode changes hands. The dashed line is your current scenario. Try <b>Concurrency</b>: with a wait cost, concurrent's line falls as you parallelise and dives under batch.</div>
             </div>
             <div class="toggle-row">
               <span class="lbl">x-axis:</span>
               <button class="mini-btn" data-xaxis="n" style="flex:none;padding:7px 12px;">Number of requests</button>
               <button class="mini-btn active" data-xaxis="block" style="flex:none;padding:7px 12px;">Cost of waiting</button>
+              <button class="mini-btn" data-xaxis="conc" style="flex:none;padding:7px 12px;">Concurrency</button>
             </div>
           </div>
           <div class="legend">
@@ -835,28 +836,30 @@ function drawCrossover() {
   const W = 720, H = 360, m = { t: 20, r: 20, b: 54, l: 66 };
   const plotW = W - m.l - m.r, plotH = H - m.t - m.b;
 
-  const useN = crossXAxis === 'n';
+  const mode = crossXAxis;                          // 'n' | 'block' | 'conc'
+  const logX = (mode === 'n' || mode === 'conc');
   const STEPS = 90;
 
   // x domain
   let xMin, xMax, xVals, curX;
-  if (useN) {
-    xMin = 1; xMax = 100000;
+  if (mode === 'n')         { xMin = 1; xMax = 100000; curX = state.n; }
+  else if (mode === 'conc') { xMin = 1; xMax = 500;    curX = state.concurrency; }
+  else                      { xMin = 0; xMax = 500;    curX = state.blockRate; }
+  if (logX) {
     const lgMin = Math.log10(xMin), lgMax = Math.log10(xMax);
     xVals = Array.from({ length: STEPS + 1 }, (_, i) => Math.pow(10, lgMin + (lgMax - lgMin) * i / STEPS));
-    curX = state.n;
   } else {
-    xMin = 0; xMax = 500;
     xVals = Array.from({ length: STEPS + 1 }, (_, i) => xMin + (xMax - xMin) * i / STEPS);
-    curX = state.blockRate;
   }
 
-  // compute series
+  // compute series — vary only the swept dimension, hold everything else at `state`
   const series = { manual: [], concurrent: [], batch: [] };
   xVals.forEach(xv => {
     const s = { ...state };
     let n = state.n;
-    if (useN) n = xv; else s.blockRate = xv;
+    if (mode === 'n') n = xv;
+    else if (mode === 'conc') s.concurrency = xv;
+    else s.blockRate = xv;
     MODES.forEach(mm => series[mm].push(costOf(mm, n, s).total));
   });
 
@@ -872,8 +875,8 @@ function drawCrossover() {
   };
 
   // x scale
-  const xScale = useN
-    ? (v => { const lg = Math.log10(Math.max(v, 1)); return m.l + (lg - Math.log10(xMin)) / (Math.log10(xMax) - Math.log10(xMin)) * plotW; })
+  const xScale = logX
+    ? (v => { const lg = Math.log10(Math.max(v, xMin)); return m.l + (lg - Math.log10(xMin)) / (Math.log10(xMax) - Math.log10(xMin)) * plotW; })
     : (v => m.l + (v - xMin) / (xMax - xMin) * plotW);
 
   // grid + y ticks (log decades)
@@ -886,22 +889,19 @@ function drawCrossover() {
   }
   // x ticks
   const xg = el('g', {}, svg);
-  if (useN) {
-    [1, 10, 100, 1000, 10000, 100000].forEach(t => {
-      const xx = xScale(t);
-      el('line', { x1: xx, y1: m.t, x2: xx, y2: m.t + plotH, class: 'grid', stroke: 'var(--line-soft)' }, xg);
-      el('text', { x: xx, y: m.t + plotH + 20, 'text-anchor': 'middle', class: 'tick-label' }, svg)
-        .textContent = t >= 1000 ? (t / 1000) + 'k' : t;
-    });
-  } else {
-    [0, 100, 200, 300, 400, 500].forEach(t => {
-      const xx = xScale(t);
-      el('text', { x: xx, y: m.t + plotH + 20, 'text-anchor': 'middle', class: 'tick-label' }, svg)
-        .textContent = '£' + t;
-    });
-  }
+  const xticks = mode === 'n' ? [1, 10, 100, 1000, 10000, 100000]
+    : mode === 'conc' ? [1, 5, 10, 50, 100, 500]
+    : [0, 100, 200, 300, 400, 500];
+  xticks.forEach(t => {
+    const xx = xScale(t);
+    if (logX) el('line', { x1: xx, y1: m.t, x2: xx, y2: m.t + plotH, class: 'grid', stroke: 'var(--line-soft)' }, xg);
+    el('text', { x: xx, y: m.t + plotH + 20, 'text-anchor': 'middle', class: 'tick-label' }, svg)
+      .textContent = mode === 'block' ? '£' + t : (t >= 1000 ? (t / 1000) + 'k' : t);
+  });
   el('text', { x: m.l + plotW / 2, y: H - 8, 'text-anchor': 'middle', class: 'axis-label' }, svg)
-    .textContent = useN ? 'Number of requests (log)' : 'Cost of waiting (£ / hr)';
+    .textContent = mode === 'n' ? 'Number of requests (log)'
+      : mode === 'conc' ? 'Concurrency — requests in flight (log)'
+      : 'Cost of waiting (£ / hr)';
   el('text', { x: 16, y: m.t + plotH / 2, 'text-anchor': 'middle', class: 'axis-label',
     transform: `rotate(-90 16 ${m.t + plotH / 2})` }, svg).textContent = 'Total cost (£, log)';
 
@@ -956,7 +956,9 @@ function drawCrossover() {
     const idx = Math.max(0, Math.min(STEPS, Math.round(frac * STEPS)));
     const xv = xVals[idx];
     vline.setAttribute('x1', xScale(xv)); vline.setAttribute('x2', xScale(xv)); vline.setAttribute('opacity', 0.4);
-    const xlabel = useN ? fmtInt(xv) + ' requests' : fmtGBP(xv) + ' / hr wait';
+    const xlabel = mode === 'n' ? fmtInt(xv) + ' requests'
+      : mode === 'conc' ? fmtInt(xv) + ' concurrent'
+      : fmtGBP(xv) + ' / hr wait';
     const ordered = MODES.map(mm => ({ mm, v: series[mm][idx] })).sort((a, b) => a.v - b.v);
     let html = `<div class="tt-title">${xlabel}</div>`;
     ordered.forEach((o, k) => {
@@ -1188,20 +1190,23 @@ bind('c-staff', 'staff', v => parseInt(v, 10));
    dimension: tokens → + waiting → + urgency → + a hard deadline. */
 const STORY = [
   { title: 'Just the tokens',
-    narr: 'Count only the API bill. Batch is billed at half price, so with nothing else in the picture it wins outright — the naïve view most people start from.',
-    s: { ...DEFAULTS, n: 20000, blockRate: 0, batchHours: 4, deadline: 0 } },
-  { title: 'Waiting has a price',
-    narr: 'Results aren’t free to wait for. Add even a small cost for blocked work and batch’s 4-hour turnaround starts to bite. It still wins — but the lead is now thin.',
-    s: { ...DEFAULTS, n: 20000, blockRate: 6, batchHours: 4, deadline: 0 } },
-  { title: 'Someone’s actually waiting',
-    narr: 'At a realistic cost of blocked work, batch’s long wait costs more than the 50% it saves on tokens. The recommendation flips — concurrent’s speed wins.',
-    s: { ...DEFAULTS, n: 20000, blockRate: 30, batchHours: 4, deadline: 0 } },
+    narr: 'Count only the API bill. Batch is half price, so with nothing else in play it wins. We’re sending one request at a time (concurrency 1) — but with no cost of waiting, speed doesn’t matter yet.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 0, concurrency: 1, batchHours: 4, deadline: 0 } },
+  { title: 'Waiting has a price — one at a time',
+    narr: 'Now blocked work costs £30/hr, and we’re still firing requests sequentially. 20k one-at-a-time means ~14 hours of waiting — so costly that batch, despite its own 4-hour queue, stays cheaper. Sequential can’t compete.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 30, concurrency: 1, batchHours: 4, deadline: 0 } },
+  { title: 'Fire them in parallel',
+    narr: 'Same job, same wait cost — but send 10 at once. Wall-clock collapses from ~14 h to ~1.4 h, the waiting cost falls with it, and concurrent overtakes batch. Concurrency is the lever that makes it win.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 30, concurrency: 10, batchHours: 4, deadline: 0 } },
+  { title: 'Turn the dial up',
+    narr: 'Push concurrency to 50 (rate limits permitting). The wait shrinks to minutes and concurrent pulls decisively clear — the more you parallelise, the less the wait costs. Try the “Concurrency” x-axis on the crossover chart.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 30, concurrency: 50, batchHours: 4, deadline: 0 } },
   { title: 'It’s genuinely urgent',
-    narr: 'Push the cost of waiting higher and the gap turns lopsided: batch is now many times more expensive. It’s strictly for jobs nobody is sitting waiting on.',
-    s: { ...DEFAULTS, n: 20000, blockRate: 150, batchHours: 4, deadline: 0 } },
+    narr: 'Crank the cost of waiting to £150/hr. Batch’s long queue is now hugely expensive; fast, parallel concurrent is the obvious call for anything time-sensitive.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 150, concurrency: 50, batchHours: 4, deadline: 0 } },
   { title: 'And there’s a hard SLA',
-    narr: 'Add a 2-hour deadline. Batch physically can’t return 20k rows in time, so it’s ruled out entirely — not merely pricier, ineligible. Speed is now mandatory.',
-    s: { ...DEFAULTS, n: 20000, blockRate: 150, batchHours: 4, deadline: 2 } },
+    narr: 'Add a 2-hour deadline. Batch physically can’t return 20k rows in time, so it’s ruled out entirely — not merely pricier, ineligible. Speed is mandatory now.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 150, concurrency: 50, batchHours: 4, deadline: 2 } },
 ];
 
 let walkIdx = 0;      // which story step is loaded
