@@ -848,3 +848,25 @@ slider caption, the map note, and the "what's hardcoded" list to match.
 
 **Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
 `wk09/solution/AI_LOG.md`.
+
+## [Agent-Jack] 2026-07-16 — Decision tool TCO chart: broken axis for the Manual bar
+
+**Task:** User feedback — on the total-cost bar chart the Manual bar (staff
+labour) dwarfs Concurrent and Batch, crushing the two API bars into slivers so
+the batch-vs-concurrent comparison (the actual decision) is unreadable.
+
+**What AI generated (first version):** A plain linear-axis stacked bar scaled to
+the largest total, so a £8k+ Manual bar left the ~£85 vs ~£141 API bars
+invisible.
+
+**What you changed + why:** Scale the y-axis to the two API modes (the modes in
+contention) and, when Manual is more than 2.5× the larger of them, clip the
+Manual bar with a break marker (surface band + zigzag) and print its real value
+plus a "× N vs cheapest" multiplier above the plot. Segment heights are clamped
+to the plot so nothing overflows. This keeps Batch vs Concurrent fully legible
+while still landing the "doing it by hand costs orders of magnitude more" point.
+Verified clip-on (large N) and clip-off (small N, Manual comparable) render
+cleanly via the Node DOM-stub harness.
+
+**Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
+`wk09/solution/AI_LOG.md`.

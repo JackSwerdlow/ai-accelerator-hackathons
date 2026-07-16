@@ -466,7 +466,7 @@
           <div class="ch-head">
             <div>
               <h2>Total cost of ownership</h2>
-              <div class="ch-sub">What the whole job costs each way — token bill, the price of the wait, and human labour, stacked. Cheapest wins.</div>
+              <div class="ch-sub">What the whole job costs each way — token bill, the price of the wait, and staff time, stacked. Cheapest wins. When one option is far off the scale (usually Manual), its bar is cut with a break and its true figure shown, so Batch vs Concurrent stays readable.</div>
             </div>
           </div>
           <div class="legend">
@@ -698,13 +698,24 @@ function niceMax(v) {
 function drawTCO() {
   const svg = document.getElementById('chart-tco');
   clear(svg);
-  const W = 720, H = 340, m = { t: 20, r: 20, b: 58, l: 64 };
+  const W = 720, H = 340, m = { t: 34, r: 20, b: 58, l: 64 };
   const plotW = W - m.l - m.r, plotH = H - m.t - m.b;
   const rows = MODES.map(mm => costOf(mm));
   const { best } = winner();
 
-  const maxTotal = niceMax(Math.max(...rows.map(r => r.total), 1));
-  const y = v => m.t + plotH - (v / maxTotal) * plotH;
+  // When Manual dwarfs the two API modes, scale the axis to the API modes
+  // (the comparison that actually matters) and clip the Manual bar with a
+  // break marker + its real value — otherwise batch vs concurrent collapse
+  // into unreadable slivers.
+  const apiMax = Math.max(
+    rows.find(r => r.mode === 'concurrent').total,
+    rows.find(r => r.mode === 'batch').total, 1e-9);
+  const manualTotal = rows.find(r => r.mode === 'manual').total;
+  const clip = manualTotal > 2.5 * apiMax;
+  const scaleRef = clip ? apiMax : Math.max(...rows.map(r => r.total), 1e-9);
+  const maxTotal = niceMax(scaleRef * 1.15);
+  const y = v => m.t + plotH - Math.min(v, maxTotal) / maxTotal * plotH;  // clamped
+  const baseY = m.t + plotH;
 
   const grid = el('g', { class: 'grid' }, svg);
   const nTicks = 5;
@@ -725,21 +736,21 @@ function drawTCO() {
     const cx = m.l + bandW * (i + 0.5);
     const x = cx - barW / 2;
     const isWin = r.mode === best.mode;
+    const clipped = clip && r.mode === 'manual' && r.total > maxTotal;
 
-    // stack: api (mode colour or manual=0), waiting (warn), labour (manual colour)
+    // stack: api (mode colour), waiting (warn), labour (manual colour).
+    // Only one of api/labour is ever non-zero per mode; heights are clamped.
     const segs = [
-      { key: 'api',     val: r.api,     fill: MODE_VAR[r.mode], label: 'API cost' },
-      { key: 'waiting', val: r.waiting, fill: 'var(--warn)',    label: 'Cost of waiting' },
-      { key: 'labour',  val: r.labour,  fill: 'var(--manual)',  label: 'Manual labour' },
+      { val: r.api,     fill: MODE_VAR[r.mode], label: 'API cost' },
+      { val: r.waiting, fill: 'var(--warn)',    label: 'Cost of waiting' },
+      { val: r.labour,  fill: 'var(--manual)',  label: 'Manual — staff time' },
     ].filter(s => s.val > 0);
 
     let acc = 0;
-    // 2px surface gap between stacked segments
     segs.forEach(s => {
-      const hpx = (s.val / maxTotal) * plotH;
-      const yy = y(acc + s.val);
+      const yTop = y(acc + s.val), yBot = y(acc);   // both clamped to plot top
       const rect = el('rect', {
-        x, y: yy, width: barW, height: Math.max(0.5, hpx - 2),
+        x, y: yTop, width: barW, height: Math.max(0.5, yBot - yTop - 2),  // 2px surface gap
         rx: 3, fill: s.fill, opacity: isWin ? 1 : 0.82,
       }, svg);
       rect.style.cursor = 'pointer';
@@ -750,31 +761,42 @@ function drawTCO() {
       acc += s.val;
     });
 
-    // total label on top
-    const topY = y(r.total);
-    el('text', { x: cx, y: topY - 9, 'text-anchor': 'middle',
-      fill: isWin ? 'var(--ink)' : 'var(--dim)', 'font-size': 14, 'font-weight': 700 }, svg)
-      .textContent = fmtGBP(r.total);
-
-    // winner crown
-    if (isWin) {
-      el('text', { x: cx, y: topY - 28, 'text-anchor': 'middle', 'font-size': 15 }, svg).textContent = '✓ cheapest';
-      const t2 = svg.lastChild; t2.setAttribute('fill', MODE_INK[r.mode]); t2.setAttribute('font-weight', 700);
-    }
-    // deadline miss
-    if (!r.meetsDeadline) {
-      el('text', { x: cx, y: topY - 28, 'text-anchor': 'middle', 'font-size': 12, fill: 'var(--bad)', 'font-weight': 700 }, svg)
-        .textContent = '✗ misses deadline';
+    if (clipped) {
+      // the bar already fills to the plot top — cut it with a break band and
+      // print the real value + a "×N" multiplier above the plot.
+      const yb = m.t + 7;
+      el('rect', { x: x - 1, y: yb - 6, width: barW + 2, height: 12, fill: 'var(--surface)' }, svg);
+      const seg = barW / 6; let d = `M ${x.toFixed(1)} ${yb}`;
+      for (let k = 0; k < 6; k++)
+        d += ` L ${(x + seg * (k + 0.5)).toFixed(1)} ${yb + (k % 2 ? 4 : -4)} L ${(x + seg * (k + 1)).toFixed(1)} ${yb}`;
+      el('path', { d, fill: 'none', stroke: 'var(--manual)', 'stroke-width': 2 }, svg);
+      el('text', { x: cx, y: m.t - 20, 'text-anchor': 'middle', fill: MODE_INK[r.mode],
+        'font-size': 14, 'font-weight': 700 }, svg).textContent = fmtGBP(r.total);
+      const mult = best.total > 0 ? r.total / best.total : 0;
+      if (mult > 1.5)
+        el('text', { x: cx, y: m.t - 6, 'text-anchor': 'middle', fill: 'var(--dim)',
+          'font-size': 11, 'font-weight': 600 }, svg).textContent = '× ' + fmtInt(mult) + ' vs cheapest';
+    } else {
+      const topY = y(r.total);
+      el('text', { x: cx, y: topY - 9, 'text-anchor': 'middle',
+        fill: isWin ? 'var(--ink)' : 'var(--dim)', 'font-size': 14, 'font-weight': 700 }, svg)
+        .textContent = fmtGBP(r.total);
+      if (isWin)
+        el('text', { x: cx, y: topY - 27, 'text-anchor': 'middle', fill: MODE_INK[r.mode],
+          'font-size': 13, 'font-weight': 700 }, svg).textContent = '✓ cheapest';
+      if (!r.meetsDeadline)
+        el('text', { x: cx, y: topY - 27, 'text-anchor': 'middle', fill: 'var(--bad)',
+          'font-size': 12, 'font-weight': 700 }, svg).textContent = '✗ misses deadline';
     }
 
     // x label + wall-clock sub
-    el('text', { x: cx, y: m.t + plotH + 22, 'text-anchor': 'middle', fill: MODE_INK[r.mode], 'font-size': 13, 'font-weight': 700 }, svg)
+    el('text', { x: cx, y: baseY + 22, 'text-anchor': 'middle', fill: MODE_INK[r.mode], 'font-size': 13, 'font-weight': 700 }, svg)
       .textContent = MODE_LABEL[r.mode];
-    el('text', { x: cx, y: m.t + plotH + 40, 'text-anchor': 'middle', class: 'tick-label' }, svg)
+    el('text', { x: cx, y: baseY + 40, 'text-anchor': 'middle', class: 'tick-label' }, svg)
       .textContent = fmtHours(r.wall) + ' wait';
   });
 
-  el('line', { x1: m.l, y1: m.t + plotH, x2: m.l + plotW, y2: m.t + plotH, stroke: 'var(--line)' }, svg);
+  el('line', { x1: m.l, y1: baseY, x2: m.l + plotW, y2: baseY, stroke: 'var(--line)' }, svg);
 }
 
 /* ============================================================
