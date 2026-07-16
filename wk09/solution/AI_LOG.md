@@ -906,3 +906,28 @@ carefully (`ai-spend-log*.csv`, `wk09/CLAUDE.md`'s cost-tracking discipline).
 `wk09/presentations/eval-test-observability-agent-tom-backup-3.html`,
 `wk09/presentations/eval-test-observability-agent-tom-backup-3-script.md`,
 `wk09/solution/AI_LOG.md`.
+
+## [Agent-Jack] 2026-07-16 — Decision tool: turn presets into a guided 5-step walkthrough
+
+**Task:** User asked for the scenario presets to "build up" as a narrative —
+start with no cost of waiting, then layer complications in — rather than being
+four disconnected presets.
+
+**What AI generated (previous version):** Four independent full-scenario preset
+buttons (Bulk / Due today / Live triage / Test sample) that jumped around the
+variable space with no through-line.
+
+**What you changed + why:** Replaced them with a linear 5-step story that holds
+volume at 20k and changes ONE cost dimension per step, so the audience watches
+the recommendation build up: (1) tokens only → Batch (half price); (2) + a small
+cost of waiting → Batch, lead narrowing; (3) + realistic urgency → flips to
+Concurrent; (4) high urgency → Concurrent, lopsidedly; (5) + a 2-hour SLA →
+Concurrent with Batch ruled out entirely (ineligible, not just pricier). Added
+Back/Next nav, numbered step dots, a per-step narrative caption, and an
+"off-script" state so moving any slider detaches from the walkthrough (tap a dot
+to rejoin). The page now opens on step 1. Verified the recommendation arc
+(batch, batch, concurrent, concurrent, concurrent) and all nav/off-script/resume
+paths via the Node DOM-stub harness.
+
+**Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
+`wk09/solution/AI_LOG.md`.

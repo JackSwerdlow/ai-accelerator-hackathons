@@ -204,9 +204,24 @@
   .mini-btn:hover { border-color: var(--concurrent); }
   .mini-btn.active { border-color: var(--concurrent); background: color-mix(in srgb, var(--concurrent) 18%, var(--surface)); }
 
-  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .preset-grid .mini-btn { flex: none; padding: 9px 8px; text-align: center; }
-  .preset-grid .preset-reset { grid-column: 1 / -1; color: var(--dim); }
+  .walk-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .walk-step {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 700;
+    color: var(--concurrent-ink); background: var(--line-soft);
+    padding: 2px 8px; border-radius: 99px; white-space: nowrap;
+  }
+  .walk-title { font-size: 0.94rem; font-weight: 700; color: var(--ink); }
+  .walk-narr { font-size: 0.82rem; color: var(--dim); margin: 0 0 10px; min-height: 68px; }
+  .walk-dots { display: flex; gap: 6px; margin-bottom: 10px; }
+  .walk-dot {
+    width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--bg-2); color: var(--dim); font-size: 0.72rem; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    padding: 0; font-family: inherit; transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .walk-dot:hover { border-color: var(--concurrent); }
+  .walk-dot.active { background: var(--concurrent); color: #fff; border-color: var(--concurrent); }
+  .walk-dot.off { opacity: 0.5; }
 
   /* ---------- recommendation banner ---------- */
   .rec {
@@ -377,14 +392,18 @@
         <p class="hint">Start from a preset, then fine-tune below. Defaults are the measured Consultation Insights run at scale.</p>
 
         <div class="group">
-          <div class="group-title">Presets — start here</div>
-          <div class="preset-grid">
-            <button class="mini-btn" data-preset="bulk">📦 Bulk, no rush</button>
-            <button class="mini-btn" data-preset="duetoday">⏰ Due today</button>
-            <button class="mini-btn" data-preset="live">⚡ Live triage</button>
-            <button class="mini-btn" data-preset="sample">🧪 Test sample</button>
-            <button class="mini-btn preset-reset" data-preset="reset">↺ Reset to defaults</button>
+          <div class="group-title">Guided walkthrough — the story in 5 steps</div>
+          <div class="walk-head">
+            <span class="walk-step" id="walk-step">Step 1 / 5</span>
+            <span class="walk-title" id="walk-title">Just the tokens</span>
           </div>
+          <p class="walk-narr" id="walk-narr"></p>
+          <div class="walk-dots" id="walk-dots"></div>
+          <div class="btn-row">
+            <button class="mini-btn" id="walk-prev">‹ Back</button>
+            <button class="mini-btn" id="walk-next">Next ›</button>
+          </div>
+          <div class="ctrl caption" style="margin-top:8px;">Or just move any slider to explore your own scenario.</div>
         </div>
 
         <div class="group">
@@ -1149,10 +1168,10 @@ const bind = (id, key, parse = parseFloat) => {
     state[key] = parse(e.target.value);
     syncLabels();
     renderAll();
-    setActivePreset(null);   // manual tweak — no preset is "loaded" any more
+    goOffScript();   // manual tweak — step out of the guided walkthrough
   });
 };
-nSlider.addEventListener('input', () => { state.n = nFromSlider(); syncLabels(); renderAll(); setActivePreset(null); });
+nSlider.addEventListener('input', () => { state.n = nFromSlider(); syncLabels(); renderAll(); goOffScript(); });
 bind('c-cpr', 'costPerReq');
 bind('c-block', 'blockRate');
 bind('c-deadline', 'deadline');
@@ -1163,34 +1182,82 @@ bind('c-mm', 'manualMin');
 bind('c-rate', 'empRate', v => parseInt(v, 10));
 bind('c-staff', 'staff', v => parseInt(v, 10));
 
-/* presets — each is a COMPLETE scenario (all fields), so clicking one is
-   fully reproducible regardless of what the sliders were last set to. */
-const PRESETS = {
-  // Big job, nobody waiting on it → the 50% batch discount wins outright.
-  bulk:     { ...DEFAULTS, n: 20000, blockRate: 1,   batchHours: 8,    deadline: 0 },
-  // Same 20k job, but the report is due today → the wait turns expensive
-  // and concurrent's speed beats batch's discount.
-  duetoday: { ...DEFAULTS, n: 20000, blockRate: 120, batchHours: 8,    deadline: 0 },
-  // Someone is waiting on each result → small, urgent, hard 30-min deadline
-  // that rules batch out entirely → concurrent.
-  live:     { ...DEFAULTS, n: 300,   blockRate: 400, batchHours: 4,    deadline: 0.5, concurrency: 20, latency: 2.0 },
-  // The real 40-row sample this project measured.
-  sample:   { ...DEFAULTS, n: 40,    blockRate: 30,  batchHours: 0.43, deadline: 0 },
-  reset:    { ...DEFAULTS },
-};
+/* Guided walkthrough — a progressive story. Each step is a COMPLETE scenario
+   that changes ONE thing from the one before (holding volume at 20k), so the
+   audience watches the recommendation build up cost dimension by cost
+   dimension: tokens → + waiting → + urgency → + a hard deadline. */
+const STORY = [
+  { title: 'Just the tokens',
+    narr: 'Count only the API bill. Batch is billed at half price, so with nothing else in the picture it wins outright — the naïve view most people start from.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 0, batchHours: 4, deadline: 0 } },
+  { title: 'Waiting has a price',
+    narr: 'Results aren’t free to wait for. Add even a small cost for blocked work and batch’s 4-hour turnaround starts to bite. It still wins — but the lead is now thin.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 6, batchHours: 4, deadline: 0 } },
+  { title: 'Someone’s actually waiting',
+    narr: 'At a realistic cost of blocked work, batch’s long wait costs more than the 50% it saves on tokens. The recommendation flips — concurrent’s speed wins.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 30, batchHours: 4, deadline: 0 } },
+  { title: 'It’s genuinely urgent',
+    narr: 'Push the cost of waiting higher and the gap turns lopsided: batch is now many times more expensive. It’s strictly for jobs nobody is sitting waiting on.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 150, batchHours: 4, deadline: 0 } },
+  { title: 'And there’s a hard SLA',
+    narr: 'Add a 2-hour deadline. Batch physically can’t return 20k rows in time, so it’s ruled out entirely — not merely pricier, ineligible. Speed is now mandatory.',
+    s: { ...DEFAULTS, n: 20000, blockRate: 150, batchHours: 4, deadline: 2 } },
+];
 
-function setActivePreset(btn) {
-  document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-}
-document.querySelectorAll('[data-preset]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    Object.assign(state, PRESETS[btn.dataset.preset]);
-    pushToSliders(); syncLabels(); renderAll();
-    // Reset is a one-off action, not a "loaded scenario" — don't leave it lit.
-    setActivePreset(btn.dataset.preset === 'reset' ? null : btn);
+let walkIdx = 0;      // which story step is loaded
+let walkFree = false; // user has moved a slider and gone "off-script"
+
+const walkStepEl = document.getElementById('walk-step');
+const walkTitleEl = document.getElementById('walk-title');
+const walkNarrEl = document.getElementById('walk-narr');
+const walkDotsEl = document.getElementById('walk-dots');
+const walkPrevBtn = document.getElementById('walk-prev');
+const walkNextBtn = document.getElementById('walk-next');
+
+function buildDots() {
+  walkDotsEl.innerHTML = '';
+  STORY.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'walk-dot';
+    d.textContent = i + 1;
+    d.title = STORY[i].title;
+    d.addEventListener('click', () => gotoStep(i));
+    walkDotsEl.appendChild(d);
   });
-});
+}
+
+function updateWalkUI() {
+  const dots = walkDotsEl.querySelectorAll('.walk-dot');
+  dots.forEach((d, i) => {
+    d.classList.toggle('active', !walkFree && i === walkIdx);
+    d.classList.toggle('off', walkFree);
+  });
+  if (walkFree) {
+    walkStepEl.textContent = 'Off-script';
+    walkTitleEl.textContent = 'Exploring your own scenario';
+    walkNarrEl.textContent = 'You’ve moved off the walkthrough. Tap a numbered step to jump back in, or keep adjusting the sliders below.';
+  } else {
+    walkStepEl.textContent = `Step ${walkIdx + 1} / ${STORY.length}`;
+    walkTitleEl.textContent = STORY[walkIdx].title;
+    walkNarrEl.textContent = STORY[walkIdx].narr;
+  }
+  walkPrevBtn.disabled = !walkFree && walkIdx === 0;
+  walkNextBtn.disabled = !walkFree && walkIdx === STORY.length - 1;
+}
+
+function gotoStep(i) {
+  walkIdx = Math.max(0, Math.min(STORY.length - 1, i));
+  walkFree = false;
+  Object.assign(state, STORY[walkIdx].s);
+  pushToSliders(); syncLabels(); renderAll();
+  updateWalkUI();
+}
+
+// slider movement takes the user "off-script" without changing the loaded step
+function goOffScript() { if (!walkFree) { walkFree = true; updateWalkUI(); } }
+
+walkPrevBtn.addEventListener('click', () => gotoStep(walkFree ? walkIdx : walkIdx - 1));
+walkNextBtn.addEventListener('click', () => gotoStep(walkFree ? walkIdx : walkIdx + 1));
 
 /* crossover x-axis toggle */
 document.querySelectorAll('[data-xaxis]').forEach(btn => {
@@ -1211,10 +1278,9 @@ themeBtn.addEventListener('click', () => {
   renderAll();   // re-read CSS vars into SVG
 });
 
-/* init */
-pushToSliders();
-syncLabels();
-renderAll();
+/* init — open on the first step of the walkthrough */
+buildDots();
+gotoStep(0);
 window.addEventListener('resize', () => { /* SVG is responsive via viewBox; tooltip repositions on next move */ });
 </script>
 </body>
