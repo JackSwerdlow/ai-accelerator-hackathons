@@ -17,22 +17,12 @@ run `git status` / `git log` first, this repo is under heavy concurrent developm
 different, unrelated test count (87 vs the 65 documented here) — don't conflate them
 when reporting numbers.
 
-## 1. Commit and push the S5/MON2/GOV3/GOV6 fixes (uncommitted as of writing!)
+## 1. ~~Commit and push the S5/MON2/GOV3/GOV6 fixes~~ — DONE (2026-07-16)
 
-`analyse.py`, `test_analyse.py`, and `tests/unit/test_provenance.py` currently have
-**uncommitted** changes on disk implementing:
-- S5: unique per-PID temp filename in `_save_state`, plus a second fix in
-  `_clear_state` (idempotent unlink, no exists()-then-unlink() TOCTOU gap)
-- MON2: `--max-spend-gbp` / `MAX_SPEND_GBP` env var cost guardrail
-- GOV3/GOV6 (merged into one fix): `model` + `raw_response` recorded per row via
-  `_merge_row`; GOV3's original "pin to a dated snapshot" framing was corrected
-  after a real `client.models.list()` call showed no dated snapshot exists for
-  current-gen models — see the comment above `DEFAULT_MODEL` in `analyse.py`.
-
-Before committing: re-run the full suite (`test_analyse.py tests/`, expect
-**64 passed, 1 skipped, 0 failed**), run flake8, then follow the repo's git workflow
-(pull --rebase, commit with `[Agent-Tom]` prefix, pull --rebase again, push) — expect
-to need to rebase given how active this repo is.
+Committed as `2387b14` and pushed to `main` (`e73cc76`), forced by a `git pull --rebase`
+that wouldn't proceed with unstaged changes present — rather than stash them (risky,
+shared stash stack across worktrees) they were committed directly. Full suite
+confirmed green (64 passed, 1 skipped, 0 failed) both before and after the rebase.
 
 ## 2. Update checklist checkboxes/evidence
 
