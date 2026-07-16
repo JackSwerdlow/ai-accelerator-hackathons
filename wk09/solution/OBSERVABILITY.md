@@ -56,13 +56,19 @@ python analyse.py --mode batch
       `messages.batches.create/retrieve/results` — batch mode is metrics/logs only.
 - [ ] **Metrics:** SigNoz UI → Dashboards. Import the built-in Anthropic/LangChain LLM
       dashboard template (calls-by-model, token usage, p95 latency — populated by
-      sequential/concurrent traces only, per above). Separately, build a
-      "Consultation Batch Run" dashboard from: `consultation.spend.gbp` (labels:
-      `model`, `batch` — true for Batch API spend, false otherwise, so the 50%
-      discount is visible as a split), `consultation.cache.status` (labels: `status`
-      = `hit`/`write`/`miss` — the prompt-cache payoff), `consultation.rows.total`
-      (by `outcome` label: `success`/`parse_error`/`api_error`),
-      `consultation.response.bytes`, `consultation.batch.rows_total`.
+      sequential/concurrent traces only, per above). Separately, import
+      `signoz-dashboard.json` (in this directory) via **Dashboards → New Dashboard →
+      Import JSON** — a ready-made "Consultation Batch Run" dashboard covering:
+      `consultation.spend.gbp` (labels: `model`, `batch` — true for Batch API spend,
+      false otherwise, so the 50% discount is visible as a split),
+      `consultation.cache.status` (labels: `status` = `hit`/`write`/`miss` — the
+      prompt-cache payoff), `consultation.rows.total` (by `outcome` label:
+      `success`/`parse_error`/`api_error`), `consultation.response.bytes`,
+      `consultation.batch.rows_total`. Built from real, verified query patterns (not
+      hand-guessed) — cross-checked against SigNoz's own community dashboard schema —
+      but not import-tested in this environment; if a field doesn't validate on
+      import, it'll most likely be a `groupBy`/`aggregation` field name mismatch, easy
+      to fix by comparing against an existing widget's JSON in the same dashboard.
 - [ ] **Logs:** SigNoz UI → Logs. Search for `batch.started` / `batch.finished` to
       confirm one pair per completed run. Note "completed": `--mode batch --no-wait`
       exits as soon as it reports the batch's status (before results exist), and any
