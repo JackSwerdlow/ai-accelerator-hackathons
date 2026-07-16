@@ -204,6 +204,10 @@
   .mini-btn:hover { border-color: var(--concurrent); }
   .mini-btn.active { border-color: var(--concurrent); background: color-mix(in srgb, var(--concurrent) 18%, var(--surface)); }
 
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .preset-grid .mini-btn { flex: none; padding: 9px 8px; text-align: center; }
+  .preset-grid .preset-reset { grid-column: 1 / -1; color: var(--dim); }
+
   /* ---------- recommendation banner ---------- */
   .rec {
     border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px;
@@ -370,7 +374,18 @@
       <!-- CONTROLS -->
       <aside class="panel">
         <h2>Your scenario</h2>
-        <p class="hint">Adjust to match a real job. Defaults are the measured Consultation Insights run at scale.</p>
+        <p class="hint">Start from a preset, then fine-tune below. Defaults are the measured Consultation Insights run at scale.</p>
+
+        <div class="group">
+          <div class="group-title">Presets — start here</div>
+          <div class="preset-grid">
+            <button class="mini-btn" data-preset="bulk">📦 Bulk, no rush</button>
+            <button class="mini-btn" data-preset="duetoday">⏰ Due today</button>
+            <button class="mini-btn" data-preset="live">⚡ Live triage</button>
+            <button class="mini-btn" data-preset="sample">🧪 Test sample</button>
+            <button class="mini-btn preset-reset" data-preset="reset">↺ Reset to defaults</button>
+          </div>
+        </div>
 
         <div class="group">
           <div class="group-title">Workload</div>
@@ -438,15 +453,6 @@
             <div class="ctrl-head"><label for="c-staff">People working in parallel</label><span class="val" id="v-staff">3</span></div>
             <input type="range" id="c-staff" min="1" max="50" step="1" value="3">
           </div>
-        </div>
-
-        <div class="btn-row" style="margin-top:16px;">
-          <button class="mini-btn" data-preset="report">📊 20k report<br>(nobody waiting)</button>
-          <button class="mini-btn" data-preset="live">⚡ Live triage<br>(user waiting)</button>
-        </div>
-        <div class="btn-row">
-          <button class="mini-btn" data-preset="small">🔧 Small batch<br>(40 rows)</button>
-          <button class="mini-btn" data-preset="reset">↺ Reset<br>defaults</button>
         </div>
       </aside>
 
@@ -1143,9 +1149,10 @@ const bind = (id, key, parse = parseFloat) => {
     state[key] = parse(e.target.value);
     syncLabels();
     renderAll();
+    setActivePreset(null);   // manual tweak — no preset is "loaded" any more
   });
 };
-nSlider.addEventListener('input', () => { state.n = nFromSlider(); syncLabels(); renderAll(); });
+nSlider.addEventListener('input', () => { state.n = nFromSlider(); syncLabels(); renderAll(); setActivePreset(null); });
 bind('c-cpr', 'costPerReq');
 bind('c-block', 'blockRate');
 bind('c-deadline', 'deadline');
@@ -1156,17 +1163,32 @@ bind('c-mm', 'manualMin');
 bind('c-rate', 'empRate', v => parseInt(v, 10));
 bind('c-staff', 'staff', v => parseInt(v, 10));
 
-/* presets */
+/* presets — each is a COMPLETE scenario (all fields), so clicking one is
+   fully reproducible regardless of what the sliders were last set to. */
 const PRESETS = {
-  report: { n: 20000, blockRate: 2, batchHours: 4, deadline: 0 },     // report nobody's waiting on
-  live:   { n: 500, blockRate: 200, batchHours: 4, deadline: 1 },     // user-facing, urgent
-  small:  { n: 40, blockRate: 30, batchHours: 0.43, deadline: 0 },    // the measured sample
-  reset:  { ...DEFAULTS },
+  // Big job, nobody waiting on it → the 50% batch discount wins outright.
+  bulk:     { ...DEFAULTS, n: 20000, blockRate: 1,   batchHours: 8,    deadline: 0 },
+  // Same 20k job, but the report is due today → the wait turns expensive
+  // and concurrent's speed beats batch's discount.
+  duetoday: { ...DEFAULTS, n: 20000, blockRate: 120, batchHours: 8,    deadline: 0 },
+  // Someone is waiting on each result → small, urgent, hard 30-min deadline
+  // that rules batch out entirely → concurrent.
+  live:     { ...DEFAULTS, n: 300,   blockRate: 400, batchHours: 4,    deadline: 0.5, concurrency: 20, latency: 2.0 },
+  // The real 40-row sample this project measured.
+  sample:   { ...DEFAULTS, n: 40,    blockRate: 30,  batchHours: 0.43, deadline: 0 },
+  reset:    { ...DEFAULTS },
 };
+
+function setActivePreset(btn) {
+  document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
 document.querySelectorAll('[data-preset]').forEach(btn => {
   btn.addEventListener('click', () => {
     Object.assign(state, PRESETS[btn.dataset.preset]);
     pushToSliders(); syncLabels(); renderAll();
+    // Reset is a one-off action, not a "loaded scenario" — don't leave it lit.
+    setActivePreset(btn.dataset.preset === 'reset' ? null : btn);
   });
 });
 
