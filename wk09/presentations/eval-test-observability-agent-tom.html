@@ -2,29 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Evals, Tests &amp; Observability — Agent-Tom</title>
 <style>
-  :root {
-    color-scheme: light;
-    --surface-1:      #fcfcfb;
-    --surface-2:      #f3f2ef;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #86847d;
-    --blue:           #2a78d6;   /* categorical slot 1 — baseline (no caching) */
-    --green:          #008300;   /* categorical slot 4 — with caching */
-    --border:         rgba(11,11,11,0.10);
-    --good:           #0ca30c;   /* status: passed */
-    --critical:       #d03b3b;   /* status: failed */
-    --skip:           #898781;   /* muted — skipped (documented, not a warning) */
-  }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
 
-  * { box-sizing: border-box; }
+  :root {
+    color-scheme: dark;
+    --bg:      #0d0f14;
+    --bg2:     #13161e;
+    --bg3:     #1a1d27;
+    --border:  #2a2e3e;
+    --text:    #e8eaf0;
+    --muted:   #8892a4;
+    --tom:     #199e70;   /* categorical dark-step aqua — Agent-Tom's track */
+    --jack:    #9085e9;   /* categorical dark-step violet — Agent-Jack's track */
+    --bug:     #e66767;   /* categorical dark-step red — a real bug found */
+    --good:    #008300;   /* categorical dark-step green — fixed & verified */
+    --info:    #3987e5;   /* categorical dark-step blue — measured, not claimed */
+    --warn:    #fab219;   /* status warning — named, not hidden */
+  }
+  /* Palette validated: node scripts/validate_palette.js "199e70,9085e9,e66767,008300"
+     --mode dark --surface "#0d0f14" -> ALL CHECKS PASS (lightness band, chroma floor,
+     CVD separation, contrast). --info/--warn reuse the skill's pre-validated
+     categorical-blue / status-warning steps. */
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: var(--surface-1);
-    color: var(--text-primary);
-    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.4;
   }
 
   .slide {
@@ -33,410 +42,435 @@
     max-width: 1280px;
     max-height: 720px;
     margin: 0 auto;
-    padding: 36px 60px 28px;
+    padding: 30px 52px 22px;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    position: relative;
+    overflow: hidden;
   }
-
-  .top-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 700px 320px at 12% -10%, color-mix(in srgb, var(--tom) 16%, transparent) 0%, transparent 70%),
+      radial-gradient(ellipse 700px 320px at 92% 8%, color-mix(in srgb, var(--jack) 14%, transparent) 0%, transparent 70%);
+    pointer-events: none;
   }
+  .slide > * { position: relative; z-index: 1; }
 
+  /* ── Hero ── */
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
   .eyebrow {
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: #a9d9c8;
+    background: color-mix(in srgb, var(--tom) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tom) 40%, transparent);
+    border-radius: 20px;
+    padding: 4px 12px;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 31px;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    line-height: 1.14;
     margin: 0 0 6px;
   }
-
-  h1 {
-    font-size: 33px;
-    line-height: 1.14;
-    margin: 0 0 8px;
-    letter-spacing: -0.01em;
+  h1 .grad {
+    background: linear-gradient(120deg, #fff 20%, var(--tom) 65%, var(--good) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
-  h1 .fade { color: var(--text-secondary); font-weight: 500; }
+  h1 .fade { display: block; color: var(--muted); font-weight: 600; font-size: 0.86em; margin-top: 2px; }
 
   .backup-link {
     flex: none;
-    align-self: flex-start;
-    margin-top: 4px;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 700;
-    color: var(--text-secondary);
-    background: var(--surface-2);
+    color: var(--text);
+    background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: 999px;
     padding: 7px 14px;
     text-decoration: none;
     white-space: nowrap;
   }
-  .backup-link:hover { color: var(--text-primary); border-color: rgba(11,11,11,0.22); }
+  .backup-link:hover { border-color: var(--tom); color: #a9d9c8; }
 
   .subtitle {
-    font-size: 16.5px;
-    color: var(--text-secondary);
-    margin: 0 0 16px;
-    max-width: 980px;
-    line-height: 1.4;
-  }
-
-  .tiles-compact {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    flex: none;
-  }
-
-  .tile {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 16px 12px;
-    position: relative;
-  }
-  .tile-name {
     font-size: 14.5px;
-    font-weight: 700;
-    margin: 0 0 2px;
+    color: var(--muted);
+    margin: 0 0 14px;
+    max-width: 900px;
   }
-  .tile-desc {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin: 0 0 8px;
-    line-height: 1.35;
-    min-height: 32px;
-  }
-  .tile-metric {
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1;
-  }
-  .tile-metric .unit { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-left: 4px; }
 
-  .badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    font-size: 9.5px;
+  /* ── Timeline ── */
+  .tl-block { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .tl-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .tl-btn {
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 11px;
+    cursor: pointer;
+  }
+  .tl-btn:hover { border-color: var(--tom); }
+  .tl-hint { font-size: 11px; color: var(--muted); }
+
+  .lanes { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+  .lane { display: flex; align-items: center; gap: 10px; }
+  .lane-tag {
+    flex: none;
+    width: 62px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 4px 6px;
+    border-radius: 6px;
+  }
+  .lane-tom .lane-tag { color: #a9d9c8; background: color-mix(in srgb, var(--tom) 20%, transparent); border: 1px solid color-mix(in srgb, var(--tom) 40%, transparent); }
+  .lane-jack .lane-tag { color: #cfc9ff; background: color-mix(in srgb, var(--jack) 20%, transparent); border: 1px solid color-mix(in srgb, var(--jack) 40%, transparent); }
+
+  .merge-row { align-items: flex-start; }
+  .merge-items { display: flex; align-items: flex-start; flex: 1; }
+  .merge-item { display: flex; align-items: flex-start; }
+  .merge-item + .merge-item::before {
+    content: '→';
+    align-self: center;
+    color: var(--border);
+    font-size: 18px;
+    font-weight: 300;
+    margin: 0 10px;
+  }
+
+  /* Node = <details>, summary is the always-visible chip, body is the click-reveal panel */
+  .node { --accent: var(--tom); position: relative; }
+  .node-tom { --accent: var(--tom); }
+  .node-jack { --accent: var(--jack); }
+  .node-collision { --accent: var(--bug); }
+  .node-satellite { --accent: var(--bug); }
+  .node-fixed, .node-trials, .node-observable { --accent: var(--good); }
+
+  .node > summary {
+    list-style: none;
+    cursor: pointer;
+    min-width: 148px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  }
+  .node > summary::-webkit-details-marker { display: none; }
+  .node > summary:hover { border-left-color: color-mix(in srgb, var(--accent) 70%, white); }
+  .node.step-active > summary {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+    transform: translateY(-2px);
+  }
+  .node.step-dim > summary { opacity: 0.35; }
+  @media (prefers-reduced-motion: reduce) {
+    .node > summary { transition: none; }
+  }
+
+  .mini-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; }
+  .node-badge {
+    display: inline-block;
+    font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--good);
-    background: rgba(12,163,12,0.10);
-    border: 1px solid rgba(12,163,12,0.28);
-    border-radius: 999px;
-    padding: 2px 8px;
+    color: var(--accent);
+    margin-top: 3px;
   }
 
-  /* --- tooltip: CSS-only, no JS --- */
-  .tt { position: relative; cursor: default; }
+  .node-body {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 8;
+    width: 280px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+  }
+  .node-body code, .node-body pre {
+    display: block;
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    color: #ffb4b4;
+    background: rgba(0,0,0,0.25);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .branch-wrap { display: flex; flex-direction: column; align-items: flex-start; }
+  .branch-connector { width: 2px; height: 14px; background: var(--bug); margin: 2px 0 2px 18px; }
+  .node-satellite > summary { min-width: 168px; opacity: 0.94; }
+
+  /* ── CSS-only hover tooltip, independent of the click-reveal ── */
+  .tt { position: relative; }
   .tt .tt-bubble {
     position: absolute;
     bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--text-primary);
+    left: 0;
+    background: #000;
     color: #fff;
-    font-size: 11.5px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
     line-height: 1.35;
-    white-space: nowrap;
+    width: max-content;
+    max-width: 240px;
     padding: 6px 10px;
     border-radius: 8px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.12s ease;
-    z-index: 6;
-  }
-  .tt .tt-bubble::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: var(--text-primary);
+    z-index: 9;
   }
   .tt:hover .tt-bubble { opacity: 1; }
 
-  /* --- charts row --- */
-  .charts-row {
-    display: flex;
-    gap: 18px;
-    flex: 1;
-    min-height: 0;
-    margin-top: 16px;
-  }
-  .chart-panel {
-    flex: 1;
-    min-width: 0;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 18px 12px;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    position: relative;
-  }
-  .chart-title {
-    font-size: 12px;
+  /* ── Confidence ledger ── */
+  .ledger-label {
+    font-size: 10.5px;
     font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--text-muted);
-    margin: 0 0 10px;
+    color: var(--muted);
+    margin: 12px 0 6px;
   }
-  .chart-body {
+  .ledger { display: flex; gap: 12px; }
+  .ledger-card {
     flex: 1;
-    min-height: 0;
-    display: flex;
-    align-items: flex-end;
-    gap: 26px;
-    padding: 0 8px;
-  }
-
-  /* Chart 1: stacked bars (Jul 15 vs today) */
-  .bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
-  .bar-stack {
-    width: 56px;
-    display: flex;
-    flex-direction: column-reverse;
-    justify-content: flex-start;
-    gap: 2px;
-  }
-  .seg { width: 100%; border-radius: 4px; position: relative; }
-  .seg.passed { background: var(--good); }
-  .seg.failed { background: var(--critical); }
-  .seg.skipped { background: var(--skip); }
-  .bar-label { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-align: center; }
-  .bar-sublabel { font-size: 10.5px; color: var(--text-muted); text-align: center; margin-top: 1px; }
-  .seg-label {
-    position: absolute;
-    right: calc(100% + 6px);
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 10.5px;
-    font-weight: 700;
-    white-space: nowrap;
-    color: var(--text-secondary);
-  }
-
-  /* Chart 2: small-multiple grouped bars (1k / 20k rows) */
-  .cost-panels { display: flex; flex: 1; gap: 22px; min-height: 0; }
-  .cost-panel { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
-  .cost-bars { display: flex; align-items: flex-end; gap: 10px; height: 100%; flex: 1; }
-  .cost-bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
-  .cost-bar { width: 30px; border-radius: 4px 4px 0 0; position: relative; }
-  .cost-bar.baseline { background: var(--blue); }
-  .cost-bar.cached { background: var(--green); }
-  .cost-value {
-    position: absolute;
-    bottom: calc(100% + 4px);
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 10.5px;
-    font-weight: 700;
-    white-space: nowrap;
-    color: var(--text-secondary);
-  }
-  .cost-panel-label { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
-  .cost-saving { font-size: 10.5px; color: var(--good); font-weight: 700; margin-top: 1px; }
-
-  .legend-row {
-    display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap;
-    font-size: 11.5px; color: var(--text-muted);
-  }
-  .legend-row span { display: inline-flex; align-items: center; gap: 5px; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-  .dot.passed { background: var(--good); }
-  .dot.failed { background: var(--critical); }
-  .dot.skipped { background: var(--skip); }
-  .dot.baseline { background: var(--blue); }
-  .dot.cached { background: var(--green); }
-
-  .footer {
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 20px;
-    flex: none;
-  }
-  .takeaway {
-    font-size: 15px;
-    font-weight: 600;
-    max-width: 660px;
-    line-height: 1.35;
-  }
-  .industry-note {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 13px;
     font-size: 11.5px;
-    color: var(--text-muted);
-    max-width: 340px;
-    text-align: right;
-    line-height: 1.45;
+    line-height: 1.4;
+    text-decoration: none;
+    color: var(--text);
+    display: block;
   }
+  .ledger-tier {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .ledger-card.verified { border-top: 2px solid var(--good); }
+  .ledger-card.verified .ledger-tier { color: #5fd35f; }
+  .ledger-card.measured { border-top: 2px solid var(--info); }
+  .ledger-card.measured .ledger-tier { color: #7ab2f0; }
+  .ledger-card.named { border-top: 2px solid var(--warn); }
+  .ledger-card.named .ledger-tier { color: var(--warn); }
+  .ledger-card.named:hover { border-color: var(--warn); }
+  .ledger-card .chev { color: var(--muted); font-weight: 700; }
 
-  /* --- crash reveal: <details>, no JS, absolutely positioned so it can't overflow the fixed canvas --- */
-  .crash-reveal { position: relative; margin-top: 8px; }
-  .crash-reveal summary {
-    list-style: none;
-    cursor: pointer;
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--critical);
-    background: rgba(208,59,59,0.08);
-    border: 1px solid rgba(208,59,59,0.28);
-    border-radius: 999px;
-    padding: 4px 10px;
-  }
-  .crash-reveal summary::-webkit-details-marker { display: none; }
-  .crash-reveal summary:hover { background: rgba(208,59,59,0.14); }
-  .crash-body {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    z-index: 8;
-    background: #1a1a19;
-    color: #f0efec;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-family: "SF Mono", Consolas, Monaco, monospace;
-    font-size: 11px;
-    line-height: 1.5;
-    white-space: pre;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.28);
-    max-width: 420px;
+  /* ── Footer ── */
+  .footer {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
   }
 </style>
 </head>
-<body data-palette="2a78d6,008300,0ca30c,d03b3b">
+<body data-palette="199e70,9085e9,e66767,008300,3987e5,fab219">
   <div class="slide">
     <div class="top-row">
       <div>
         <p class="eyebrow">Evals, tests &amp; observability — Agent-Tom</p>
-        <h1>We didn't just fix it.<br><span class="fade">We proved it — and caught two bugs.</span></h1>
+        <h1><span class="grad">Two lines collided.</span><span class="fade">One bug didn't survive it.</span></h1>
       </div>
       <a class="backup-link" href="eval-test-observability-agent-tom-backup-1.html">Backups →</a>
     </div>
 
     <p class="subtitle">
-      Wrote the 57-item hardening checklist and test plan against the original prototype before the fix existed — reconciling it against a teammate's concurrent rewrite is how a real bug got found. Every number below is a re-run, not a claim.
+      A test-first checklist and suite, written against the frozen original prototype — and a from-scratch rewrite, done in parallel, without either of us planning it. Walk the collision below: every number is a live re-run, not a claim.
     </p>
 
-    <div class="tiles-compact">
-      <div class="tile">
-        <p class="tile-name">The checklist</p>
-        <p class="tile-desc">Security · resilience · PII · cost · governance…</p>
-        <p class="tile-metric">57<span class="unit">checks / 12 categories</span></p>
-        <span class="badge">Written first</span>
+    <div class="tl-block">
+      <div class="tl-controls">
+        <button class="tl-btn" id="tl-prev" type="button">◀ Prev</button>
+        <button class="tl-btn" id="tl-play" type="button">▶ Walk the timeline</button>
+        <button class="tl-btn" id="tl-next" type="button">Next ▶</button>
+        <span class="tl-hint">— or click any step. Hover for the quick fact, click for the detail.</span>
       </div>
-      <div class="tile tt">
-        <p class="tile-name">Bugs testing caught</p>
-        <p class="tile-desc">A concurrency race — and a double-counting bug in our own spend tracker</p>
-        <p class="tile-metric">2<span class="unit">real bugs, both fixed</span></p>
-        <span class="badge">One was ours</span>
-        <span class="tt-bubble">S5 (concurrency race) + spend-log double-counting</span>
-      </div>
-      <div class="tile">
-        <p class="tile-name">Now observable</p>
-        <p class="tile-desc">PII-safe: prompt/response text is never traced</p>
-        <p class="tile-metric" style="font-size:15px; line-height:1.35;">OTel traces · 5 metrics · structured logs → SigNoz</p>
-        <span class="badge">Live</span>
-      </div>
-    </div>
 
-    <div class="charts-row">
-      <div class="chart-panel">
-        <p class="chart-title">Test suite — before → after</p>
-        <div class="chart-body">
-          <div class="bar-group">
-            <div class="bar-stack" style="height:61%;">
-              <div class="seg failed" style="height:7%;"></div>
-              <div class="seg skipped" style="height:2%;"></div>
-              <div class="seg passed" style="height:91%;"></div>
+      <div class="lanes">
+        <div class="lane lane-tom">
+          <span class="lane-tag">Agent-Tom</span>
+          <details class="node node-tom tt">
+            <summary>Wrote the 57-item checklist + test suite<span class="node-badge">Written first</span></summary>
+            <span class="tt-bubble">57 checks · 12 categories · pinned against the frozen original commit</span>
+            <div class="node-body">
+              A 57-item hardening checklist (security, resilience, PII, cost, governance…) plus a test suite that pins the original prototype's real bugs as failing tests — written before any fix code existed.
             </div>
-            <p class="bar-label">2026-07-15</p>
-            <p class="bar-sublabel">56 passed · 3–4 failed · 1 skipped</p>
-          </div>
-          <div class="bar-group">
-            <div class="bar-stack" style="height:65%;">
-              <div class="seg skipped" style="height:2%;"></div>
-              <div class="seg passed" style="height:98%;"></div>
+          </details>
+        </div>
+
+        <div class="lane lane-jack">
+          <span class="lane-tag">Agent-Jack</span>
+          <details class="node node-jack tt">
+            <summary>Rewrites analyse.py from scratch, in parallel</summary>
+            <span class="tt-bubble">Independent, concurrent — neither of us planned the collision</span>
+            <div class="node-body">
+              A full rewrite of the exact file the test suite was being written against, done concurrently and independently. Could have made the suite redundant — instead, reconciling the two is what surfaced a real bug.
             </div>
-            <p class="bar-label">Today</p>
-            <p class="bar-sublabel">64 passed · 0 failed · 1 skipped</p>
+          </details>
+        </div>
+
+        <div class="lane merge-row">
+          <span class="lane-tag" style="visibility:hidden">·</span>
+          <div class="merge-items">
+            <div class="merge-item">
+              <div class="branch-wrap">
+                <details class="node node-collision tt">
+                  <summary><span class="mini-dot" style="background:var(--tom)"></span><span class="mini-dot" style="background:var(--jack)"></span>Reconciliation finds a real race</summary>
+                  <span class="tt-bubble">Two processes, one temp filename — ~1-in-5-6 real crashes</span>
+                  <div class="node-body">
+                    Two people running the analyser at once raced on an identical temp filename.
+                    <code>FileNotFoundError: [Errno 2] No such file or directory: '.batch_state.tmp' -&gt; '.batch_state.json'</code>
+                    Reproduced roughly 1 time in 5-6, reliably.
+                  </div>
+                </details>
+                <div class="branch-connector"></div>
+                <details class="node node-satellite tt">
+                  <summary>Same shape, different file</summary>
+                  <span class="tt-bubble">Our own spend-tracker double-counted real money</span>
+                  <div class="node-body">
+                    Two ordinary Claude Code turns logged as <strong>£16.37</strong> and <strong>£23.41</strong> — an unlocked, shared state file racing across concurrent sessions. Same disease as the analyser bug, in a completely different file. Fixed with a file lock, an atomic write, and a persisted dedup set.
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <div class="merge-item">
+              <details class="node node-fixed tt">
+                <summary>Both races fixed</summary>
+                <span class="tt-bubble">Fixing the first race unmasked a second one</span>
+                <div class="node-body">
+                  Fixing the temp-file collision stopped hiding a second, masked race in the cleanup path (an exists-then-unlink gap). Both are fixed and now covered by dedicated regression tests.
+                </div>
+              </details>
+            </div>
+
+            <div class="merge-item">
+              <details class="node node-trials tt">
+                <summary>100+ trials, 0 crashes</summary>
+                <span class="tt-bubble">Verified, not assumed</span>
+                <div class="node-body">
+                  A concurrent-run stress test, repeated 100+ times after the fix: zero crashes. Before the fix, the same test reproduced the crash roughly 1 time in 5-6.
+                </div>
+              </details>
+            </div>
+
+            <div class="merge-item">
+              <details class="node node-observable tt">
+                <summary>Now observable</summary>
+                <span class="tt-bubble">OTel traces · 5 metrics · PII-safe logs → SigNoz</span>
+                <div class="node-body">
+                  Every run now emits real OpenTelemetry traces, 5 metrics (spend, rows by outcome, cache status, response size, batch rows) and structured, PII-safe logs — not just a pass/fail result.
+                </div>
+              </details>
+            </div>
           </div>
         </div>
-        <details class="crash-reveal">
-          <summary>Show me the crash →</summary>
-          <div class="crash-body">FileNotFoundError: [Errno 2] No such
-file or directory: '.batch_state.tmp'
--&gt; '.batch_state.json'
-
-Two processes, one shared temp filename.
-Reproduced ~1-in-5-6 real attempts.
-100+ trials after the fix: zero crashes.</div>
-        </details>
-      </div>
-
-      <div class="chart-panel">
-        <p class="chart-title">Cost at scale — with vs without caching</p>
-        <div class="cost-panels">
-          <div class="cost-panel">
-            <div class="cost-bars">
-              <div class="cost-bar-col">
-                <div class="cost-bar baseline" style="height:100%;"><span class="cost-value">£1.33</span></div>
-              </div>
-              <div class="cost-bar-col">
-                <div class="cost-bar cached" style="height:66%;"><span class="cost-value">£0.88</span></div>
-              </div>
-            </div>
-            <p class="cost-panel-label">1,000 rows</p>
-            <p class="cost-saving">-34%</p>
-          </div>
-          <div class="cost-panel">
-            <div class="cost-bars">
-              <div class="cost-bar-col">
-                <div class="cost-bar baseline" style="height:100%;"><span class="cost-value">£26.67</span></div>
-              </div>
-              <div class="cost-bar-col">
-                <div class="cost-bar cached" style="height:66%;"><span class="cost-value">£17.54</span></div>
-              </div>
-            </div>
-            <p class="cost-panel-label">20,000 rows</p>
-            <p class="cost-saving">-34%</p>
-          </div>
-        </div>
       </div>
     </div>
 
-    <div class="legend-row">
-      <span><span class="dot passed"></span>Passed</span>
-      <span><span class="dot failed"></span>Failed</span>
-      <span><span class="dot skipped"></span>Skipped (documented)</span>
-      <span><span class="dot baseline"></span>Baseline (no caching)</span>
-      <span><span class="dot cached"></span>With prompt caching</span>
+    <p class="ledger-label">Will this hold up in production? Here's exactly how confident to be.</p>
+    <div class="ledger">
+      <div class="ledger-card verified">
+        <p class="ledger-tier">✓ Verified</p>
+        100+ concurrent trials, 0 crashes. 64 of 65 tests green today — deterministic, re-run any time.
+      </div>
+      <div class="ledger-card measured">
+        <p class="ledger-tier">◔ Measured</p>
+        Every run emits real OpenTelemetry traces, metrics and logs — not simulated, not estimated.
+      </div>
+      <a class="ledger-card named" href="eval-test-observability-agent-tom-backup-3.html">
+        <p class="ledger-tier">⚠ Named, not hidden</p>
+        3 things not yet proven: remaining golden-eval rows, a fallback model provider, real-scale rate limits. <span class="chev">See the honest ledger →</span>
+      </a>
     </div>
 
-    <div class="footer">
-      <p class="takeaway">
-        Testing found the bugs it was built to catch — including one in the tool watching our own safety net. That's what "production ready" has to mean.
-      </p>
-      <p class="industry-note">
-        64 of 65 tests green today (was 56 of 61 on Jul 15). The 1 skip is documented, not hidden — see backups.
-      </p>
-    </div>
+    <p class="footer">Here's exactly how confident to be — and exactly what isn't proven yet. That's what &ldquo;production ready&rdquo; has to mean.</p>
   </div>
+
+<script>
+(function () {
+  var nodes = Array.prototype.slice.call(document.querySelectorAll('.node'));
+  var idx = -1;
+  var timer = null;
+  var playBtn = document.getElementById('tl-play');
+
+  function setActive(i) {
+    idx = i;
+    nodes.forEach(function (n, j) {
+      n.classList.toggle('step-active', j === i);
+      n.classList.toggle('step-dim', i !== -1 && j !== i);
+    });
+  }
+
+  function stopPlay() {
+    if (timer) { clearInterval(timer); timer = null; }
+    playBtn.textContent = '▶ Walk the timeline';
+  }
+
+  document.getElementById('tl-next').addEventListener('click', function () {
+    stopPlay();
+    setActive((idx + 1 + nodes.length) % nodes.length);
+  });
+  document.getElementById('tl-prev').addEventListener('click', function () {
+    stopPlay();
+    setActive((idx - 1 + nodes.length) % nodes.length);
+  });
+  playBtn.addEventListener('click', function () {
+    if (timer) { stopPlay(); setActive(-1); return; }
+    playBtn.textContent = '⏸ Pause';
+    setActive(0);
+    timer = setInterval(function () {
+      var next = idx + 1;
+      if (next >= nodes.length) { stopPlay(); setActive(-1); return; }
+      setActive(next);
+    }, 1800);
+  });
+
+  nodes.forEach(function (n, i) {
+    n.addEventListener('toggle', function () {
+      if (n.open) { stopPlay(); setActive(i); }
+    });
+  });
+})();
+</script>
 </body>
 </html>

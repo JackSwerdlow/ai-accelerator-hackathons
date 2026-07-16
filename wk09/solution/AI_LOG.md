@@ -711,6 +711,8 @@ correct-looking fixes.
 `solution/ai-spend-log-Agent-Jack.csv`,
 `solution/ai-spend-log-Agent-Jack-analysis-runs.csv`.
 
+---
+
 ## [Agent-Jack] 2026-07-16 — Interactive "batch vs concurrent" decision tool (HTML)
 
 **Task:** Turn the one-slide "Batch APIs: cheaper, not faster" lightning talk
@@ -755,4 +757,69 @@ seeded from the real measured 40-row run and `evals/scale/project_cost.py`.
   available in this environment).
 
 **Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
+`wk09/solution/AI_LOG.md`.
+
+---
+
+## [Agent-Tom] 2026-07-16 — Built and substantially revised the Day 2 presentation slide
+
+**Task:** Build a single self-contained interactive HTML "slide"
+(`wk09/presentations/eval-test-observability-agent-tom.html` + paired
+`-script.md`) presenting the eval/test/observability work for a ~10-minute,
+4-person team demo. Needed to "wow," be quantitative, run 2-3 minutes, and
+connect to the "production ready" goal.
+
+**What AI generated (v1):** Matched the one existing precedent in the repo
+(Agent-Jack's `lightning-talk-batch-apis-agent-jack.html`) closely: light
+GDS-style palette, a 3-tile row (checklist / bugs / observability) plus two
+bar charts (red→green test outcomes, cost-at-scale with caching) side by
+side, one `<details>` crash-text reveal. Built via the dataviz skill (palette
+validated, mark specs followed), committed as `50281ae`.
+
+**What you changed + why (three rounds of revision, not a one-shot):**
+
+1. First round: "wow the audience more - more interactivity, less focus on
+   caching (that's Jack's), nicer graphics, don't be constrained by Jack's
+   slide (it was an interim talk from yesterday) - refer to
+   `wk06/solution/hackathon-report.html` for impact." This wasn't a small
+   tweak - it explicitly rejected the precedent I'd been matching. Read
+   wk06's report directly (dark theme, gradient hero text,
+   `.stat-card`/`.agent-card`/`.timeline` patterns - confirmed via grep it
+   has almost no actual JS, its richness is CSS gradients/`color-mix()`/
+   hover-transitions, not animation) and re-planned the visual system from
+   scratch around it instead of Jack's light convention.
+2. Second round, before any code changed: "an interactive project timeline
+   infographic... showing how steps were ordered, worked on in parallel,
+   combined and influenced subsequent steps. Focus on one strong message."
+   This reframed the whole layout: dropped the 3-tile grid and both bar
+   charts entirely in favour of a single two-lane timeline (Agent-Tom's
+   track / Agent-Jack's track) that visually collides at one node -
+   literally showing "worked in parallel, combined" rather than describing
+   it in prose.
+3. Third round, after presenting the timeline plan: asked for concrete
+   specifics on what's clickable, a "play button" flow-sequence, and - the
+   substantive redirect - "put a stronger focus on giving stakeholders the
+   assurance that improvements will hold up... what can we project and have
+   confidence in and why." This added a 4th element that wasn't in either
+   prior design: a 3-tier "confidence ledger" (Verified / Measured /
+   Named-not-hidden) reframing the close of the pitch from "we found bugs"
+   to "here's exactly how sure to be, and what isn't proven yet" - a
+   genuinely different rhetorical move than the bug-story alone, driven
+   entirely by the user's steer rather than something derivable from the
+   brief alone.
+
+**Verification before shipping:** re-ran `pytest test_analyse.py tests/ -q`
+live (64 passed, 1 skipped, 0 failed - matches the numbers baked into the
+slide); re-validated the new categorical palette (`199e70,9085e9,e66767,
+008300`) with `scripts/validate_palette.js --mode dark --surface
+"#0d0f14"` - all checks pass; checked HTML tag-matching and CSS
+brace-balance with a small Python script, since no working headless browser
+exists in this sandbox (chromium/playwright absent; firefox present but
+snap-confined and fails under this environment's mount-namespace
+restrictions). **A real-browser check of the finished slide is still
+outstanding and flagged to the user** - structural validation is not a
+substitute for seeing it render.
+
+**Files:** `wk09/presentations/eval-test-observability-agent-tom.html`,
+`wk09/presentations/eval-test-observability-agent-tom-script.md`,
 `wk09/solution/AI_LOG.md`.
