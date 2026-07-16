@@ -73,9 +73,16 @@ Fields:
 - Purpose  — **must be one of the categories below**
 - Description  — one sentence: what this specific call/session achieved
 - Model
-- Upload tokens
-- Download tokens
+- Fresh input tokens
+- Cache creation (write) tokens
+- Cache read tokens
+- Output tokens
 - Cost [£]
+
+Input-side tokens are split into three columns (fresh / cache write / cache read)
+rather than one combined total, because each is priced differently (cache writes
+cost 1.25x the standard input rate, cache reads cost 0.1x) — a combined total can't
+be re-priced or audited later if the rate table changes, only the split can.
 
 ### Purpose categories
 

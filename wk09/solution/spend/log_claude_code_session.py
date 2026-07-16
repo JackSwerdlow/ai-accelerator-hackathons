@@ -43,9 +43,14 @@ LOCK_FILE = Path.home() / ".claude" / "spend_tracking_state.lock"
 # very long sessions without needing to remember every id ever billed.
 MAX_BILLED_IDS_PER_SESSION = 2000
 
+# Input-side tokens are split into three columns because they're priced
+# differently (fresh input at the full rate, cache writes at 1.25x, cache
+# reads at 0.1x) - a single combined total can't be re-priced or audited
+# later if the rate table changes, only the fresh/write/read split can.
 _HEADERS = [
-    "Timestamp", "AgentName", "CallType", "Purpose", "Description",
-    "Model", "UploadTokens", "DownloadTokens", "CostGBP",
+    "Timestamp", "AgentName", "CallType", "Purpose", "Description", "Model",
+    "FreshInputTokens", "CacheCreationTokens", "CacheReadTokens", "OutputTokens",
+    "CostGBP",
 ]
 
 
@@ -207,10 +212,6 @@ def _extract_description(last_message: str, max_len: int = 120) -> str:
 
 def _write_row(purpose, description, model, inp, out, cache_creation, cache_read):
     cost = cost_gbp(model, inp, out, cache_creation_tokens=cache_creation, cache_read_tokens=cache_read)
-    # UploadTokens is the true total input-side volume (fresh + cache write +
-    # cache read), matching the convention spend_logger.log_analysis_run uses -
-    # the cache split isn't lost, it's priced differently inside cost_gbp().
-    total_input = inp + cache_creation + cache_read
     write_header = not LOG_PATH.exists()
     with LOG_PATH.open("a", newline="") as f:
         w = csv.writer(f)
@@ -219,7 +220,7 @@ def _write_row(purpose, description, model, inp, out, cache_creation, cache_read
         w.writerow([
             datetime.now(timezone.utc).isoformat(),
             AGENT_NAME, "ClaudeCode", purpose, description,
-            model, total_input, out, cost,
+            model, inp, cache_creation, cache_read, out, cost,
         ])
 
 

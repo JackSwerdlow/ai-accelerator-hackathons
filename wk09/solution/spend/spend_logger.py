@@ -10,9 +10,14 @@ AGENT_NAME = os.environ.get("AGENT_NAME", socket.gethostname())
 _LOG_DIR = Path(__file__).resolve().parent
 _LOG_PATH = _LOG_DIR / f"ai-spend-log-{AGENT_NAME}.csv"
 
+# Input-side tokens are split into three columns because they're priced
+# differently (fresh input at the full rate, cache writes at 1.25x, cache
+# reads at 0.1x) - a single combined total can't be re-priced or audited
+# later if the rate table changes, only the fresh/write/read split can.
 _HEADERS = [
-    "Timestamp", "AgentName", "CallType", "Purpose", "Description",
-    "Model", "UploadTokens", "DownloadTokens", "CostGBP",
+    "Timestamp", "AgentName", "CallType", "Purpose", "Description", "Model",
+    "FreshInputTokens", "CacheCreationTokens", "CacheReadTokens", "OutputTokens",
+    "CostGBP",
 ]
 
 # Separate from the general per-agent log above: this one is only for actual
@@ -22,8 +27,9 @@ _HEADERS = [
 # totals still include it - it's a separate file, not a separate ledger.
 _ANALYSIS_LOG_PATH = _LOG_DIR / f"ai-spend-log-{AGENT_NAME}-analysis-runs.csv"
 _ANALYSIS_HEADERS = [
-    "Timestamp", "AgentName", "CallType", "Purpose", "Description",
-    "Model", "RunMode", "UploadTokens", "DownloadTokens", "CostGBP",
+    "Timestamp", "AgentName", "CallType", "Purpose", "Description", "Model", "RunMode",
+    "FreshInputTokens", "CacheCreationTokens", "CacheReadTokens", "OutputTokens",
+    "CostGBP",
 ]
 
 
@@ -31,7 +37,9 @@ def log_row(
     call_type: str,
     purpose: str,
     model: str,
-    input_tokens: int,
+    fresh_input_tokens: int,
+    cache_creation_tokens: int,
+    cache_read_tokens: int,
     output_tokens: int,
     cost_gbp: float,
     description: str = "",
@@ -48,7 +56,9 @@ def log_row(
             purpose,
             description,
             model,
-            input_tokens,
+            fresh_input_tokens,
+            cache_creation_tokens,
+            cache_read_tokens,
             output_tokens,
             cost_gbp,
         ])
@@ -58,7 +68,9 @@ def log_analysis_run(
     mode: str,
     purpose: str,
     model: str,
-    input_tokens: int,
+    fresh_input_tokens: int,
+    cache_creation_tokens: int,
+    cache_read_tokens: int,
     output_tokens: int,
     cost_gbp: float,
     description: str = "",
@@ -77,7 +89,9 @@ def log_analysis_run(
             description,
             model,
             mode,
-            input_tokens,
+            fresh_input_tokens,
+            cache_creation_tokens,
+            cache_read_tokens,
             output_tokens,
             cost_gbp,
         ])

@@ -539,3 +539,174 @@ already counted in an earlier row.
 **What you changed + why:** Nothing - this was investigate-then-fix at
 your explicit request, with no correction needed to the diagnosis or the
 implementation.
+
+---
+
+## [Agent-Jack] 2026-07-16 — Split logged input tokens into fresh/cache-write/cache-read columns
+
+**Task:** User asked, after checking `/model` and their live session cost, to
+(a) confirm `pricing.py` stayed on the introductory `claude-sonnet-5` rate
+(it had - no code was ever changed away from it, only compared against
+standard rate for discussion) and (b) refactor the existing spend logs so
+input tokens are tracked as separate fresh/cache-write/cache-read columns
+instead of one combined total, since those three are priced very
+differently (1x / 1.25x / 0.1x of the base input rate).
+
+**What was wrong:** Both CSVs stored input-side volume as a single
+`UploadTokens` total (fresh + cache write + cache read summed together).
+`cost_gbp()` was always called with the correct three-way split under the
+hood, so the *cost* figure was right, but the split itself was discarded
+before it hit the CSV - meaning the cost could never be re-audited or
+re-priced later without going back to raw transcripts, and cache
+efficiency couldn't be analysed per row.
+
+**What was changed:**
+
+1. `spend/spend_logger.py` and `spend/log_claude_code_session.py`: header
+   and write logic for both `_HEADERS`/`_ANALYSIS_HEADERS` now carry
+   `FreshInputTokens`, `CacheCreationTokens`, `CacheReadTokens`,
+   `OutputTokens` instead of `UploadTokens`/`DownloadTokens`. `log_row()`
+   and `log_analysis_run()` signatures updated to accept the three input
+   components separately rather than one pre-summed value.
+2. `analyse.py`: the `log_analysis_run()` call site already had the three
+   components on hand via `UsageTotals` (`uncached_input_tokens`,
+   `cache_creation_tokens`, `cache_read_tokens`) - it was combining them
+   into `total_input_tokens` purely to match the old single-column
+   contract. That combination step is now gone; the components are passed
+   straight through, so `analyse.py`'s cache-efficiency tracking (already
+   correct in memory - see the earlier `UsageTotals` design from Susana's
+   branch) is no longer lossy on the way to disk.
+3. `wk09/CLAUDE.md` (Cost tracking section) and `solution/README.md`
+   updated to describe the new four-column split instead of
+   Upload/Download tokens, since the CLAUDE.md field list is the team-wide
+   contract other agents' logging should also follow.
+
+**Historical CSV rows - reconstructed where verifiable, left blank where not:**
+The Stop hook only ever wrote the combined total to disk, so the exact
+fresh/write/read split for already-logged rows wasn't sitting anywhere
+retrievable - except the session's own raw transcript
+(`~/.claude/projects/.../6a9a99d1-....jsonl`), which still had every
+per-message `usage` object. Reconstructed by:
+
+1. Deduping assistant messages by `message.id` (same rule `_parse_usage`
+   uses) and segmenting them by the timestamp boundaries between
+   consecutive already-logged rows - an approximation of the *real*
+   segmentation, which is by raw line-index at each Stop-hook invocation
+   (a detail not preserved anywhere history-side; only the current
+   cumulative line offset is saved in `~/.claude/spend_tracking_state.json`).
+2. Verifying each reconstructed segment against the row's own
+   already-recorded `UploadTokens`/`DownloadTokens` (both fields had to
+   match exactly, not just the total) before trusting it.
+3. Of 16 pre-existing `ClaudeCode` rows, **11 matched exactly** and got the
+   real split. **5 didn't** - the very first row (its true start-of-tracking
+   boundary predates this transcript file in a way that can't be
+   recovered; treating "start of file" as the boundary overcounts it by
+   ~2x) and the four rows nearest the end of the reconstructible window
+   (small-to-moderate mismatches, likely from async tool-result timestamps
+   landing on the wrong side of a timestamp-based cutoff that the real
+   line-index-based one wouldn't have been sensitive to). For those 5, the
+   split columns were left **blank rather than fabricated** - `OutputTokens`
+   and `CostGBP` are untouched (both were already exact and unambiguous).
+   One further row (the tiny manual `Claude API`/`Research` test entry,
+   14/4 tokens) isn't hook-derived at all; assumed all-fresh-input as a
+   documented guess, not a reconstruction.
+4. The 4 `ai-spend-log-Agent-Jack-analysis-runs.csv` rows have no
+   equivalent raw-transcript source (they're real `anthropic` API calls
+   from `analyse.py`, not local Claude Code messages) - left blank on the
+   split for the same reason, `OutputTokens`/`CostGBP` unchanged.
+5. One row (`Planning`, 15:03:45) was **already** in the new split format
+   by the time this migration ran, because the code change (step 1 above)
+   had taken effect mid-session and the Stop hook wrote a new-format row
+   under the still-old header - the file was briefly malformed (mixed
+   8-column/10-column rows) until this migration rewrote the header.
+   That row's already-correct split values were kept as-is, not
+   re-derived.
+
+Total `CostGBP` across both files is unchanged by this migration (verified
+by summing before/after) - only how the input side is broken down changed,
+never the cost itself.
+
+**What's still open:** `pricing.py` stayed on the introductory
+`claude-sonnet-5` rate per explicit instruction, despite a live cross-check
+this session that cuts the other way - the full live transcript, recomputed
+end-to-end, comes to $40.36 at the introductory rate vs $60.54 at the
+standard rate, and the user's own observed total ($60) matches the standard
+figure far more closely. `/model` reports the introductory rate applies.
+Neither this file nor `pricing.py`'s comment resolves that contradiction -
+flagging it here so a future session checking the Console usage page
+directly (rather than `/model` or `/usage`, both shown elsewhere in this
+project to be local, possibly-stale estimates) can settle it for good.
+
+**Files:** `solution/spend/spend_logger.py`,
+`solution/spend/log_claude_code_session.py`, `solution/analyse.py`,
+`wk09/CLAUDE.md`, `solution/README.md`,
+`solution/ai-spend-log-Agent-Jack.csv`,
+`solution/ai-spend-log-Agent-Jack-analysis-runs.csv`.
+
+---
+
+## [Agent-Jack] 2026-07-16 — Merged with Agent-Tom's concurrency fix; re-audited the unreconciled rows against his bug signature
+
+**Task:** `git pull --rebase` (delayed until after the split-token work above,
+which is itself a process slip against this repo's "pull before any file
+changes" rule) surfaced a large incoming push from Agent-Tom - telemetry,
+an eval framework, new tests, and his own independent rewrite of
+`spend/log_claude_code_session.py` / `spend/spend_logger.py`: a real fix
+for a race condition on the shared `~/.claude/spend_tracking_state.json`
+(used by every concurrent Claude Code session/worktree on this machine,
+not just one agent's), where a lost state update could regress a session's
+line cursor and re-bill an already-billed swath of transcript - in his own
+log this inflated two rows to 73M/118M tokens. He also added a
+`Description` column. Discussed the merge approach with the user rather
+than resolving unilaterally, given the size of the incoming change and
+that it directly bears on whether this file's own historical numbers can
+still be trusted.
+
+**What was done:**
+
+1. Resolved the 3-way conflicts in `spend/log_claude_code_session.py`,
+   `spend/spend_logger.py`, and this file by combining both changes rather
+   than picking one side: kept Tom's `_StateLock`/`billed_ids` fix and
+   `Description` field, kept this session's fresh/cache-write/cache-read
+   token split, in both `_HEADERS` and the row-writing code.
+2. Backfilled a blank `Description` column onto the pre-existing rows in
+   both Agent-Jack CSVs (the field didn't exist when they were written;
+   left blank rather than guess at what each historical turn was about).
+3. **Re-audited the 5 rows this session's earlier reconstruction couldn't
+   verify exactly**, specifically testing whether they matched Tom's bug
+   signature (a recorded total close to "everything since the true start
+   of the transcript" rather than "everything since the previous
+   checkpoint" - the tell-tale sign of a from_line reset to zero).
+   **They didn't:** recomputing a from-transcript-start cumulative total
+   for each of the 5 rows gave figures 2x-100x higher than what's actually
+   recorded, nowhere near a match. Tom's exact failure mode (full reset) is
+   ruled out for these specific rows. The likely explanation is still the
+   original one from this session's earlier entry - the *real* segmentation
+   is by raw line-index at each historical Stop-hook invocation, which
+   isn't preserved anywhere (only the current cumulative offset survives in
+   `spend_tracking_state.json`); this session's transcript-timestamp-based
+   reconstruction is only an approximation of that, and approximations can
+   be imprecise without the underlying data being wrong. Left these 5 rows'
+   token-split columns blank, as before - not fabricating a number just
+   because one plausible cause got ruled out.
+4. Ran the full test suite post-merge. `tests/unit/test_spend_logging.py`
+   (Tom's 4 concurrency tests) all pass against the merged code, confirming
+   the header/row-write merge didn't break his fix. Separately, 11 of 40
+   `test_analyse.py` tests fail with `AttributeError: 'NoneType' object has
+   no attribute 'add'` from `telemetry.py`'s uninitialised metric
+   instruments - confirmed via a throwaway `git worktree` against
+   `origin/main` alone (no changes from this session at all) that this
+   failure is **pre-existing on Tom's own commit**, unrelated to spend
+   logging or this merge. Flagging it rather than fixing it - it's a
+   different feature (his telemetry integration) with its own design
+   intent this session doesn't have context on.
+
+**What you changed + why:** Directed the merge strategy (merge both sides
+and re-audit) rather than leaving it to a unilateral pick, given the
+financial-integrity stakes of choosing wrong between two independently
+correct-looking fixes.
+
+**Files:** `solution/spend/log_claude_code_session.py`,
+`solution/spend/spend_logger.py`, `solution/AI_LOG.md`,
+`solution/ai-spend-log-Agent-Jack.csv`,
+`solution/ai-spend-log-Agent-Jack-analysis-runs.csv`.

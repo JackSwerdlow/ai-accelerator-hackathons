@@ -154,13 +154,18 @@ There are two separate logs, deliberately not mixed together:
 
 - **`ai-spend-log-{AGENT_NAME}.csv`** — Claude Code assistance cost
   (`CallType=ClaudeCode`), one row per assistant turn, written automatically
-  by the Stop hook. `UploadTokens` is the *total* input-side volume (fresh
-  input + prompt-cache writes + prompt-cache reads), not just the fresh
-  input field — in a long session almost all "input" is served from cache,
-  so summing only `usage.input_tokens` (the hook's original behaviour)
-  undercounted real cost by roughly an order of magnitude. See `AI_LOG.md`
-  for how this was found (the ~120M-cache-read-token discovery) and the
-  historical rows it was reconstructed for.
+  by the Stop hook. Input-side tokens are logged as three separate columns —
+  `FreshInputTokens`, `CacheCreationTokens`, `CacheReadTokens` — rather than
+  one combined total, because each is priced differently and a combined
+  total can't be re-priced later if the rate table changes; in a long
+  session almost all "input" is served from cache, so summing only
+  `usage.input_tokens` (the hook's original behaviour) undercounted real
+  cost by roughly an order of magnitude. See `AI_LOG.md` for how this was
+  found (the ~120M-cache-read-token discovery), and for the later
+  reconstruction that split the historical rows into these three columns
+  (verified exactly for rows where the maths matched; left blank, not
+  fabricated, for the few rows/agents where the original per-message
+  transcript data couldn't pin down an exact split).
 - **`ai-spend-log-{AGENT_NAME}-analysis-runs.csv`** — the cost of actually
   *running* `analyse.py` (`CallType=Claude API`, `Purpose=Data analysis`),
   one row per completed run, written by `analyse.py` itself via

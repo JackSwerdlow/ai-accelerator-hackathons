@@ -633,7 +633,6 @@ def main():
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
 
-    total_input_tokens = totals.uncached_input_tokens + totals.cache_creation_tokens + totals.cache_read_tokens
     cost = cost_gbp(args.model, totals.uncached_input_tokens, totals.output_tokens,
                      cache_creation_tokens=totals.cache_creation_tokens,
                      cache_read_tokens=totals.cache_read_tokens,
@@ -642,7 +641,9 @@ def main():
         mode=args.mode,
         purpose="Data analysis",
         model=args.model,
-        input_tokens=total_input_tokens,
+        fresh_input_tokens=totals.uncached_input_tokens,
+        cache_creation_tokens=totals.cache_creation_tokens,
+        cache_read_tokens=totals.cache_read_tokens,
         output_tokens=totals.output_tokens,
         cost_gbp=cost,
     )
