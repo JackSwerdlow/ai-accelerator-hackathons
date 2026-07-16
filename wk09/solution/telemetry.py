@@ -184,6 +184,14 @@ def init_telemetry():
         )
         set_logger_provider(logger_provider)
         logging.getLogger().addHandler(LoggingHandler(logger_provider=logger_provider))
+        # Without this, this logger's effective level defers to the root
+        # logger's default (WARNING), so log_batch_started/log_batch_finished
+        # (both INFO) get dropped before reaching any handler - never even
+        # exported to SigNoz, let alone printed. Only the ERROR-level
+        # log_parse_error/log_api_error worked before this fix. Tests didn't
+        # catch this because caplog.at_level(logging.INFO, ...) temporarily
+        # lowers the level for the duration of the test, masking the gap.
+        logger.setLevel(logging.INFO)
 
         from openinference.instrumentation import TraceConfig
         from openinference.instrumentation.anthropic import AnthropicInstrumentor

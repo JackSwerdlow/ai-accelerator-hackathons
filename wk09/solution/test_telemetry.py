@@ -201,6 +201,24 @@ def test_init_telemetry_configures_metrics_so_recording_works_after():
     telemetry.record_row_outcome("success")  # must not raise (instruments exist)
 
 
+def test_init_telemetry_enables_info_level_logging_without_caplog_help(monkeypatch):
+    """Regression test: found by actually running analyse.py against a real
+    SigNoz instance and discovering batch.started/batch.finished never
+    arrived, while row.parse_error/row.api_error (both ERROR) always did.
+    Cause: this module's logger never had its level set, so it deferred to
+    the root logger's default (WARNING) and silently dropped INFO records
+    before they reached any handler - including the OTel exporter. Every
+    other test in this file uses caplog.at_level(logging.INFO, ...), which
+    itself lowers the effective level for the test and would never have
+    caught this. This test checks the real effective level directly."""
+    telemetry.logger.setLevel(logging.NOTSET)  # simulate pre-fix state
+    monkeypatch.setattr(telemetry, "_initialized", False)  # force the body to run
+
+    telemetry.init_telemetry()
+
+    assert telemetry.logger.isEnabledFor(logging.INFO)
+
+
 def test_init_telemetry_hides_llm_input_and_output_in_traces(monkeypatch):
     """Consultation responses (the LLM input) and model completions (the LLM
     output) may contain PII and must never reach trace spans in full — verify
