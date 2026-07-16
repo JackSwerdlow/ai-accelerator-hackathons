@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backup 2 — The checklist &amp; what's watching it — Agent-Tom</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    color-scheme: dark;
+    --bg: #0d0f14; --bg2: #13161e; --bg3: #1a1d27; --border: #2a2e3e;
+    --text: #e8eaf0; --muted: #8892a4;
+    --tom: #199e70; --jack: #9085e9; --bug: #e66767; --good: #008300;
+    --info: #3987e5; --warn: #fab219;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; line-height: 1.4; }
+
+  .slide { width: 100vw; height: 100vh; max-width: 1280px; max-height: 720px; margin: 0 auto; padding: 26px 52px 20px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #a9d9c8; background: color-mix(in srgb, var(--tom) 16%, transparent); border: 1px solid color-mix(in srgb, var(--tom) 40%, transparent); border-radius: 20px; padding: 4px 12px; margin-bottom: 8px; }
+  h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.01em; }
+  .subtitle { font-size: 13.5px; color: var(--muted); margin-top: 4px; max-width: 760px; }
+
+  .deck-nav { display: flex; gap: 6px; flex: none; }
+  .deck-nav a { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--bg2); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px; text-decoration: none; }
+  .deck-nav a.current { color: var(--text); border-color: var(--tom); }
+  .deck-nav a:hover { color: var(--text); }
+
+  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; gap: 14px; margin-top: 14px; }
+
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 13px 17px; min-height: 0; overflow-y: auto; }
+  .card h2 { font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+  .tally { display: flex; gap: 8px; }
+  .tally-cell { flex: 1; text-align: center; border-radius: 8px; padding: 8px 4px; }
+  .tally-num { font-size: 21px; font-weight: 800; line-height: 1; }
+  .tally-label { font-size: 9.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-top: 3px; }
+  .tally-cell.p0 { background: color-mix(in srgb, var(--bug) 16%, transparent); } .tally-cell.p0 .tally-num { color: #ff9b9b; }
+  .tally-cell.p1 { background: color-mix(in srgb, var(--warn) 16%, transparent); } .tally-cell.p1 .tally-num { color: var(--warn); }
+  .tally-cell.p2 { background: color-mix(in srgb, var(--info) 16%, transparent); } .tally-cell.p2 .tally-num { color: #7ab2f0; }
+  .tally-cell.p3 { background: color-mix(in srgb, var(--jack) 16%, transparent); } .tally-cell.p3 .tally-num { color: #cfc9ff; }
+  .tally-cell.f  { background: color-mix(in srgb, var(--muted) 20%, transparent); } .tally-cell.f .tally-num { color: var(--text); }
+  .tally-note { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+  .gov3 { font-size: 12.5px; line-height: 1.5; }
+  .gov3 .wrong { color: #ff9b9b; }
+  .gov3 .right { color: #5fd35f; }
+
+  .metric-list { list-style: none; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+  .metric-list li { padding: 3px 0; border-bottom: 1px dashed var(--border); color: #7ab2f0; }
+  .metric-list li:last-child { border-bottom: none; }
+  .pii-note { font-size: 11.5px; color: var(--text); margin-top: 9px; line-height: 1.4; }
+  .pii-note code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5fd35f; }
+
+  .ci-row { display: flex; gap: 10px; margin-bottom: 8px; }
+  .ci-chip { flex: 1; background: var(--bg3); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; }
+  .ci-chip strong { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .ci-gap { font-size: 11px; color: var(--warn); margin-top: 6px; }
+
+  .footer { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex: none; }
+  .takeaway { font-size: 13px; font-weight: 600; max-width: 780px; color: var(--text); }
+  .prevnext { display: flex; gap: 10px; flex: none; }
+  .prevnext a { font-size: 12px; font-weight: 700; color: var(--muted); text-decoration: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; }
+  .prevnext a:hover { color: var(--text); border-color: var(--tom); }
+</style>
+</head>
+<body data-palette="199e70,9085e9,e66767,008300,3987e5,fab219">
+  <div class="slide">
+    <div class="top-row">
+      <div>
+        <p class="eyebrow">Backup 2 of 3 — Agent-Tom</p>
+        <h1>The checklist — and what's watching it.</h1>
+        <p class="subtitle">57 items across 12 production-readiness categories, tallied fresh from the file — not from an old cached summary.</p>
+      </div>
+      <nav class="deck-nav">
+        <a href="eval-test-observability-agent-tom.html">Main</a>
+        <a href="eval-test-observability-agent-tom-backup-1.html">1</a>
+        <a class="current" href="eval-test-observability-agent-tom-backup-2.html">2</a>
+        <a href="eval-test-observability-agent-tom-backup-3.html">3</a>
+      </nav>
+    </div>
+
+    <div class="grid">
+      <div class="card" style="grid-column: 1 / 2;">
+        <h2>Priority tally — 57 items, re-counted 2026-07-16</h2>
+        <div class="tally">
+          <div class="tally-cell p0"><p class="tally-num">16</p><p class="tally-label">P0</p></div>
+          <div class="tally-cell p1"><p class="tally-num">15</p><p class="tally-label">P1</p></div>
+          <div class="tally-cell p2"><p class="tally-num">23</p><p class="tally-label">P2</p></div>
+          <div class="tally-cell p3"><p class="tally-num">1</p><p class="tally-label">P3</p></div>
+          <div class="tally-cell f"><p class="tally-num">2</p><p class="tally-label">F</p></div>
+        </div>
+        <p class="tally-note">P0 = blocks calling it production-ready · P1 = should do · P2 = valuable, reasonable to descope · P3 = stretch-only · F = a flag/confirm action for someone outside engineering (e.g. DSIT's data protection officer), not a code fix.</p>
+      </div>
+
+      <div class="card" style="grid-column: 2 / 3;">
+        <h2>"We verify, we don't assume" — the GOV3 correction</h2>
+        <p class="gov3"><span class="wrong">Assumed:</span> a "pinned" model looks like <code>claude-&lt;family&gt;-&lt;version&gt;-YYYYMMDD</code>, and a bare name like <code>claude-sonnet-5</code> is a risky floating alias that needs pinning.<br><br>
+        <span class="right">Checked with a real, free <code>client.models.list()</code> call:</span> every current-generation model has <em>no</em> separate dated-snapshot id at all — only older models do. There's nothing to pin <code>claude-sonnet-5</code> to.<br><br>
+        Rewrote around the achievable goal instead: record which model actually produced each row, so a later change in what "claude-sonnet-5" means is at least visible in old results, even if it can't be prevented at request time.</p>
+      </div>
+
+      <div class="card" style="grid-column: 1 / 2;">
+        <h2>Observability — 5 metrics, real traces, PII-safe</h2>
+        <ul class="metric-list">
+          <li>consultation.spend.gbp</li>
+          <li>consultation.rows.total <span style="color:var(--muted)">(by outcome)</span></li>
+          <li>consultation.cache.status</li>
+          <li>consultation.response.bytes</li>
+          <li>consultation.batch.rows_total</li>
+        </ul>
+        <p class="pii-note">Every trace is built with <code>TraceConfig(hide_inputs=True, hide_outputs=True)</code> — the actual consultation-response text and model output never reach the trace, only the metrics/status above. All three signal types (traces, metrics, structured logs) ship to SigNoz.</p>
+      </div>
+
+      <div class="card" style="grid-column: 2 / 3;">
+        <h2>CI gate — tests + secrets scan, on every push</h2>
+        <div class="ci-row">
+          <div class="ci-chip"><strong>test job</strong><code style="font-family:'JetBrains Mono',monospace;">pytest tests/ -v</code></div>
+          <div class="ci-chip"><strong>secrets-scan job</strong>blocks a real <code style="font-family:'JetBrains Mono',monospace;">sk-ant-…</code> key or the old hardcoded placeholder fallback from ever being committed</div>
+        </div>
+        <p style="font-size:12px; line-height:1.45;">Triggers on push/PR touching <code style="font-family:'JetBrains Mono',monospace; font-size:11px;">wk09/**</code>. Deliberately minimal — this is the whole CI surface for the project, no deploy pipeline or approval gates (that's the brief's self-led stretch direction, not this gate).</p>
+        <p class="ci-gap">⚠ Named gap: this job runs <code style="font-family:'JetBrains Mono',monospace; font-size:11px;">tests/</code> (65 tests) but not yet Agent-Jack's <code style="font-family:'JetBrains Mono',monospace; font-size:11px;">test_analyse.py</code> (40 tests) — see Backup 3.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p class="takeaway">The checklist isn't a list of things we believe — it's the thing we check our own claims against, including the ones that turned out wrong (GOV3).</p>
+      <div class="prevnext">
+        <a href="eval-test-observability-agent-tom-backup-1.html">← Prev</a>
+        <a href="eval-test-observability-agent-tom-backup-3.html">Next →</a>
+      </div>
+    </div>
+  </div>
+<script>
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'ArrowRight') location.href = 'eval-test-observability-agent-tom-backup-3.html';
+  if (e.key === 'ArrowLeft') location.href = 'eval-test-observability-agent-tom-backup-1.html';
+  if (e.key === 'Escape') location.href = 'eval-test-observability-agent-tom.html';
+});
+</script>
+</body>
+</html>

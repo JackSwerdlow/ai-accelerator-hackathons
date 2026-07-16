@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backup 1 — The bugs, in depth — Agent-Tom</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    color-scheme: dark;
+    --bg: #0d0f14; --bg2: #13161e; --bg3: #1a1d27; --border: #2a2e3e;
+    --text: #e8eaf0; --muted: #8892a4;
+    --tom: #199e70; --jack: #9085e9; --bug: #e66767; --good: #008300;
+    --info: #3987e5; --warn: #fab219;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; line-height: 1.4; }
+
+  .slide { width: 100vw; height: 100vh; max-width: 1280px; max-height: 720px; margin: 0 auto; padding: 26px 52px 20px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #ffb4b4; background: color-mix(in srgb, var(--bug) 16%, transparent); border: 1px solid color-mix(in srgb, var(--bug) 40%, transparent); border-radius: 20px; padding: 4px 12px; margin-bottom: 8px; }
+  h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.01em; }
+  .subtitle { font-size: 13.5px; color: var(--muted); margin-top: 4px; max-width: 760px; }
+
+  .deck-nav { display: flex; gap: 6px; flex: none; }
+  .deck-nav a { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--bg2); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px; text-decoration: none; }
+  .deck-nav a.current { color: var(--text); border-color: var(--bug); }
+  .deck-nav a:hover { color: var(--text); }
+
+  .bugs-row { flex: 1; min-height: 0; display: flex; gap: 18px; margin-top: 16px; }
+  .bug-card { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); border-top: 3px solid var(--bug); border-radius: 14px; padding: 16px 20px; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+  .bug-name { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #ffb4b4; margin-bottom: 3px; }
+  .bug-title { font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+  .bug-section { margin-bottom: 9px; }
+  .bug-section h3 { font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .bug-section p { font-size: 12.5px; line-height: 1.45; color: var(--text); }
+  .bug-section code { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+  .crash-block { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.5; white-space: pre-wrap; color: #ffb4b4; background: rgba(0,0,0,0.28); border-radius: 8px; padding: 8px 10px; margin-top: 4px; }
+  .verified-tag { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #5fd35f; background: color-mix(in srgb, var(--good) 22%, transparent); border: 1px solid color-mix(in srgb, var(--good) 45%, transparent); border-radius: 999px; padding: 3px 10px; margin-top: 6px; }
+  .test-ref { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted); }
+
+  .footer { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex: none; }
+  .takeaway { font-size: 13px; font-weight: 600; max-width: 780px; color: var(--text); }
+  .prevnext { display: flex; gap: 10px; flex: none; }
+  .prevnext a { font-size: 12px; font-weight: 700; color: var(--muted); text-decoration: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; }
+  .prevnext a:hover { color: var(--text); border-color: var(--bug); }
+</style>
+</head>
+<body data-palette="e66767,008300">
+  <div class="slide">
+    <div class="top-row">
+      <div>
+        <p class="eyebrow">Backup 1 of 3 — Agent-Tom</p>
+        <h1>The bugs, in depth.</h1>
+        <p class="subtitle">Both were found by reconciling independent, concurrent work — not by looking for them directly. Both are now regression-tested.</p>
+      </div>
+      <nav class="deck-nav">
+        <a href="eval-test-observability-agent-tom.html">Main</a>
+        <a class="current" href="eval-test-observability-agent-tom-backup-1.html">1</a>
+        <a href="eval-test-observability-agent-tom-backup-2.html">2</a>
+        <a href="eval-test-observability-agent-tom-backup-3.html">3</a>
+      </nav>
+    </div>
+
+    <div class="bugs-row">
+      <div class="bug-card">
+        <p class="bug-name">Checklist S5 · analyse.py</p>
+        <p class="bug-title">Two processes, one temp filename</p>
+
+        <div class="bug-section">
+          <h3>What happened</h3>
+          <p>Two people running <code>analyse.py</code> at the same time against the same output crashed with a bare <code>FileNotFoundError</code> — reproduced roughly 1 time in 5-6, reliably, before the fix.</p>
+        </div>
+
+        <div class="crash-block">FileNotFoundError: [Errno 2] No such
+file or directory: '.batch_state.tmp'
+-&gt; '.batch_state.json'</div>
+
+        <div class="bug-section">
+          <h3>Root cause — two stages, not one</h3>
+          <p>1. <code>_save_state</code>'s temp file path (<code>state_file.with_suffix(".tmp")</code>) was identical for both processes sharing a state file — one process's write-then-rename raced the other's.<br>
+          2. Fixing that unmasked a <em>second</em>, masked race: <code>_clear_state</code>'s exists-then-unlink was its own TOCTOU gap, only visible once the first race stopped hiding it.</p>
+        </div>
+
+        <div class="bug-section">
+          <h3>Fix</h3>
+          <p>Per-process temp filenames (<code>state_file.with_suffix(f".{os.getpid()}.tmp")</code>) for atomic per-process writes; <code>_clear_state</code> made idempotent (<code>try: unlink() except FileNotFoundError: pass</code>).</p>
+        </div>
+
+        <p class="verified-tag">✓ 100+ trials, 0 crashes</p>
+        <p class="test-ref">tests/system/test_operability.py — 6 trials × 12 concurrent-process attempts. Before the fix: crashed reproducibly. After: zero.</p>
+      </div>
+
+      <div class="bug-card">
+        <p class="bug-name">Spend-tracker · log_claude_code_session.py</p>
+        <p class="bug-title">Same disease, different file</p>
+
+        <div class="bug-section">
+          <h3>What happened</h3>
+          <p>Two ordinary Claude Code turns were logged at <strong>£16.37</strong> and <strong>£23.41</strong> — flagged by a human as obviously implausible for routine work, discovered while investigating a separate, unrelated question about a mislabelled "Purpose" column.</p>
+        </div>
+
+        <div class="bug-section">
+          <h3>Root cause</h3>
+          <p>An unlocked, shared <code>spend_tracking_state.json</code> racing across concurrent Claude Code sessions on the same machine — the same class of bug as S5 (a shared-state race), independently discovered in a completely different file.</p>
+        </div>
+
+        <div class="bug-section">
+          <h3>Fix</h3>
+          <p>A <code>_StateLock</code> (<code>fcntl.flock</code>) around every read-modify-write; atomic <code>_save_state</code> (write-temp-then-rename, no shared temp path); a persisted, bounded <code>billed_ids</code> dedup set (last 2,000) so a lost state update can never double-bill the same usage twice; migration for the old int-only state format.</p>
+        </div>
+
+        <p class="verified-tag">✓ 4 regression tests, all green</p>
+        <p class="test-ref">tests/unit/test_spend_logging.py — dedup-across-lost-updates, concurrent-invocation locking, legacy-format migration.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p class="takeaway">Neither bug was hunted for directly — both surfaced from reconciling two pieces of independent, concurrent work against each other. That's the case for doing it, not a coincidence.</p>
+      <div class="prevnext">
+        <a href="eval-test-observability-agent-tom.html">← Main</a>
+        <a href="eval-test-observability-agent-tom-backup-2.html">Next →</a>
+      </div>
+    </div>
+  </div>
+<script>
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'ArrowRight') location.href = 'eval-test-observability-agent-tom-backup-2.html';
+  if (e.key === 'ArrowLeft' || e.key === 'Escape') location.href = 'eval-test-observability-agent-tom.html';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backup 3 — The honest ledger — Agent-Tom</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    color-scheme: dark;
+    --bg: #0d0f14; --bg2: #13161e; --bg3: #1a1d27; --border: #2a2e3e;
+    --text: #e8eaf0; --muted: #8892a4;
+    --tom: #199e70; --jack: #9085e9; --bug: #e66767; --good: #008300;
+    --info: #3987e5; --warn: #fab219;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; line-height: 1.4; }
+
+  .slide { width: 100vw; height: 100vh; max-width: 1280px; max-height: 720px; margin: 0 auto; padding: 26px 52px 20px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: 20px; padding: 4px 12px; margin-bottom: 8px; }
+  h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.01em; }
+  .subtitle { font-size: 13.5px; color: var(--muted); margin-top: 4px; max-width: 760px; }
+
+  .deck-nav { display: flex; gap: 6px; flex: none; }
+  .deck-nav a { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--bg2); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px; text-decoration: none; }
+  .deck-nav a.current { color: var(--text); border-color: var(--warn); }
+  .deck-nav a:hover { color: var(--text); }
+
+  .ledger-list { flex: 1; min-height: 0; margin-top: 14px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+  .ledger-row { display: flex; align-items: flex-start; gap: 12px; background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--warn); border-radius: 10px; padding: 8px 14px; }
+  .ledger-tag { flex: none; width: 66px; text-align: center; font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); border-radius: 6px; padding: 4px 4px; margin-top: 1px; }
+  .ledger-body { flex: 1; min-width: 0; }
+  .ledger-title { font-size: 13px; font-weight: 700; }
+  .ledger-detail { font-size: 11.5px; color: var(--muted); line-height: 1.4; margin-top: 1px; }
+  .ledger-detail code { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #b7bfd0; }
+  .ledger-status { flex: none; font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; align-self: center; }
+
+  .footer { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex: none; }
+  .takeaway { font-size: 13px; font-weight: 600; max-width: 780px; color: var(--text); }
+  .prevnext { display: flex; gap: 10px; flex: none; }
+  .prevnext a { font-size: 12px; font-weight: 700; color: var(--muted); text-decoration: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; }
+  .prevnext a:hover { color: var(--text); border-color: var(--warn); }
+</style>
+</head>
+<body data-palette="fab219,008300,e66767">
+  <div class="slide">
+    <div class="top-row">
+      <div>
+        <p class="eyebrow">Backup 3 of 3 — Agent-Tom</p>
+        <h1>The honest ledger — what Day 3 would hold.</h1>
+        <p class="subtitle">A to-do list we can name precisely — not a vague "more testing needed."</p>
+      </div>
+      <nav class="deck-nav">
+        <a href="eval-test-observability-agent-tom.html">Main</a>
+        <a href="eval-test-observability-agent-tom-backup-1.html">1</a>
+        <a href="eval-test-observability-agent-tom-backup-2.html">2</a>
+        <a class="current" href="eval-test-observability-agent-tom-backup-3.html">3</a>
+      </nav>
+    </div>
+
+    <div class="ledger-list">
+      <div class="ledger-row">
+        <span class="ledger-tag">Cost</span>
+        <div class="ledger-body">
+          <p class="ledger-title">Quality eval — 2 of 18 golden rows validated against the real API</p>
+          <p class="ledger-detail">Theme-Jaccard 1.0, sentiment exact-match 1.0 on the 2 run so far. The full 18-row set costs roughly <code>£0.04</code> total real spend — most of it not yet spent, needs a go-ahead, not more engineering.</p>
+        </div>
+        <span class="ledger-status">Needs confirm</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="ledger-tag">Book&shy;keeping</span>
+        <div class="ledger-body">
+          <p class="ledger-title">Checklist — 0 of 57 items formally checked off</p>
+          <p class="ledger-detail">Even though roughly a third have real evidence today: 11 fixed by Jack's rewrite, 5 fixed independently of it, 4 fixed directly by this work (S5, MON2, GOV3, GOV6). The checkbox-and-evidence pass itself hasn't been done.</p>
+        </div>
+        <span class="ledger-status">Not started</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="ledger-tag">CI gap</span>
+        <div class="ledger-body">
+          <p class="ledger-title">CI runs 65 tests, not the other 40</p>
+          <p class="ledger-detail">The GitHub Actions gate runs <code>tests/</code> (this work) but not Agent-Jack's <code>test_analyse.py</code> — both suites pass locally, but only one is enforced on every push today.</p>
+        </div>
+        <span class="ledger-status">Not started</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="ledger-tag">Scale</span>
+        <div class="ledger-body">
+          <p class="ledger-title">No real-scale rate-limit test at 20,000 rows</p>
+          <p class="ledger-detail">The brief's own stated volume has never been run against Anthropic's real RPM/TPM limits — only against the mock server. Real cost and real wall-clock time to test properly.</p>
+        </div>
+        <span class="ledger-status">Needs confirm</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="ledger-tag">Resil&shy;ience</span>
+        <div class="ledger-body">
+          <p class="ledger-title">DEP1 — no fallback model/provider for a sustained outage</p>
+          <p class="ledger-detail">If the primary model is down for an extended period, there's no fallback logic today — not implemented, not tested.</p>
+        </div>
+        <span class="ledger-status">Not started</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="ledger-tag">Skipped</span>
+        <div class="ledger-body">
+          <p class="ledger-title">S4 — CSV/formula injection, deliberately not covered</p>
+          <p class="ledger-detail">No CSV-export code path exists anywhere in <code>analyse.py</code> or <code>viewer.py</code> today (output is <code>results.json</code> + an HTML viewer) — nothing to test until one does. One documented <code>pytest.mark.skip</code>, not a silent gap.</p>
+        </div>
+        <span class="ledger-status">Documented</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="ledger-tag">Unmea&shy;sured</span>
+        <div class="ledger-body">
+          <p class="ledger-title">Cache degradation under concurrency — asserted, not measured</p>
+          <p class="ledger-detail"><code>README.md</code> says concurrent mode's cache hit rate is worse than sequential's ("several can race the first cache write") — no test or number currently backs that claim up.</p>
+        </div>
+        <span class="ledger-status">Not started</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="ledger-tag">Fakes only</span>
+        <div class="ledger-body">
+          <p class="ledger-title">Batch-mode failure/resume — never tried against a real in-flight batch</p>
+          <p class="ledger-detail"><code>fetch_and_merge_results</code>/<code>wait_for_batch</code> are unit-tested against fakes only. Nobody has killed the process mid-poll against a real Anthropic batch and confirmed <code>--no-wait</code>/resume genuinely works end-to-end.</p>
+        </div>
+        <span class="ledger-status">Needs confirm</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p class="takeaway">Every item here has a name, an owner action, and — where it costs real money — an exact number. That's the difference between "production ready" and "we didn't look."</p>
+      <div class="prevnext">
+        <a href="eval-test-observability-agent-tom-backup-2.html">← Prev</a>
+        <a href="eval-test-observability-agent-tom.html">Main →</a>
+      </div>
+    </div>
+  </div>
+<script>
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'ArrowRight' || e.key === 'Escape') location.href = 'eval-test-observability-agent-tom.html';
+  if (e.key === 'ArrowLeft') location.href = 'eval-test-observability-agent-tom-backup-2.html';
+});
+</script>
+</body>
+</html>

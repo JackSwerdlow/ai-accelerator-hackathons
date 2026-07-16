@@ -824,6 +824,8 @@ substitute for seeing it render.
 `wk09/presentations/eval-test-observability-agent-tom-script.md`,
 `wk09/solution/AI_LOG.md`.
 
+---
+
 ## [Agent-Jack] 2026-07-16 — Fix cost model: staff wages are Manual-only
 
 **Task:** User review of the decision tool caught a modelling error — the
@@ -869,4 +871,38 @@ Verified clip-on (large N) and clip-off (small N, Manual comparable) render
 cleanly via the Node DOM-stub harness.
 
 **Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
+`wk09/solution/AI_LOG.md`.
+
+---
+
+## [Agent-Tom] 2026-07-16 — Built the 3 backup slides
+
+**Task:** Build the 3 deferred backup slides from the plan (bug deep-dive,
+checklist + observability, honest ledger), matching the main slide's dark
+visual system, each with a nav strip (Main · 1 · 2 · 3), Prev/Next links, and
+a short Q&A-notes `-script.md` (not timed, unlike the main script).
+
+**What AI generated:** All content re-derived from source rather than
+recalled - re-tallied the checklist's priority counts directly from
+`improvement-checklist-agent-tom.md` (16 P0 / 15 P1 / 23 P2 / 1 P3 / 2 F = 57,
+via a small script rather than eyeballing the markdown table, since bolded/
+annotated priority lines like `Priority: **P0** (upgraded from P1)` don't
+match a naive regex), grepped the live `consultation.*` metric names and
+`.github/workflows/tests.yml` rather than quoting the plan's cached list, and
+read `tests/unit/test_security.py`'s actual skip reason for S4 verbatim
+instead of paraphrasing from memory.
+
+**What you changed + why:** One numeric overclaim caught before shipping -
+first draft of Backup 3 said "the remaining 16 [golden-eval] rows cost
+roughly £0.04," but `EVAL_REPORT.md:122` states £0.04 is the cost of the
+*full* 18-row set, not just the 16 unrun ones. Corrected to avoid
+overstating precision on a real-money figure, which this project tracks
+carefully (`ai-spend-log*.csv`, `wk09/CLAUDE.md`'s cost-tracking discipline).
+
+**Files:** `wk09/presentations/eval-test-observability-agent-tom-backup-1.html`,
+`wk09/presentations/eval-test-observability-agent-tom-backup-1-script.md`,
+`wk09/presentations/eval-test-observability-agent-tom-backup-2.html`,
+`wk09/presentations/eval-test-observability-agent-tom-backup-2-script.md`,
+`wk09/presentations/eval-test-observability-agent-tom-backup-3.html`,
+`wk09/presentations/eval-test-observability-agent-tom-backup-3-script.md`,
 `wk09/solution/AI_LOG.md`.
