@@ -81,7 +81,7 @@
       },
       "customLegendColors": {},
       "decimalPrecision": 2,
-      "description": "Total consultation.spend.gbp increase over the selected time range - the '\u00a3 so far' number.",
+      "description": "Total consultation.spend.gbp over the selected time range - the '\u00a3 so far' number.",
       "fillSpans": false,
       "id": "w1",
       "isLogScale": false,
@@ -111,7 +111,7 @@
                 {
                   "metricName": "consultation.spend.gbp",
                   "temporality": null,
-                  "timeAggregation": "increase",
+                  "timeAggregation": "sum",
                   "spaceAggregation": "sum",
                   "reduceTo": "sum"
                 }
@@ -240,7 +240,7 @@
                 {
                   "metricName": "consultation.spend.gbp",
                   "temporality": null,
-                  "timeAggregation": "rate",
+                  "timeAggregation": "sum",
                   "spaceAggregation": "sum",
                   "reduceTo": "sum"
                 }
@@ -318,7 +318,7 @@
       "stackedBarChart": false,
       "thresholds": [],
       "timePreferance": "GLOBAL_TIME",
-      "title": "Spend Rate by Model",
+      "title": "Spend by Model",
       "yAxisUnit": "none"
     },
     {
@@ -369,7 +369,7 @@
                 {
                   "metricName": "consultation.spend.gbp",
                   "temporality": null,
-                  "timeAggregation": "rate",
+                  "timeAggregation": "sum",
                   "spaceAggregation": "sum",
                   "reduceTo": "sum"
                 }
@@ -498,7 +498,7 @@
                 {
                   "metricName": "consultation.rows.total",
                   "temporality": null,
-                  "timeAggregation": "rate",
+                  "timeAggregation": "sum",
                   "spaceAggregation": "sum",
                   "reduceTo": "sum"
                 }
@@ -627,7 +627,7 @@
                 {
                   "metricName": "consultation.cache.status",
                   "temporality": null,
-                  "timeAggregation": "rate",
+                  "timeAggregation": "sum",
                   "spaceAggregation": "sum",
                   "reduceTo": "sum"
                 }

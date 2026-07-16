@@ -6,6 +6,7 @@ know: GBP spend, row outcome, response size, batch progress.
 """
 
 import logging
+import socket
 import time
 
 from opentelemetry import metrics, trace
@@ -165,7 +166,19 @@ def init_telemetry():
     if _initialized:
         return
     try:
-        resource = Resource.create({"service.name": SERVICE_NAME})
+        # service.instance.id is deliberately pinned to the hostname, not left
+        # for OTel to auto-generate a random UUID per process. analyse.py is a
+        # batch CLI invoked repeatedly over time (cron, manual re-runs) - the
+        # dashboard needs those runs to land on one continuous, queryable time
+        # series per host, not fragment into a new single-point series every
+        # invocation (which is exactly what happened before this fix: found by
+        # importing the dashboard for real and seeing every rate/increase
+        # panel come back empty, traced to >1000 distinct service.instance.id
+        # values for these metrics in this shared SigNoz instance).
+        resource = Resource.create({
+            "service.name": SERVICE_NAME,
+            "service.instance.id": socket.gethostname(),
+        })
 
         tracer_provider = TracerProvider(resource=resource)
         tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
