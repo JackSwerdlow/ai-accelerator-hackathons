@@ -348,11 +348,11 @@
       </div>
       <div class="money">
         <h3><span class="dot" style="background:var(--warn)"></span>Cost of waiting</h3>
-        <p>Every hour results aren't ready has a price — blocked downstream work, an SLA, or a person idle. Paid <b>per hour of wall-clock</b>.</p>
+        <p>A <b>business</b> cost, not wages — blocked downstream work or an SLA penalty per hour until results land. Applies to the API modes; set it to £0 for a job nobody's waiting on.</p>
       </div>
       <div class="money">
-        <h3><span class="dot" style="background:var(--manual)"></span>Manual labour</h3>
-        <p>The do-nothing-with-AI baseline: pay people to read and tag each response by hand. Sometimes, at tiny volumes, still the cheapest.</p>
+        <h3><span class="dot" style="background:var(--manual)"></span>Manual — staff time</h3>
+        <p>The do-nothing-with-AI baseline, and the <b>only</b> place staff wages count: pay people to read and tag each response by hand.</p>
       </div>
       <div class="money">
         <h3><span class="dot" style="background:var(--batch)"></span>The trade</h3>
@@ -391,7 +391,7 @@
           <div class="ctrl">
             <div class="ctrl-head"><label for="c-block">Cost of waiting</label><span class="val" id="v-block">£30 / hr</span></div>
             <input type="range" id="c-block" min="0" max="500" step="1" value="30">
-            <div class="caption">value of work blocked, or SLA/idle cost, per hour until <em>all</em> results are in</div>
+            <div class="caption">business cost of work blocked / SLA per hour until <em>all</em> results are in — <em>not</em> staff wages · applies to the API modes</div>
           </div>
           <div class="ctrl">
             <div class="ctrl-head"><label for="c-deadline">Deadline</label><span class="val" id="v-deadline">off</span></div>
@@ -469,9 +469,10 @@
             </div>
           </div>
           <div class="legend">
-            <span><span class="sw" style="background:var(--concurrent)"></span>API cost</span>
+            <span><span class="sw" style="background:var(--concurrent)"></span>Concurrent — API tokens</span>
+            <span><span class="sw" style="background:var(--batch)"></span>Batch — API tokens</span>
+            <span><span class="sw" style="background:var(--manual)"></span>Manual — staff time</span>
             <span><span class="sw" style="background:var(--warn)"></span>Cost of waiting</span>
-            <span><span class="sw" style="background:var(--manual)"></span>Manual labour</span>
           </div>
           <svg id="chart-tco" viewBox="0 0 720 340" role="img" aria-label="Total cost of ownership by mode"></svg>
         </div>
@@ -514,7 +515,9 @@
           <svg id="chart-map" viewBox="0 0 720 380" role="img" aria-label="Decision map: cheapest mode by volume and urgency"></svg>
           <p class="map-note">
             x → number of requests (log) · y → cost of waiting per hour (log). Batch owns the low-urgency
-            bottom; concurrent takes over as the wait gets expensive; manual survives only in the tiny-volume corner.
+            bottom; concurrent takes over as the wait gets expensive. At a few pence per request the API is so
+            cheap that <b>manual almost never wins on cost</b> — it only appears if you push cost-per-request
+            high or make manual very fast/cheap.
           </p>
         </div>
       </main>
@@ -530,7 +533,7 @@
         <h3>What's hardcoded (and why)</h3>
         <ul>
           <li><b>50% batch discount</b> — a fixed industry constant (Anthropic, OpenAI, Google all use it).</li>
-          <li><b>Both API modes need ~0.3 h oversight</b> — someone kicks the run off and checks results.</li>
+          <li><b>Staff wages are charged to Manual only.</b> The API modes pay for tokens plus the cost of waiting — never employee time.</li>
           <li><b>Batch time is treated as ~flat</b> (async SLA), not linear in volume — unlike concurrent, which scales with the number of waves.</li>
         </ul>
       </div>
@@ -558,7 +561,6 @@
    ECONOMIC MODEL
    ============================================================ */
 const BATCH_DISCOUNT = 0.5;      // batch API: 50% off the token rate
-const OVERSIGHT_HOURS = 0.3;     // human setup + result check for API modes
 
 const state = {
   n: 20000,
@@ -586,11 +588,14 @@ function wallHours(mode, n, s = state) {
 /* full cost breakdown for one mode */
 function costOf(mode, n = state.n, s = state) {
   const wall = wallHours(mode, n, s);
-  let api = 0, labour = 0;
-  if (mode === 'concurrent') { api = n * s.costPerReq;                 labour = OVERSIGHT_HOURS * s.empRate; }
-  if (mode === 'batch')      { api = n * s.costPerReq * BATCH_DISCOUNT; labour = OVERSIGHT_HOURS * s.empRate; }
-  if (mode === 'manual')     { api = 0;                                labour = n * (s.manualMin / 60) * s.empRate; }
-  const waiting = wall * s.blockRate;
+  let api = 0, labour = 0, waiting = 0;
+  if (mode === 'concurrent') { api = n * s.costPerReq;                  waiting = wall * s.blockRate; }
+  if (mode === 'batch')      { api = n * s.costPerReq * BATCH_DISCOUNT; waiting = wall * s.blockRate; }
+  // Manual is costed on staff time ONLY — you pay people to do the work,
+  // not to wait on a machine. Employee cost never touches the API modes,
+  // and the "cost of waiting" (a business/opportunity cost, not wages)
+  // never touches manual.
+  if (mode === 'manual')     { labour = n * (s.manualMin / 60) * s.empRate; }
   const total = api + waiting + labour;
   const meetsDeadline = s.deadline <= 0 || wall <= s.deadline + 1e-9;
   return { mode, api, waiting, labour, total, wall, meetsDeadline };

@@ -823,3 +823,28 @@ substitute for seeing it render.
 **Files:** `wk09/presentations/eval-test-observability-agent-tom.html`,
 `wk09/presentations/eval-test-observability-agent-tom-script.md`,
 `wk09/solution/AI_LOG.md`.
+
+## [Agent-Jack] 2026-07-16 — Fix cost model: staff wages are Manual-only
+
+**Task:** User review of the decision tool caught a modelling error — the
+Concurrent/Batch bars carried a fixed "oversight" segment priced at the
+employee hourly rate, i.e. the model was effectively paying staff wages
+during the time spent waiting on the API.
+
+**What AI generated (first version):** `costOf()` charged
+`OVERSIGHT_HOURS × empRate` of labour to both API modes, shown as an orange
+"Manual labour" slice on the Concurrent/Batch bars.
+
+**What you changed + why:** Removed employee cost from the API modes entirely.
+Staff wages now appear on **Manual only** (`N × minutes × rate`); Concurrent and
+Batch are costed as API tokens + cost-of-waiting, where cost-of-waiting is an
+explicit *business* opportunity cost (blocked work / SLA) on its own slider,
+never wages — and it no longer applies to Manual (you pay people to do the
+work, not to wait on a machine). Honest consequence, surfaced rather than
+papered over: with the fake oversight floor gone, the API is so cheap per
+request that Manual essentially never wins on cost, so the decision map is now
+effectively Batch-vs-Concurrent. Updated the legend, the money-model copy, the
+slider caption, the map note, and the "what's hardcoded" list to match.
+
+**Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
+`wk09/solution/AI_LOG.md`.
