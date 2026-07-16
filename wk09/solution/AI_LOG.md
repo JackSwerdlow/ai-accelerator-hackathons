@@ -957,3 +957,72 @@ and the concurrency crossing (~C=4 at £30/hr) via the model, and all 6-step /
 
 **Files:** `wk09/presentations/batch-vs-concurrent-decision-tool-agent-jack.html`,
 `wk09/solution/AI_LOG.md`.
+
+---
+
+## [Agent-Tom] 2026-07-16 — Rebuilt the main slide as a full interactive page, matching Jack's decision tool
+
+**Task:** The user pointed at Agent-Jack's *finished* interactive tool
+(`batch-vs-concurrent-decision-tool-agent-jack.html`) as the actual style/
+interactivity bar for the presentation, distinct from his earlier lightning-
+talk slide precedent, and asked for ours to match it. This meant abandoning
+the fixed 1280x720 canvas entirely for a full scrolling page: sticky topbar +
+theme toggle, hero + measured-metrics stat cards, a 4-card explainer strip, a
+sticky guided-walkthrough side panel (numbered dots, narrated steps,
+off-script detection), a "Verdict" banner (new, repurposing his `.rec`
+recommendation banner), the two-lane collision timeline (now genuinely
+line-and-dot rather than floating chips, per explicit feedback that it didn't
+read as a timeline), a confidence-ledger chart-card, and a 2-column footer.
+Also added brief-context copy (this goes to *other teams* who worked a
+different hackathon scenario) and a light/dark theme toggle, neither of which
+existed before.
+
+**What AI generated, and two things caught before shipping (not one-shot):**
+
+1. **A real JS timing bug, caught by reasoning about the spec, not by
+   running it.** The off-script detector originally set a `programmaticToggle`
+   flag to `true` around each `<details>.open = ...` assignment in
+   `setActiveNode()`, then reset it to `false` immediately after the loop,
+   expecting the `toggle` event listener to see it still `true` when checking
+   `if (programmaticToggle) return`. But per the HTML spec, `<details>`'
+   `toggle` event fires as a *queued task*, not synchronously — by the time it
+   actually fires, `setActiveNode()` had already returned and reset the flag
+   to `false`, so every guided-walkthrough step would have incorrectly
+   registered as the user going "off-script." Caught this by re-reading the
+   code against what I know of `<details>` toggle-event timing (no browser
+   available to catch it by running it) and rewrote the detector to listen
+   for `click` on each node's `<summary>` instead — synchronous, and only
+   ever fired by real user interaction, since `setActiveNode()` sets `.open`
+   directly and never simulates a click. This sidesteps the async-event-
+   timing question entirely rather than trying to out-time it with a
+   `setTimeout` reset.
+2. **A content inconsistency, caught on a final read-through.** The Verdict
+   banner's "why" text named 3 gaps (CI not covering `test_analyse.py`, no
+   fallback provider, 16/18 quality-eval rows unrun) to match its own
+   `.rec-warn` line (which specifically depends on the CI gap being one of
+   the named 3). But the confidence ledger's "Named, not hidden" card,
+   written earlier, named a *different* set of 3 (golden-eval rows, fallback
+   provider, real-scale rate limits) — the same page would have told a
+   careful reader two different stories about what its "3 named gaps" were.
+   Fixed the ledger card to name the same 3 as the Verdict banner, and added
+   an honest "(there are more — 8 in total — all named there)" pointer to
+   Backup 3 rather than implying only 3 gaps exist anywhere.
+
+**Verified before shipping:** re-ran `pytest test_analyse.py tests/ -q` live
+(64 passed, 1 skipped, 0 failed — matches the page); re-checked HTML tag-
+matching, CSS brace-balance, and (new this time) `node --check` on the
+extracted `<script>` block, since the JS here is substantial (a walkthrough
+state machine, an SVG-drawing timeline with theme-aware colour resolution,
+cursor-tracking tooltips) — none of that was true of the previous version's
+~15-line script; cross-checked the new brief-context copy against
+`wk09/context/slides_context.md` directly rather than paraphrasing from
+memory. **A real-browser check is still outstanding and more important than
+before, not less** — this page has genuine interactive JS state that
+structural validation cannot verify (does the walkthrough highlight the right
+node, does the theme toggle actually recolour the SVG lines, does the
+tooltip follow the cursor) — flagged to the user, same caveat as both
+previous versions.
+
+**Files:** `wk09/presentations/eval-test-observability-agent-tom.html`,
+`wk09/presentations/eval-test-observability-agent-tom-script.md`,
+`wk09/solution/AI_LOG.md`.

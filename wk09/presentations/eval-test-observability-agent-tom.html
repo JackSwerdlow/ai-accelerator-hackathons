@@ -1,476 +1,745 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Evals, Tests &amp; Observability — Agent-Tom</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evals, Tests &amp; Observability — the collision that proved it</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
-
+  /* ---------- palette ----------
+     Categorical, 4 slots — validated with dataviz validate_palette.js:
+       node scripts/validate_palette.js "199e70,9085e9,e66767,008300" --mode dark --surface "#0d1226"  -> ALL PASS
+       node scripts/validate_palette.js "1baf7a,4a3aa7,e34948,008300" --mode light --surface "#fcfcfb" -> PASS, 1 WARN (aqua contrast 2.74 — relief via visible labels, every node is labelled, never colour-alone)
+     --info/--warn reuse Agent-Jack's own validated status/entity steps from
+     batch-vs-concurrent-decision-tool-agent-jack.html verbatim. Neutrals
+     (bg/surface/ink/dim/muted/line) reused verbatim from the same file, for
+     one consistent visual system across the team's presentations. */
   :root {
     color-scheme: dark;
-    --bg:      #0d0f14;
-    --bg2:     #13161e;
-    --bg3:     #1a1d27;
-    --border:  #2a2e3e;
-    --text:    #e8eaf0;
-    --muted:   #8892a4;
-    --tom:     #199e70;   /* categorical dark-step aqua — Agent-Tom's track */
-    --jack:    #9085e9;   /* categorical dark-step violet — Agent-Jack's track */
-    --bug:     #e66767;   /* categorical dark-step red — a real bug found */
-    --good:    #008300;   /* categorical dark-step green — fixed & verified */
-    --info:    #3987e5;   /* categorical dark-step blue — measured, not claimed */
-    --warn:    #fab219;   /* status warning — named, not hidden */
+    --bg-0: #0a0e1a;
+    --bg-1: #11172a;
+    --bg-2: #1a2240;
+    --surface: #0d1226;
+    --ink: #e7ecf6;
+    --dim: #98a4c4;
+    --muted: #6c7796;
+    --line: #2a3556;
+    --line-soft: rgba(106,167,255,0.10);
+
+    --tom:      #199e70;   /* slot 1 — Agent-Tom's track */
+    --jack:     #9085e9;   /* slot 2 — Agent-Jack's track */
+    --bug:      #e66767;   /* slot 3 — a bug found */
+    --good:     #008300;   /* slot 4 — fixed & verified */
+    --tom-ink:  #3fce9b;
+    --jack-ink: #a99cff;
+    --bug-ink:  #ff9b9b;
+    --good-ink: #4ade80;
+
+    --info:     #3987e5;   /* measured / data — reused from Jack's --concurrent */
+    --info-ink: #6aa7ff;
+    --warn:     #ffc857;   /* named, not hidden — reused from Jack's --warn */
+    --warn-ink: #ffc857;
   }
-  /* Palette validated: node scripts/validate_palette.js "199e70,9085e9,e66767,008300"
-     --mode dark --surface "#0d0f14" -> ALL CHECKS PASS (lightness band, chroma floor,
-     CVD separation, contrast). --info/--warn reuse the skill's pre-validated
-     categorical-blue / status-warning steps. */
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg-0: #fcfcfb;
+    --bg-1: #f6f5f2;
+    --bg-2: #eeece7;
+    --surface: #ffffff;
+    --ink: #0b0b0b;
+    --dim: #52514e;
+    --muted: #86847d;
+    --line: rgba(11,11,11,0.14);
+    --line-soft: rgba(11,11,11,0.07);
+
+    --tom:      #1baf7a;
+    --jack:     #4a3aa7;
+    --bug:      #e34948;
+    --good:     #008300;
+    --tom-ink:  #0f7a54;
+    --jack-ink: #3d2f8a;
+    --bug-ink:  #b8271f;
+    --good-ink: #046b04;
+
+    --info:     #2a78d6;
+    --info-ink: #1f5fac;
+    --warn:     #b07a00;
+    --warn-ink: #b07a00;
+  }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    height: 100%;
-    background: var(--bg);
-    color: var(--text);
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-0);
+    color: var(--ink);
     font-family: 'Inter', -apple-system, "Segoe UI", sans-serif;
-    line-height: 1.4;
+    line-height: 1.6;
+    overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
   }
+  code, .mono { font-family: 'JetBrains Mono', monospace; }
 
-  .slide {
-    width: 100vw;
-    height: 100vh;
-    max-width: 1280px;
-    max-height: 720px;
-    margin: 0 auto;
-    padding: 30px 52px 22px;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    position: relative;
-    overflow: hidden;
-  }
-  .slide::before {
-    content: '';
-    position: absolute;
-    inset: 0;
+  .bg-gradient {
+    position: fixed; inset: 0; z-index: -2; pointer-events: none;
     background:
-      radial-gradient(ellipse 700px 320px at 12% -10%, color-mix(in srgb, var(--tom) 16%, transparent) 0%, transparent 70%),
-      radial-gradient(ellipse 700px 320px at 92% 8%, color-mix(in srgb, var(--jack) 14%, transparent) 0%, transparent 70%);
-    pointer-events: none;
+      radial-gradient(ellipse at 10% 0%, rgba(25,158,112,0.16), transparent 52%),
+      radial-gradient(ellipse at 90% 6%, rgba(144,133,233,0.13), transparent 52%),
+      radial-gradient(ellipse at 50% 100%, rgba(230,103,103,0.06), transparent 55%),
+      var(--bg-0);
+    transition: opacity 0.3s;
   }
-  .slide > * { position: relative; z-index: 1; }
+  :root[data-theme="light"] .bg-gradient { opacity: 0.55; }
 
-  /* ── Hero ── */
-  .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 40px 0; position: relative; }
+  h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(2rem, 4.4vw, 3.6rem); line-height: 1.06; }
+  h2 { font-size: clamp(1.4rem, 2.6vw, 2.1rem); margin-bottom: 8px; }
+  p { color: var(--dim); }
+  p.lead { font-size: 1.1rem; color: var(--dim); max-width: 840px; }
+
   .eyebrow {
-    display: inline-block;
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #a9d9c8;
-    background: color-mix(in srgb, var(--tom) 16%, transparent);
-    border: 1px solid color-mix(in srgb, var(--tom) 40%, transparent);
-    border-radius: 20px;
-    padding: 4px 12px;
-    margin-bottom: 10px;
+    display: inline-block; font-size: 0.74rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--tom-ink);
+    padding: 4px 10px; border: 1px solid var(--line); border-radius: 99px;
+    background: var(--line-soft); margin-bottom: 14px;
   }
-  h1 {
-    font-size: 31px;
-    font-weight: 900;
-    letter-spacing: -0.01em;
-    line-height: 1.14;
-    margin: 0 0 6px;
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--bg-0) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
   }
-  h1 .grad {
-    background: linear-gradient(120deg, #fff 20%, var(--tom) 65%, var(--good) 100%);
-    -webkit-background-clip: text;
+  .topbar .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; padding-bottom: 12px; gap: 16px; }
+  .topbar .brand { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; }
+  .topbar .brand span { color: var(--muted); font-weight: 500; }
+  .theme-toggle {
+    background: var(--bg-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 13px; font-size: 0.82rem; cursor: pointer;
+    font-family: inherit; font-weight: 600; transition: border-color 0.15s;
+  }
+  .theme-toggle:hover { border-color: var(--tom); }
+
+  /* ---------- hero ---------- */
+  .hero { padding-top: 56px; padding-bottom: 24px; }
+  .hero h1 .grad {
+    background: linear-gradient(110deg, var(--tom-ink), var(--good-ink) 55%, var(--jack-ink));
+    -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
-    background-clip: text;
   }
-  h1 .fade { display: block; color: var(--muted); font-weight: 600; font-size: 0.86em; margin-top: 2px; }
+  .hero h1 .fade { display: block; color: var(--dim); font-weight: 700; font-size: 0.62em; margin-top: 6px; }
 
-  .backup-link {
-    flex: none;
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--text);
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 7px 14px;
-    text-decoration: none;
-    white-space: nowrap;
+  .measured { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px; }
+  .mcard {
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+    background: linear-gradient(180deg, var(--bg-1), transparent);
   }
-  .backup-link:hover { border-color: var(--tom); color: #a9d9c8; }
+  .mcard .tag { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+  .mcard .big { font-family: 'JetBrains Mono', monospace; font-size: 1.9rem; font-weight: 600; line-height: 1.1; margin: 6px 0 2px; }
+  .mcard .sub { font-size: 0.82rem; color: var(--dim); }
+  .mcard.t { border-top: 3px solid var(--tom); } .mcard.t .big { color: var(--tom-ink); }
+  .mcard.b { border-top: 3px solid var(--bug); } .mcard.b .big { color: var(--bug-ink); }
+  .mcard.g { border-top: 3px solid var(--good); } .mcard.g .big { color: var(--good-ink); }
+  @media (max-width: 760px) { .measured { grid-template-columns: 1fr; } }
 
-  .subtitle {
-    font-size: 14.5px;
-    color: var(--muted);
-    margin: 0 0 14px;
-    max-width: 900px;
+  /* ---------- explainer strip ---------- */
+  .money-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 6px; }
+  .money { border: 1px solid var(--line); border-radius: 12px; padding: 14px 15px; background: var(--surface); }
+  .money h3 { font-size: 0.92rem; display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+  .money .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+  .money p { font-size: 0.83rem; }
+  @media (max-width: 860px) { .money-strip { grid-template-columns: 1fr 1fr; } }
+
+  /* ---------- app layout ---------- */
+  .app { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 1000px) { .app { grid-template-columns: 1fr; } }
+
+  .panel {
+    border: 1px solid var(--line); border-radius: 16px; background: var(--surface);
+    padding: 18px; position: sticky; top: 74px;
   }
+  @media (max-width: 1000px) { .panel { position: static; } }
+  .panel h2 { font-size: 1.05rem; margin-bottom: 2px; }
+  .panel .hint { font-size: 0.78rem; color: var(--muted); margin-bottom: 14px; }
 
-  /* ── Timeline ── */
-  .tl-block { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .tl-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .tl-btn {
-    font-family: inherit;
-    font-size: 11.5px;
-    font-weight: 700;
-    color: var(--text);
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 5px 11px;
-    cursor: pointer;
+  .walk-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .walk-step {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 700;
+    color: var(--tom-ink); background: var(--line-soft);
+    padding: 2px 8px; border-radius: 99px; white-space: nowrap;
   }
-  .tl-btn:hover { border-color: var(--tom); }
-  .tl-hint { font-size: 11px; color: var(--muted); }
-
-  .lanes { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
-  .lane { display: flex; align-items: center; gap: 10px; }
-  .lane-tag {
-    flex: none;
-    width: 62px;
-    text-align: center;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    padding: 4px 6px;
-    border-radius: 6px;
+  .walk-title { font-size: 0.96rem; font-weight: 700; color: var(--ink); }
+  .walk-narr { font-size: 0.83rem; color: var(--dim); margin: 0 0 10px; min-height: 96px; }
+  .walk-dots { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .walk-dot {
+    width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--bg-2); color: var(--dim); font-size: 0.72rem; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    padding: 0; font-family: inherit; transition: border-color 0.15s, background 0.15s, color 0.15s;
   }
-  .lane-tom .lane-tag { color: #a9d9c8; background: color-mix(in srgb, var(--tom) 20%, transparent); border: 1px solid color-mix(in srgb, var(--tom) 40%, transparent); }
-  .lane-jack .lane-tag { color: #cfc9ff; background: color-mix(in srgb, var(--jack) 20%, transparent); border: 1px solid color-mix(in srgb, var(--jack) 40%, transparent); }
+  .walk-dot:hover { border-color: var(--tom); }
+  .walk-dot.active { background: var(--tom); color: #fff; border-color: var(--tom); }
+  .walk-dot.off { opacity: 0.5; }
 
-  .merge-row { align-items: flex-start; }
-  .merge-items { display: flex; align-items: flex-start; flex: 1; }
-  .merge-item { display: flex; align-items: flex-start; }
-  .merge-item + .merge-item::before {
-    content: '→';
-    align-self: center;
-    color: var(--border);
-    font-size: 18px;
-    font-weight: 300;
-    margin: 0 10px;
+  .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+  .mini-btn {
+    flex: 1; background: var(--bg-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 6px; font-size: 0.8rem; cursor: pointer;
+    font-family: inherit; font-weight: 600; transition: border-color 0.15s, background 0.15s;
   }
+  .mini-btn:hover { border-color: var(--tom); }
+  .mini-btn:disabled { opacity: 0.4; cursor: default; }
+  .walk-caption { font-size: 0.73rem; color: var(--muted); margin-top: 8px; }
 
-  /* Node = <details>, summary is the always-visible chip, body is the click-reveal panel */
-  .node { --accent: var(--tom); position: relative; }
-  .node-tom { --accent: var(--tom); }
-  .node-jack { --accent: var(--jack); }
-  .node-collision { --accent: var(--bug); }
-  .node-satellite { --accent: var(--bug); }
-  .node-fixed, .node-trials, .node-observable { --accent: var(--good); }
+  /* ---------- recommendation / verdict banner ---------- */
+  .rec {
+    border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px;
+    background: var(--surface); position: relative; overflow: hidden;
+  }
+  .rec::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+    background: var(--warn);
+  }
+  .rec .rec-label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; }
+  .rec .rec-name { font-size: 1.6rem; font-weight: 800; margin: 2px 0 4px; color: var(--warn-ink); }
+  .rec .rec-why { font-size: 0.95rem; color: var(--dim); max-width: 760px; }
+  .rec .rec-why b { color: var(--ink); }
+  .rec .rec-nums { display: flex; gap: 22px; margin-top: 14px; flex-wrap: wrap; }
+  .rec .rec-num .n { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 1.15rem; }
+  .rec .rec-num .l { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .rec-warn { margin-top: 12px; font-size: 0.85rem; color: var(--warn-ink); display: flex; align-items: center; gap: 8px; }
 
-  .node > summary {
-    list-style: none;
-    cursor: pointer;
-    min-width: 148px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 10px;
-    padding: 9px 12px;
-    font-size: 12.5px;
-    font-weight: 600;
-    line-height: 1.3;
+  /* ---------- chart cards ---------- */
+  .chart-card { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); padding: 18px 20px 20px; margin-bottom: 20px; }
+  .chart-card .ch-sub { font-size: 0.86rem; color: var(--dim); max-width: 680px; margin-bottom: 12px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.82rem; color: var(--dim); margin-bottom: 10px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  text { fill: var(--dim); font-family: 'Inter', sans-serif; }
+  .tick-label { fill: var(--muted); font-size: 11px; }
+
+  /* timeline */
+  .tl-wrap { position: relative; width: 100%; aspect-ratio: 16 / 7; background: var(--bg-1); border-radius: 12px; }
+  .tl-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .tl-node { position: absolute; transform: translate(-50%, -100%); z-index: 3; }
+  .tl-node.below { transform: translate(-50%, 14px); }
+  .tl-node > summary {
+    list-style: none; cursor: pointer; min-width: 150px; max-width: 190px;
+    background: var(--bg-2); border: 1px solid var(--line); border-left: 3px solid var(--accent, var(--tom));
+    border-radius: 10px; padding: 8px 11px; font-size: 12.5px; font-weight: 600; line-height: 1.3;
     transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
   }
-  .node > summary::-webkit-details-marker { display: none; }
-  .node > summary:hover { border-left-color: color-mix(in srgb, var(--accent) 70%, white); }
-  .node.step-active > summary {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
-    transform: translateY(-2px);
-  }
-  .node.step-dim > summary { opacity: 0.35; }
-  @media (prefers-reduced-motion: reduce) {
-    .node > summary { transition: none; }
-  }
-
-  .mini-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; }
-  .node-badge {
-    display: inline-block;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-top: 3px;
-  }
-
-  .node-body {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 8;
-    width: 280px;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--text);
+  .tl-node > summary::-webkit-details-marker { display: none; }
+  .tl-node.step-active > summary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, var(--tom)) 45%, transparent); transform: translateY(-2px); }
+  .tl-node.step-dim > summary { opacity: 0.4; }
+  @media (prefers-reduced-motion: reduce) { .tl-node > summary { transition: none; } }
+  .tl-node .mini-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; }
+  .tl-node .badge { display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent, var(--tom)); margin-top: 3px; }
+  .tl-node .body {
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 8; width: 270px;
+    background: var(--bg-1); border: 1px solid var(--line); border-left: 3px solid var(--accent, var(--tom));
+    border-radius: 10px; padding: 12px 14px; font-size: 12px; line-height: 1.5; color: var(--ink);
     box-shadow: 0 12px 32px rgba(0,0,0,0.45);
   }
-  .node-body code, .node-body pre {
-    display: block;
-    margin-top: 6px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    white-space: pre-wrap;
-    color: #ffb4b4;
-    background: rgba(0,0,0,0.25);
-    border-radius: 6px;
-    padding: 8px 10px;
+  .tl-node.below .body { top: calc(100% + 8px); }
+  .tl-node .body code { display: block; margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; white-space: pre-wrap; color: var(--bug-ink); background: rgba(0,0,0,0.25); border-radius: 6px; padding: 7px 9px; }
+  .tl-node-tom { --accent: var(--tom); }
+  .tl-node-jack { --accent: var(--jack); }
+  .tl-node-collision, .tl-node-satellite { --accent: var(--bug); }
+  .tl-node-fixed, .tl-node-trials, .tl-node-observable { --accent: var(--good); }
+  .tl-lane-label { position: absolute; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; transform: translateY(-50%); }
+
+  /* tooltip */
+  .tooltip {
+    position: fixed; z-index: 100; pointer-events: none; opacity: 0;
+    background: var(--bg-2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 10px; padding: 9px 11px; font-size: 0.78rem; line-height: 1.5;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.6); transition: opacity 0.12s; max-width: 260px;
   }
 
-  .branch-wrap { display: flex; flex-direction: column; align-items: flex-start; }
-  .branch-connector { width: 2px; height: 14px; background: var(--bug); margin: 2px 0 2px 18px; }
-  .node-satellite > summary { min-width: 168px; opacity: 0.94; }
+  /* ledger cards */
+  .ledger-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .ledger-card { border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; background: var(--bg-1); }
+  .ledger-card .tier { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 5px; }
+  .ledger-card p { font-size: 0.85rem; color: var(--ink); }
+  .ledger-card.verified { border-top: 2px solid var(--good); } .ledger-card.verified .tier { color: var(--good-ink); }
+  .ledger-card.measured { border-top: 2px solid var(--info); } .ledger-card.measured .tier { color: var(--info-ink); }
+  .ledger-card.named { border-top: 2px solid var(--warn); } .ledger-card.named .tier { color: var(--warn-ink); }
+  .ledger-card.named a { color: var(--warn-ink); font-weight: 700; text-decoration: none; }
+  .ledger-card.named a:hover { text-decoration: underline; }
+  @media (max-width: 860px) { .ledger-row { grid-template-columns: 1fr; } }
 
-  /* ── CSS-only hover tooltip, independent of the click-reveal ── */
-  .tt { position: relative; }
-  .tt .tt-bubble {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 0;
-    background: #000;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 1.35;
-    width: max-content;
-    max-width: 240px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.12s ease;
-    z-index: 9;
-  }
-  .tt:hover .tt-bubble { opacity: 1; }
-
-  /* ── Confidence ledger ── */
-  .ledger-label {
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 12px 0 6px;
-  }
-  .ledger { display: flex; gap: 12px; }
-  .ledger-card {
-    flex: 1;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 9px 13px;
-    font-size: 11.5px;
-    line-height: 1.4;
-    text-decoration: none;
-    color: var(--text);
-    display: block;
-  }
-  .ledger-tier {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin-bottom: 3px;
-  }
-  .ledger-card.verified { border-top: 2px solid var(--good); }
-  .ledger-card.verified .ledger-tier { color: #5fd35f; }
-  .ledger-card.measured { border-top: 2px solid var(--info); }
-  .ledger-card.measured .ledger-tier { color: #7ab2f0; }
-  .ledger-card.named { border-top: 2px solid var(--warn); }
-  .ledger-card.named .ledger-tier { color: var(--warn); }
-  .ledger-card.named:hover { border-color: var(--warn); }
-  .ledger-card .chev { color: var(--muted); font-weight: 700; }
-
-  /* ── Footer ── */
-  .footer {
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-  }
+  /* ---------- footer ---------- */
+  footer { padding: 40px 0 64px; color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--line); margin-top: 20px; }
+  footer code { background: var(--bg-1); padding: 2px 6px; border-radius: 4px; color: var(--dim); }
+  footer .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { footer .cols { grid-template-columns: 1fr; } }
+  footer h3 { color: var(--dim); font-size: 0.86rem; margin-bottom: 6px; }
+  footer ul { margin: 0; padding-left: 18px; }
+  footer li { margin-bottom: 3px; }
+  .backup-link { display: inline-block; margin-top: 6px; font-size: 0.82rem; font-weight: 700; color: var(--ink); background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; text-decoration: none; }
+  .backup-link:hover { border-color: var(--tom); }
 </style>
 </head>
-<body data-palette="199e70,9085e9,e66767,008300,3987e5,fab219">
-  <div class="slide">
-    <div class="top-row">
-      <div>
-        <p class="eyebrow">Evals, tests &amp; observability — Agent-Tom</p>
-        <h1><span class="grad">Two lines collided.</span><span class="fade">One bug didn't survive it.</span></h1>
-      </div>
-      <a class="backup-link" href="eval-test-observability-agent-tom-backup-1.html">Backups →</a>
-    </div>
+<body>
+<div class="bg-gradient"></div>
 
-    <p class="subtitle">
-      A test-first checklist and suite, written against the frozen original prototype — and a from-scratch rewrite, done in parallel, without either of us planning it. Walk the collision below: every number is a live re-run, not a claim.
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Evals, Tests &amp; Observability <span>· Agent-Tom</span></div>
+    <button class="theme-toggle" id="theme-toggle">◐ Light</button>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">DSIT · Consultation Insights — one of 3 hackathon scenarios</span>
+    <h1><span class="grad">Two lines collided.</span><span class="fade">One bug didn't survive it.</span></h1>
+    <p class="lead" style="margin-top:18px;">
+      A test-first checklist, written against the frozen original prototype — and a from-scratch
+      rewrite of the same file, done in parallel, without either of us planning it. The brief: a
+      batch tool classifying public consultation responses, inherited with a crash-and-lose-everything
+      bug at row 19,000 and a shared departmental budget — expected to scale to 20,000+ responses
+      feeding a <em>published government summary</em>. Walk the collision below; every number here
+      is a live re-run, not a claim.
     </p>
 
-    <div class="tl-block">
-      <div class="tl-controls">
-        <button class="tl-btn" id="tl-prev" type="button">◀ Prev</button>
-        <button class="tl-btn" id="tl-play" type="button">▶ Walk the timeline</button>
-        <button class="tl-btn" id="tl-next" type="button">Next ▶</button>
-        <span class="tl-hint">— or click any step. Hover for the quick fact, click for the detail.</span>
+    <div class="measured">
+      <div class="mcard t">
+        <div class="tag">Checklist</div>
+        <div class="big">57</div>
+        <div class="sub">checks · 12 categories · written before the fix existed</div>
       </div>
+      <div class="mcard b">
+        <div class="tag">Bugs testing caught</div>
+        <div class="big">2</div>
+        <div class="sub">real, reproducible — one was in our own safety net</div>
+      </div>
+      <div class="mcard g">
+        <div class="tag">Tests green today</div>
+        <div class="big">64<span style="font-size:1.1rem;color:var(--muted);"> / 65</span></div>
+        <div class="sub">1 honestly skipped — documented, not hidden</div>
+      </div>
+    </div>
+  </div>
+</section>
 
-      <div class="lanes">
-        <div class="lane lane-tom">
-          <span class="lane-tag">Agent-Tom</span>
-          <details class="node node-tom tt">
-            <summary>Wrote the 57-item checklist + test suite<span class="node-badge">Written first</span></summary>
-            <span class="tt-bubble">57 checks · 12 categories · pinned against the frozen original commit</span>
-            <div class="node-body">
-              A 57-item hardening checklist (security, resilience, PII, cost, governance…) plus a test suite that pins the original prototype's real bugs as failing tests — written before any fix code existed.
-            </div>
-          </details>
+<section style="padding-top:8px;">
+  <div class="wrap">
+    <h2>What "production ready" actually required</h2>
+    <p class="lead" style="margin-bottom:16px;">Not a feature list — an audit that found real bugs, fixed them, proved the fix, and named what's still open.</p>
+    <div class="money-strip">
+      <div class="money">
+        <h3><span class="dot" style="background:var(--bug)"></span>Found</h3>
+        <p>Testing surfaced 2 real, reproducible bugs — not assumed away, not found by manual review.</p>
+      </div>
+      <div class="money">
+        <h3><span class="dot" style="background:var(--good)"></span>Fixed</h3>
+        <p>Both are regression-tested today, not just patched and hoped.</p>
+      </div>
+      <div class="money">
+        <h3><span class="dot" style="background:var(--info)"></span>Proven</h3>
+        <p>100+ concurrent trials, 0 crashes — a number anyone can re-run, not a one-off claim.</p>
+      </div>
+      <div class="money">
+        <h3><span class="dot" style="background:var(--warn)"></span>Named</h3>
+        <p>3 remaining gaps, stated precisely, with an owner action each — not glossed over.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:22px;">
+  <div class="wrap">
+    <div class="app">
+
+      <aside class="panel">
+        <h2>Walk the collision</h2>
+        <p class="hint">A guided tour of the timeline on the right — click a dot, or Prev/Next.</p>
+
+        <div class="walk-head">
+          <span class="walk-step" id="walk-step">Step 1 / 7</span>
+          <span class="walk-title" id="walk-title"></span>
+        </div>
+        <p class="walk-narr" id="walk-narr"></p>
+        <div class="walk-dots" id="walk-dots"></div>
+        <div class="btn-row">
+          <button class="mini-btn" id="walk-prev">‹ Back</button>
+          <button class="mini-btn" id="walk-next">Next ›</button>
+        </div>
+        <p class="walk-caption">Or click any node in the timeline directly — clicking one that isn't the current step steps you off the guided tour.</p>
+      </aside>
+
+      <main>
+        <div class="rec" id="rec">
+          <div class="rec-label">Verdict</div>
+          <div class="rec-name">Production-ready — with 3 named exceptions</div>
+          <div class="rec-why">
+            Two real bugs were found by testing, fixed, and proven with 100+ trials — not assumed
+            fixed. What's not yet true: the CI gate doesn't cover one of our two test suites, a
+            fallback model provider doesn't exist, and 16 of 18 quality-eval rows haven't been run
+            against the real API. None of that is hidden — <b>it's named, with an owner action for
+            each</b> (see the ledger below, and the backups).
+          </div>
+          <div class="rec-nums">
+            <div class="rec-num"><div class="n" style="color:var(--good-ink)">64 / 65</div><div class="l">tests green</div></div>
+            <div class="rec-num"><div class="n" style="color:var(--good-ink)">100+ / 0</div><div class="l">trials / crashes</div></div>
+            <div class="rec-num"><div class="n" style="color:var(--bug-ink)">2</div><div class="l">bugs found &amp; fixed</div></div>
+            <div class="rec-num"><div class="n" style="color:var(--warn-ink)">3</div><div class="l">gaps named</div></div>
+          </div>
+          <div class="rec-warn">⚠ One of the 3 gaps is structural, not just unfinished: Jack's 40-test suite passes locally but isn't gated in CI yet.</div>
         </div>
 
-        <div class="lane lane-jack">
-          <span class="lane-tag">Agent-Jack</span>
-          <details class="node node-jack tt">
-            <summary>Rewrites analyse.py from scratch, in parallel</summary>
-            <span class="tt-bubble">Independent, concurrent — neither of us planned the collision</span>
-            <div class="node-body">
-              A full rewrite of the exact file the test suite was being written against, done concurrently and independently. Could have made the suite redundant — instead, reconciling the two is what surfaced a real bug.
-            </div>
-          </details>
+        <div class="chart-card">
+          <h2>The timeline</h2>
+          <div class="ch-sub">Two tracks, run in parallel, colliding at one point — reconciling them is how the bug got found. Hover any node for the fact; click it to open the detail.</div>
+          <div class="legend">
+            <span><span class="sw" style="background:var(--tom)"></span>Agent-Tom's track</span>
+            <span><span class="sw" style="background:var(--jack)"></span>Agent-Jack's track</span>
+            <span><span class="sw" style="background:var(--bug)"></span>a bug found</span>
+            <span><span class="sw" style="background:var(--good)"></span>fixed &amp; verified</span>
+          </div>
+          <div class="tl-wrap" id="tl-wrap">
+            <svg class="tl-svg" id="tl-svg" viewBox="0 0 1000 440" preserveAspectRatio="none" role="img" aria-label="Timeline: two tracks converge, one branches, then merge and continue"></svg>
+
+            <span class="tl-lane-label" id="lbl-tom" style="color:var(--tom-ink)">Agent-Tom</span>
+            <span class="tl-lane-label" id="lbl-jack" style="color:var(--jack-ink)">Agent-Jack</span>
+
+            <details class="tl-node tl-node-tom" id="node-0" style="left:9%; top:22%;">
+              <summary>Wrote the 57-item checklist + test suite<span class="badge">Written first</span></summary>
+              <div class="body">A 57-item hardening checklist (security, resilience, PII, cost, governance…) plus a test suite that pins the original prototype's real bugs as failing tests — written before any fix code existed.</div>
+            </details>
+
+            <details class="tl-node tl-node-jack" id="node-1" style="left:9%; top:58%;">
+              <summary>Rewrites analyse.py from scratch, in parallel</summary>
+              <div class="body">A full rewrite of the exact file the test suite was being written against, done concurrently and independently. Could have made the suite redundant — instead, reconciling the two is what surfaced a real bug.</div>
+            </details>
+
+            <details class="tl-node tl-node-collision" id="node-2" style="left:40%; top:40%;">
+              <summary><span class="mini-dot" style="background:var(--tom)"></span><span class="mini-dot" style="background:var(--jack)"></span>Reconciliation finds a real race</summary>
+              <div class="body">Two people running the analyser at once raced on an identical temp filename.<code>FileNotFoundError: [Errno 2] No such file or directory: '.batch_state.tmp' -&gt; '.batch_state.json'</code>Reproduced roughly 1 time in 5-6, reliably.</div>
+            </details>
+
+            <details class="tl-node tl-node-satellite below" id="node-3" style="left:50%; top:82%;">
+              <summary>Same shape, different file</summary>
+              <div class="body">Two ordinary Claude Code turns logged as <strong>£16.37</strong> and <strong>£23.41</strong> — an unlocked, shared state file racing across concurrent sessions. Same disease as the analyser bug, in a completely different file. Fixed with a file lock, an atomic write, and a persisted dedup set.</div>
+            </details>
+
+            <details class="tl-node tl-node-fixed" id="node-4" style="left:62%; top:40%;">
+              <summary>Both races fixed</summary>
+              <div class="body">Fixing the temp-file collision stopped hiding a second, masked race in the cleanup path (an exists-then-unlink gap). Both are fixed and now covered by dedicated regression tests.</div>
+            </details>
+
+            <details class="tl-node tl-node-trials" id="node-5" style="left:78%; top:40%;">
+              <summary>100+ trials, 0 crashes</summary>
+              <div class="body">A concurrent-run stress test, repeated 100+ times after the fix: zero crashes. Before the fix, the same test reproduced the crash roughly 1 time in 5-6.</div>
+            </details>
+
+            <details class="tl-node tl-node-observable" id="node-6" style="left:93%; top:40%;">
+              <summary>Now observable</summary>
+              <div class="body">Every run now emits real OpenTelemetry traces, 5 metrics (spend, rows by outcome, cache status, response size, batch rows) and structured, PII-safe logs — not just a pass/fail result.</div>
+            </details>
+          </div>
         </div>
 
-        <div class="lane merge-row">
-          <span class="lane-tag" style="visibility:hidden">·</span>
-          <div class="merge-items">
-            <div class="merge-item">
-              <div class="branch-wrap">
-                <details class="node node-collision tt">
-                  <summary><span class="mini-dot" style="background:var(--tom)"></span><span class="mini-dot" style="background:var(--jack)"></span>Reconciliation finds a real race</summary>
-                  <span class="tt-bubble">Two processes, one temp filename — ~1-in-5-6 real crashes</span>
-                  <div class="node-body">
-                    Two people running the analyser at once raced on an identical temp filename.
-                    <code>FileNotFoundError: [Errno 2] No such file or directory: '.batch_state.tmp' -&gt; '.batch_state.json'</code>
-                    Reproduced roughly 1 time in 5-6, reliably.
-                  </div>
-                </details>
-                <div class="branch-connector"></div>
-                <details class="node node-satellite tt">
-                  <summary>Same shape, different file</summary>
-                  <span class="tt-bubble">Our own spend-tracker double-counted real money</span>
-                  <div class="node-body">
-                    Two ordinary Claude Code turns logged as <strong>£16.37</strong> and <strong>£23.41</strong> — an unlocked, shared state file racing across concurrent sessions. Same disease as the analyser bug, in a completely different file. Fixed with a file lock, an atomic write, and a persisted dedup set.
-                  </div>
-                </details>
-              </div>
+        <div class="chart-card">
+          <h2>Confidence ledger</h2>
+          <div class="ch-sub">Will this hold up in production? Here's exactly how sure to be, tier by tier.</div>
+          <div class="ledger-row">
+            <div class="ledger-card verified">
+              <p class="tier">✓ Verified</p>
+              <p>100+ concurrent trials, 0 crashes. 64 of 65 tests green today — deterministic, re-run any time.</p>
             </div>
-
-            <div class="merge-item">
-              <details class="node node-fixed tt">
-                <summary>Both races fixed</summary>
-                <span class="tt-bubble">Fixing the first race unmasked a second one</span>
-                <div class="node-body">
-                  Fixing the temp-file collision stopped hiding a second, masked race in the cleanup path (an exists-then-unlink gap). Both are fixed and now covered by dedicated regression tests.
-                </div>
-              </details>
+            <div class="ledger-card measured">
+              <p class="tier">◔ Measured</p>
+              <p>Every run emits real OpenTelemetry traces, metrics and logs — not simulated, not estimated.</p>
             </div>
-
-            <div class="merge-item">
-              <details class="node node-trials tt">
-                <summary>100+ trials, 0 crashes</summary>
-                <span class="tt-bubble">Verified, not assumed</span>
-                <div class="node-body">
-                  A concurrent-run stress test, repeated 100+ times after the fix: zero crashes. Before the fix, the same test reproduced the crash roughly 1 time in 5-6.
-                </div>
-              </details>
-            </div>
-
-            <div class="merge-item">
-              <details class="node node-observable tt">
-                <summary>Now observable</summary>
-                <span class="tt-bubble">OTel traces · 5 metrics · PII-safe logs → SigNoz</span>
-                <div class="node-body">
-                  Every run now emits real OpenTelemetry traces, 5 metrics (spend, rows by outcome, cache status, response size, batch rows) and structured, PII-safe logs — not just a pass/fail result.
-                </div>
-              </details>
+            <div class="ledger-card named">
+              <p class="tier">⚠ Named, not hidden</p>
+              <p>3 things not yet proven: 16 of 18 golden-eval rows unrun, a fallback model provider, and CI not yet covering all tests. <a href="eval-test-observability-agent-tom-backup-3.html">See the honest ledger →</a> (there are more — 8 in total — all named there.)</p>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
-
-    <p class="ledger-label">Will this hold up in production? Here's exactly how confident to be.</p>
-    <div class="ledger">
-      <div class="ledger-card verified">
-        <p class="ledger-tier">✓ Verified</p>
-        100+ concurrent trials, 0 crashes. 64 of 65 tests green today — deterministic, re-run any time.
-      </div>
-      <div class="ledger-card measured">
-        <p class="ledger-tier">◔ Measured</p>
-        Every run emits real OpenTelemetry traces, metrics and logs — not simulated, not estimated.
-      </div>
-      <a class="ledger-card named" href="eval-test-observability-agent-tom-backup-3.html">
-        <p class="ledger-tier">⚠ Named, not hidden</p>
-        3 things not yet proven: remaining golden-eval rows, a fallback model provider, real-scale rate limits. <span class="chev">See the honest ledger →</span>
-      </a>
-    </div>
-
-    <p class="footer">Here's exactly how confident to be — and exactly what isn't proven yet. That's what &ldquo;production ready&rdquo; has to mean.</p>
   </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <h3>What's frozen (and why)</h3>
+        <ul>
+          <li>The 2026-07-15 "before" numbers (56 passed / 3-4 failed / 1 skipped) are a historical fact from <code>EVAL_REPORT.md</code>, not regenerated.</li>
+          <li>Cost and prompt-caching are deliberately absent from this page — Jack's presentation covers it.</li>
+          <li>The 3 backup slides stay in their existing fixed-slide style — this page's format changed, they haven't yet.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Provenance</h3>
+        <ul>
+          <li>Bug narratives &amp; fixes: <code>solution/AI_LOG.md</code>.</li>
+          <li>Checklist: <code>solution/improvement-checklist-agent-tom.md</code> (57 items, 12 categories).</li>
+          <li>Test suite: <code>solution/tests/</code> + <code>test_analyse.py</code> (65 tests total).</li>
+          <li>Crash text: <code>solution/tests/system/test_operability.py</code>'s own regression test.</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:20px;">
+      Built by Agent-Tom · <code>wk09/presentations/eval-test-observability-agent-tom.html</code> ·
+      <a class="backup-link" href="eval-test-observability-agent-tom-backup-1.html">Backups →</a>
+      have the rest — including exactly what we didn't get to.
+    </p>
+  </div>
+</footer>
+
+<div class="tooltip" id="tooltip"></div>
 
 <script>
-(function () {
-  var nodes = Array.prototype.slice.call(document.querySelectorAll('.node'));
-  var idx = -1;
-  var timer = null;
-  var playBtn = document.getElementById('tl-play');
+/* ============================================================
+   TOOLTIP (reused pattern: fixed element, mousemove-tracked)
+   ============================================================ */
+const tip = document.getElementById('tooltip');
+function showTip(html, evt) {
+  tip.innerHTML = html;
+  tip.style.opacity = '1';
+  moveTip(evt);
+}
+function moveTip(evt) {
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + w > window.innerWidth)  x = evt.clientX - w - pad;
+  if (y + h > window.innerHeight) y = evt.clientY - h - pad;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+function hideTip() { tip.style.opacity = '0'; }
 
-  function setActive(i) {
-    idx = i;
-    nodes.forEach(function (n, j) {
-      n.classList.toggle('step-active', j === i);
-      n.classList.toggle('step-dim', i !== -1 && j !== i);
-    });
+const TOOLTIPS = [
+  '57 checks · 12 categories · pinned against the frozen original commit',
+  'Independent, concurrent — neither of us planned the collision',
+  'Two processes, one temp filename — ~1-in-5-6 real crashes',
+  'Our own spend-tracker double-counted real money',
+  'Fixing the first race unmasked a second one',
+  'Verified, not assumed',
+  'OTel traces · 5 metrics · PII-safe logs → SigNoz',
+];
+
+/* ============================================================
+   SVG HELPERS (var() isn't reliably read as an SVG presentation
+   attribute, so resolve it to a concrete colour; cache per render,
+   clear on theme change)
+   ============================================================ */
+const SVGNS = 'http://www.w3.org/2000/svg';
+let _varCache = {};
+function resolveVar(v) {
+  if (typeof v !== 'string') return v;
+  const m = /^var\((--[\w-]+)\)$/.exec(v.trim());
+  if (!m) return v;
+  if (_varCache[m[1]] === undefined) {
+    _varCache[m[1]] = getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
   }
-
-  function stopPlay() {
-    if (timer) { clearInterval(timer); timer = null; }
-    playBtn.textContent = '▶ Walk the timeline';
+  return _varCache[m[1]] || v;
+}
+function el(tag, attrs = {}, parent = null) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) {
+    let val = attrs[k];
+    if ((k === 'fill' || k === 'stroke') && typeof val === 'string') val = resolveVar(val);
+    e.setAttribute(k, val);
   }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function clear(svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
 
-  document.getElementById('tl-next').addEventListener('click', function () {
-    stopPlay();
-    setActive((idx + 1 + nodes.length) % nodes.length);
-  });
-  document.getElementById('tl-prev').addEventListener('click', function () {
-    stopPlay();
-    setActive((idx - 1 + nodes.length) % nodes.length);
-  });
-  playBtn.addEventListener('click', function () {
-    if (timer) { stopPlay(); setActive(-1); return; }
-    playBtn.textContent = '⏸ Pause';
-    setActive(0);
-    timer = setInterval(function () {
-      var next = idx + 1;
-      if (next >= nodes.length) { stopPlay(); setActive(-1); return; }
-      setActive(next);
-    }, 1800);
+/* ============================================================
+   TIMELINE SVG — the connecting rails/dots behind the HTML chips.
+   Coordinates are in the same 0-100 percentage space the HTML
+   .tl-node chips use (left/top %), scaled to the 0-1000/0-440
+   viewBox, so the SVG lines and the HTML cards never drift apart
+   regardless of viewport width.
+   ============================================================ */
+const VBW = 1000, VBH = 440;
+const PX = pct => pct / 100 * VBW;
+const PY = pct => pct / 100 * VBH;
+
+const NODES = [
+  { x: 9,  y: 22, accent: 'var(--tom)'  },  // 0 checklist
+  { x: 9,  y: 58, accent: 'var(--jack)' },  // 1 rewrite
+  { x: 40, y: 40, accent: 'var(--bug)'  },  // 2 collision
+  { x: 50, y: 82, accent: 'var(--bug)'  },  // 3 satellite
+  { x: 62, y: 40, accent: 'var(--good)' },  // 4 fixed
+  { x: 78, y: 40, accent: 'var(--good)' },  // 5 trials
+  { x: 93, y: 40, accent: 'var(--good)' },  // 6 observable
+];
+
+function drawTimeline() {
+  const svg = document.getElementById('tl-svg');
+  clear(svg);
+
+  // baselines: tom (0->2), jack (1->2), merged (2->4->5->6)
+  el('line', { x1: PX(4), y1: PY(22), x2: PX(NODES[2].x), y2: PY(22), stroke: 'var(--tom)', 'stroke-width': 2.5, opacity: 0.7 }, svg);
+  el('line', { x1: PX(4), y1: PY(58), x2: PX(NODES[2].x), y2: PY(58), stroke: 'var(--jack)', 'stroke-width': 2.5, opacity: 0.7 }, svg);
+  // convergence: two short verticals from each lane's end into the collision point
+  el('line', { x1: PX(NODES[2].x), y1: PY(22), x2: PX(NODES[2].x), y2: PY(40), stroke: 'var(--tom)', 'stroke-width': 2.5, opacity: 0.7 }, svg);
+  el('line', { x1: PX(NODES[2].x), y1: PY(58), x2: PX(NODES[2].x), y2: PY(40), stroke: 'var(--jack)', 'stroke-width': 2.5, opacity: 0.7 }, svg);
+  // merged line continues right through fixed/trials/observable
+  el('line', { x1: PX(NODES[2].x), y1: PY(40), x2: PX(96), y2: PY(40), stroke: 'var(--good)', 'stroke-width': 2.5, opacity: 0.75 }, svg);
+  // satellite branch: dashed, off the merged line at the satellite's own x
+  el('line', { x1: PX(NODES[3].x), y1: PY(40), x2: PX(NODES[3].x), y2: PY(NODES[3].y), stroke: 'var(--bug)', 'stroke-width': 2, 'stroke-dasharray': '5 4', opacity: 0.7 }, svg);
+
+  // tick marks along the merged baseline, for the "this is a time axis" read
+  for (let t = 8; t <= 92; t += 12) {
+    el('line', { x1: PX(t), y1: PY(40) - 5, x2: PX(t), y2: PY(40) + 5, stroke: 'var(--line)', 'stroke-width': 1 }, svg);
+  }
+  el('text', { x: PX(97), y: PY(40) - 12, 'text-anchor': 'end', class: 'tick-label', 'font-style': 'italic' }, svg).textContent = 'time →';
+
+  // dots on top of the lines
+  NODES.forEach(n => {
+    el('circle', { cx: PX(n.x), cy: PY(n.y), r: 6, fill: n.accent, stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
   });
 
-  nodes.forEach(function (n, i) {
-    n.addEventListener('toggle', function () {
-      if (n.open) { stopPlay(); setActive(i); }
-    });
+  // lane labels, positioned to match the .tl-lane-label spans (kept in CSS-position sync via JS below)
+}
+
+function positionLaneLabels() {
+  // matches the tom/jack baseline y-coordinates used in drawTimeline() (22%/58%)
+  const tom = document.getElementById('lbl-tom');
+  const jack = document.getElementById('lbl-jack');
+  tom.style.left = '1%'; tom.style.top = '22%';
+  jack.style.left = '1%'; jack.style.top = '58%';
+}
+
+/* ============================================================
+   GUIDED WALKTHROUGH — 7 steps, mapped 1:1 onto the timeline nodes
+   ============================================================ */
+const STORY = [
+  { title: 'A checklist, written before the fix existed',
+    narr: 'Before Jack’s rewrite of analyse.py even existed, this is a 57-item hardening checklist and a test suite written against the original prototype’s real sins — the crash-and-lose-everything bug, the pay-twice bug — pinned as failing tests against the actual original commit. Prove the sins are real first, then prove they’re fixed later.' },
+  { title: 'A rewrite, happening in parallel',
+    narr: 'At the same time, completely independently, Jack rewrote analyse.py from scratch on the Batch API. Neither of us planned this collision — and it could have made the whole test suite worthless overnight.' },
+  { title: 'Reconciling the two finds a real bug',
+    narr: 'Running the suite against the rewrite is exactly how a real concurrency bug turned up: two people running the analyser at once raced on an identical temp filename and crashed with a bare FileNotFoundError — about one time in five or six, reproducibly. Click the node below to see the actual crash.' },
+  { title: 'The same shape, somewhere else entirely',
+    narr: 'Reconciling didn’t just fix one thing — it changed what we went and checked elsewhere. Our own AI spend-tracking tool had logged sixteen and twenty-three pound charges for two ordinary Claude Code turns: the same unlocked-shared-state race, in a completely different file. The tool watching our own safety net had its own bug.' },
+  { title: 'Both races fixed — the second only visible once the first was',
+    narr: 'Fixing the temp-file collision stopped hiding a second, masked race in the cleanup path. Both are fixed now, and both have dedicated regression tests, so neither one can quietly come back.' },
+  { title: 'Proven, not assumed — 100+ trials, 0 crashes',
+    narr: 'The bug was probabilistic, so one clean run after the fix would prove nothing. This ran 100+ concurrent trials specifically to check: zero crashes, down from a reproducible 1-in-5-6 before.' },
+  { title: 'And now it’s actually observable',
+    narr: 'Every run today emits real OpenTelemetry traces, five metrics, and PII-safe structured logs to SigNoz — so next time something looks wrong, nobody has to go bug-hunting blind.' },
+];
+
+const nodes = Array.from({ length: 7 }, (_, i) => document.getElementById('node-' + i));
+let walkIdx = 0;
+let walkFree = false;
+
+const walkStepEl = document.getElementById('walk-step');
+const walkTitleEl = document.getElementById('walk-title');
+const walkNarrEl = document.getElementById('walk-narr');
+const walkDotsEl = document.getElementById('walk-dots');
+const walkPrevBtn = document.getElementById('walk-prev');
+const walkNextBtn = document.getElementById('walk-next');
+
+function buildDots() {
+  walkDotsEl.innerHTML = '';
+  STORY.forEach((s, i) => {
+    const d = document.createElement('button');
+    d.className = 'walk-dot';
+    d.textContent = i + 1;
+    d.title = s.title;
+    d.type = 'button';
+    d.addEventListener('click', () => gotoStep(i));
+    walkDotsEl.appendChild(d);
   });
-})();
+}
+
+function updateWalkUI() {
+  const dots = walkDotsEl.querySelectorAll('.walk-dot');
+  dots.forEach((d, i) => {
+    d.classList.toggle('active', !walkFree && i === walkIdx);
+    d.classList.toggle('off', walkFree);
+  });
+  if (walkFree) {
+    walkStepEl.textContent = 'Off-script';
+    walkTitleEl.textContent = 'Exploring the timeline directly';
+    walkNarrEl.textContent = 'You’ve stepped off the guided tour by opening a node directly. Tap a numbered dot to jump back in, or keep exploring the timeline.';
+  } else {
+    walkStepEl.textContent = 'Step ' + (walkIdx + 1) + ' / ' + STORY.length;
+    walkTitleEl.textContent = STORY[walkIdx].title;
+    walkNarrEl.textContent = STORY[walkIdx].narr;
+  }
+  walkPrevBtn.disabled = !walkFree && walkIdx === 0;
+  walkNextBtn.disabled = !walkFree && walkIdx === STORY.length - 1;
+}
+
+function setActiveNode(i) {
+  nodes.forEach((n, j) => {
+    n.classList.toggle('step-active', j === i);
+    n.classList.toggle('step-dim', j !== i);
+    n.open = (j === i);
+  });
+}
+
+function gotoStep(i) {
+  walkIdx = Math.max(0, Math.min(STORY.length - 1, i));
+  walkFree = false;
+  setActiveNode(walkIdx);
+  updateWalkUI();
+}
+
+function goOffScript() {
+  if (!walkFree) {
+    walkFree = true;
+    nodes.forEach(n => { n.classList.remove('step-active', 'step-dim'); });
+    updateWalkUI();
+  }
+}
+
+walkPrevBtn.addEventListener('click', () => gotoStep(walkFree ? walkIdx : walkIdx - 1));
+walkNextBtn.addEventListener('click', () => gotoStep(walkFree ? walkIdx : walkIdx + 1));
+
+nodes.forEach((n, i) => {
+  n.addEventListener('mousemove', e => showTip(TOOLTIPS[i], e));
+  n.addEventListener('mouseleave', hideTip);
+  // Detect manual interaction via the summary's click, not the details'
+  // "toggle" event — "toggle" fires as a queued task (not synchronously),
+  // so a flag reset at the end of setActiveNode() would already be cleared
+  // by the time gotoStep()'s own programmatic opens fire it. A click on the
+  // summary is synchronous and only ever comes from the user, never from
+  // setActiveNode() (which sets .open directly, no click involved).
+  const summary = n.querySelector('summary');
+  summary.addEventListener('click', () => {
+    if (walkFree || i !== walkIdx) goOffScript();
+  });
+});
+
+/* ============================================================
+   THEME TOGGLE
+   ============================================================ */
+const themeBtn = document.getElementById('theme-toggle');
+themeBtn.addEventListener('click', () => {
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  document.documentElement.setAttribute('data-theme', light ? 'dark' : 'light');
+  themeBtn.textContent = light ? '◐ Light' : '◑ Dark';
+  _varCache = {};
+  drawTimeline();
+});
+
+/* init */
+buildDots();
+positionLaneLabels();
+drawTimeline();
+gotoStep(0);
+window.addEventListener('resize', () => { /* SVG scales via viewBox; % chips scale natively */ });
 </script>
 </body>
 </html>
