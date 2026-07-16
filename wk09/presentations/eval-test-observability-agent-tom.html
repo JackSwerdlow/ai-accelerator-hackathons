@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Evals, Tests &amp; Observability — Agent-Tom</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #f3f2ef;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #86847d;
+    --blue:           #2a78d6;   /* categorical slot 1 — baseline (no caching) */
+    --green:          #008300;   /* categorical slot 4 — with caching */
+    --border:         rgba(11,11,11,0.10);
+    --good:           #0ca30c;   /* status: passed */
+    --critical:       #d03b3b;   /* status: failed */
+    --skip:           #898781;   /* muted — skipped (documented, not a warning) */
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--surface-1);
+    color: var(--text-primary);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  .slide {
+    width: 100vw;
+    height: 100vh;
+    max-width: 1280px;
+    max-height: 720px;
+    margin: 0 auto;
+    padding: 36px 60px 28px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .eyebrow {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    font-size: 33px;
+    line-height: 1.14;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  h1 .fade { color: var(--text-secondary); font-weight: 500; }
+
+  .backup-link {
+    flex: none;
+    align-self: flex-start;
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 14px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .backup-link:hover { color: var(--text-primary); border-color: rgba(11,11,11,0.22); }
+
+  .subtitle {
+    font-size: 16.5px;
+    color: var(--text-secondary);
+    margin: 0 0 16px;
+    max-width: 980px;
+    line-height: 1.4;
+  }
+
+  .tiles-compact {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    flex: none;
+  }
+
+  .tile {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px 12px;
+    position: relative;
+  }
+  .tile-name {
+    font-size: 14.5px;
+    font-weight: 700;
+    margin: 0 0 2px;
+  }
+  .tile-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 8px;
+    line-height: 1.35;
+    min-height: 32px;
+  }
+  .tile-metric {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .tile-metric .unit { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-left: 4px; }
+
+  .badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--good);
+    background: rgba(12,163,12,0.10);
+    border: 1px solid rgba(12,163,12,0.28);
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+
+  /* --- tooltip: CSS-only, no JS --- */
+  .tt { position: relative; cursor: default; }
+  .tt .tt-bubble {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text-primary);
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: nowrap;
+    padding: 6px 10px;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+    z-index: 6;
+  }
+  .tt .tt-bubble::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--text-primary);
+  }
+  .tt:hover .tt-bubble { opacity: 1; }
+
+  /* --- charts row --- */
+  .charts-row {
+    display: flex;
+    gap: 18px;
+    flex: 1;
+    min-height: 0;
+    margin-top: 16px;
+  }
+  .chart-panel {
+    flex: 1;
+    min-width: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    position: relative;
+  }
+  .chart-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    margin: 0 0 10px;
+  }
+  .chart-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 26px;
+    padding: 0 8px;
+  }
+
+  /* Chart 1: stacked bars (Jul 15 vs today) */
+  .bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+  .bar-stack {
+    width: 56px;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-start;
+    gap: 2px;
+  }
+  .seg { width: 100%; border-radius: 4px; position: relative; }
+  .seg.passed { background: var(--good); }
+  .seg.failed { background: var(--critical); }
+  .seg.skipped { background: var(--skip); }
+  .bar-label { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-align: center; }
+  .bar-sublabel { font-size: 10.5px; color: var(--text-muted); text-align: center; margin-top: 1px; }
+  .seg-label {
+    position: absolute;
+    right: calc(100% + 6px);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--text-secondary);
+  }
+
+  /* Chart 2: small-multiple grouped bars (1k / 20k rows) */
+  .cost-panels { display: flex; flex: 1; gap: 22px; min-height: 0; }
+  .cost-panel { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .cost-bars { display: flex; align-items: flex-end; gap: 10px; height: 100%; flex: 1; }
+  .cost-bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .cost-bar { width: 30px; border-radius: 4px 4px 0 0; position: relative; }
+  .cost-bar.baseline { background: var(--blue); }
+  .cost-bar.cached { background: var(--green); }
+  .cost-value {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--text-secondary);
+  }
+  .cost-panel-label { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+  .cost-saving { font-size: 10.5px; color: var(--good); font-weight: 700; margin-top: 1px; }
+
+  .legend-row {
+    display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--text-muted);
+  }
+  .legend-row span { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .dot.passed { background: var(--good); }
+  .dot.failed { background: var(--critical); }
+  .dot.skipped { background: var(--skip); }
+  .dot.baseline { background: var(--blue); }
+  .dot.cached { background: var(--green); }
+
+  .footer {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    flex: none;
+  }
+  .takeaway {
+    font-size: 15px;
+    font-weight: 600;
+    max-width: 660px;
+    line-height: 1.35;
+  }
+  .industry-note {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    max-width: 340px;
+    text-align: right;
+    line-height: 1.45;
+  }
+
+  /* --- crash reveal: <details>, no JS, absolutely positioned so it can't overflow the fixed canvas --- */
+  .crash-reveal { position: relative; margin-top: 8px; }
+  .crash-reveal summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--critical);
+    background: rgba(208,59,59,0.08);
+    border: 1px solid rgba(208,59,59,0.28);
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
+  .crash-reveal summary::-webkit-details-marker { display: none; }
+  .crash-reveal summary:hover { background: rgba(208,59,59,0.14); }
+  .crash-body {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 8;
+    background: #1a1a19;
+    color: #f0efec;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: "SF Mono", Consolas, Monaco, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+    max-width: 420px;
+  }
+</style>
+</head>
+<body data-palette="2a78d6,008300,0ca30c,d03b3b">
+  <div class="slide">
+    <div class="top-row">
+      <div>
+        <p class="eyebrow">Evals, tests &amp; observability — Agent-Tom</p>
+        <h1>We didn't just fix it.<br><span class="fade">We proved it — and caught two bugs.</span></h1>
+      </div>
+      <a class="backup-link" href="eval-test-observability-agent-tom-backup-1.html">Backups →</a>
+    </div>
+
+    <p class="subtitle">
+      Wrote the 57-item hardening checklist and test plan against the original prototype before the fix existed — reconciling it against a teammate's concurrent rewrite is how a real bug got found. Every number below is a re-run, not a claim.
+    </p>
+
+    <div class="tiles-compact">
+      <div class="tile">
+        <p class="tile-name">The checklist</p>
+        <p class="tile-desc">Security · resilience · PII · cost · governance…</p>
+        <p class="tile-metric">57<span class="unit">checks / 12 categories</span></p>
+        <span class="badge">Written first</span>
+      </div>
+      <div class="tile tt">
+        <p class="tile-name">Bugs testing caught</p>
+        <p class="tile-desc">A concurrency race — and a double-counting bug in our own spend tracker</p>
+        <p class="tile-metric">2<span class="unit">real bugs, both fixed</span></p>
+        <span class="badge">One was ours</span>
+        <span class="tt-bubble">S5 (concurrency race) + spend-log double-counting</span>
+      </div>
+      <div class="tile">
+        <p class="tile-name">Now observable</p>
+        <p class="tile-desc">PII-safe: prompt/response text is never traced</p>
+        <p class="tile-metric" style="font-size:15px; line-height:1.35;">OTel traces · 5 metrics · structured logs → SigNoz</p>
+        <span class="badge">Live</span>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-panel">
+        <p class="chart-title">Test suite — before → after</p>
+        <div class="chart-body">
+          <div class="bar-group">
+            <div class="bar-stack" style="height:61%;">
+              <div class="seg failed" style="height:7%;"></div>
+              <div class="seg skipped" style="height:2%;"></div>
+              <div class="seg passed" style="height:91%;"></div>
+            </div>
+            <p class="bar-label">2026-07-15</p>
+            <p class="bar-sublabel">56 passed · 3–4 failed · 1 skipped</p>
+          </div>
+          <div class="bar-group">
+            <div class="bar-stack" style="height:65%;">
+              <div class="seg skipped" style="height:2%;"></div>
+              <div class="seg passed" style="height:98%;"></div>
+            </div>
+            <p class="bar-label">Today</p>
+            <p class="bar-sublabel">64 passed · 0 failed · 1 skipped</p>
+          </div>
+        </div>
+        <details class="crash-reveal">
+          <summary>Show me the crash →</summary>
+          <div class="crash-body">FileNotFoundError: [Errno 2] No such
+file or directory: '.batch_state.tmp'
+-&gt; '.batch_state.json'
+
+Two processes, one shared temp filename.
+Reproduced ~1-in-5-6 real attempts.
+100+ trials after the fix: zero crashes.</div>
+        </details>
+      </div>
+
+      <div class="chart-panel">
+        <p class="chart-title">Cost at scale — with vs without caching</p>
+        <div class="cost-panels">
+          <div class="cost-panel">
+            <div class="cost-bars">
+              <div class="cost-bar-col">
+                <div class="cost-bar baseline" style="height:100%;"><span class="cost-value">£1.33</span></div>
+              </div>
+              <div class="cost-bar-col">
+                <div class="cost-bar cached" style="height:66%;"><span class="cost-value">£0.88</span></div>
+              </div>
+            </div>
+            <p class="cost-panel-label">1,000 rows</p>
+            <p class="cost-saving">-34%</p>
+          </div>
+          <div class="cost-panel">
+            <div class="cost-bars">
+              <div class="cost-bar-col">
+                <div class="cost-bar baseline" style="height:100%;"><span class="cost-value">£26.67</span></div>
+              </div>
+              <div class="cost-bar-col">
+                <div class="cost-bar cached" style="height:66%;"><span class="cost-value">£17.54</span></div>
+              </div>
+            </div>
+            <p class="cost-panel-label">20,000 rows</p>
+            <p class="cost-saving">-34%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend-row">
+      <span><span class="dot passed"></span>Passed</span>
+      <span><span class="dot failed"></span>Failed</span>
+      <span><span class="dot skipped"></span>Skipped (documented)</span>
+      <span><span class="dot baseline"></span>Baseline (no caching)</span>
+      <span><span class="dot cached"></span>With prompt caching</span>
+    </div>
+
+    <div class="footer">
+      <p class="takeaway">
+        Testing found the bugs it was built to catch — including one in the tool watching our own safety net. That's what "production ready" has to mean.
+      </p>
+      <p class="industry-note">
+        64 of 65 tests green today (was 56 of 61 on Jul 15). The 1 skip is documented, not hidden — see backups.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
