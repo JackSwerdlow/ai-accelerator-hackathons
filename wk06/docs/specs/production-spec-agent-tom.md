@@ -92,6 +92,34 @@ This is largely an organisational exercise rather than a software task, but it r
 - Defined escalation paths (when to refer to a senior officer or legal team)
 - Monitoring of approval-without-modification rate as an early warning indicator
 
+### 2.4 ISO/IEC 42001 clause 6.1.4 — AI system impact assessment
+
+**Requirement:** ISO/IEC 42001 (the AI management system standard) clause 6.1.4 requires a
+documented, repeatable process for assessing the consequences an AI system can have on
+individuals, groups, and society across its lifecycle, feeding those findings into the
+organisation's risk assessment (6.1.2) and risk treatment (6.1.3). See
+`docs/research/cache-iso-42001-clause-6.1.4.md` for the sourced detail and requirement-by-requirement
+mapping to this system; summary below.
+
+**What the hackathon design already provides evidence for:**
+- Consequence identification (wrongful disclosure vs. wrongful withholding, disparate treatment
+  by request topic) — already reasoned about in §1 and §2.2 above
+- Failure-mode handling — the fail-safe defaults in `system-design-agent-tom.md` §5 (triage
+  failure forces review; compliance failure defaults to withhold) are a risk-treatment response
+  to an identified failure mode
+- Technical/explainability context — the evidence-display and A/R/M gate design in
+  `system-design-agent-tom.md` §4 documents model autonomy and human-override points
+
+**What production adds beyond the hackathon:**
+- A standalone **impact assessment document**: named stakeholders (requesters, operators, the
+  authority), scope (which request types are in/out of scope), and a methodology statement —
+  rather than the reasoning being scattered across this file
+- A **risk register** (6.1.2) that the impact assessment explicitly feeds, so findings aren't a
+  dead-end document
+- **Review triggers**: re-run the assessment when the policy corpus, model, or prompt changes
+  materially, not just at initial launch
+- A **named accountable owner** who signs off the assessment and its conclusions
+
 ---
 
 ## 3. Security requirements
@@ -175,7 +203,7 @@ Requires:
 
 | Area | Hackathon design | Production requirement |
 |------|-----------------|----------------------|
-| Regulatory | HITL gate satisfies governance intent | ATRS registration, DPIA, DUAA disclosure |
+| Regulatory | HITL gate satisfies governance intent | ATRS registration, DPIA, DUAA disclosure, ISO 42001 §6.1.4 impact assessment |
 | Security | `.env` file, local output folder | Secrets management, SSO, access controls |
 | Infrastructure | CLI on developer machine | Containerised, CI/CD, rate-limit-aware |
 | Monitoring | Per-request cost log | Bias monitoring, drift detection, audit reporting |
