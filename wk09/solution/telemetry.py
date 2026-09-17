@@ -6,6 +6,7 @@ know: GBP spend, row outcome, response size, batch progress.
 """
 
 import logging
+import socket
 import time
 
 from opentelemetry import metrics, trace
@@ -165,7 +166,19 @@ def init_telemetry():
     if _initialized:
         return
     try:
-        resource = Resource.create({"service.name": SERVICE_NAME})
+        # service.instance.id is deliberately pinned to the hostname, not left
+        # for OTel to auto-generate a random UUID per process. analyse.py is a
+        # batch CLI invoked repeatedly over time (cron, manual re-runs) - the
+        # dashboard needs those runs to land on one continuous, queryable time
+        # series per host, not fragment into a new single-point series every
+        # invocation (which is exactly what happened before this fix: found by
+        # importing the dashboard for real and seeing every rate/increase
+        # panel come back empty, traced to >1000 distinct service.instance.id
+        # values for these metrics in this shared SigNoz instance).
+        resource = Resource.create({
+            "service.name": SERVICE_NAME,
+            "service.instance.id": socket.gethostname(),
+        })
 
         tracer_provider = TracerProvider(resource=resource)
         tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
@@ -184,6 +197,14 @@ def init_telemetry():
         )
         set_logger_provider(logger_provider)
         logging.getLogger().addHandler(LoggingHandler(logger_provider=logger_provider))
+        # Without this, this logger's effective level defers to the root
+        # logger's default (WARNING), so log_batch_started/log_batch_finished
+        # (both INFO) get dropped before reaching any handler - never even
+        # exported to SigNoz, let alone printed. Only the ERROR-level
+        # log_parse_error/log_api_error worked before this fix. Tests didn't
+        # catch this because caplog.at_level(logging.INFO, ...) temporarily
+        # lowers the level for the duration of the test, masking the gap.
+        logger.setLevel(logging.INFO)
 
         from openinference.instrumentation import TraceConfig
         from openinference.instrumentation.anthropic import AnthropicInstrumentor
